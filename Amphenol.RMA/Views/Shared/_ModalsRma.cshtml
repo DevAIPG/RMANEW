@@ -1,0 +1,512 @@
+﻿@model Amphenol.RMA.Models.ViewModels.csexsw_coustumerVM
+
+<!--Modal Reason Code-->
+<div class="modal fade" id="tblSm2" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Reason Code</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body"> 
+                <div class="form-group row"> 
+                    <table id="tblS2" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr> 
+                                <th>Code</th>
+                                <th>Description</th> 
+                            </tr>
+                        </thead> 
+                        <tbody>
+                        </tbody> 
+                    </table>
+                </div> 
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="tblIm2" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">
+                    Invoice History Price
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body table-responsive">
+
+
+                <div class="row justify-content-between">
+
+                    <div class="col-xs-6">
+                        <label for="search">Search:</label>
+                        <input ng-model="searchorders" id="search" class="form-control" placeholder="Filter text" ng-keyup="moverA(1)">
+                    </div>
+
+                </div>
+                <br>
+
+                <table id="invoice2" class="table table-striped table-bordered table-hover responsive" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th>Invoice No</th>
+
+
+                            <th> Customer</th>
+                            <th>Date</th>
+                            <th>Seq No</th>
+                            <th>Item No</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Cost</th>
+
+                            <th>Quantity Ordered</th>
+                            <th>Quantity Shipped</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr dir-paginate="x in orderhistory.orders | itemsPerPage: 10 " total-items="orderhistory.total_paginas">
+                            <td><a data-dismiss='modal' ng-click="Mover9(x)">{{x.inv}}</a></td>
+                            <td>{{x.cus_no}}</td>
+                            <td>{{x.date | fecha}}</td>
+                            <td>{{x.seq}}</td>
+                            <td>{{x.item_no}}</td>
+                            <td>{{x.description}}</td>
+                            <td>{{x.price}}</td>
+                            <td>{{x.cost}}</td>
+                            <td>{{x.ordered}}</td>
+                            <td>{{x.qty_to_ship}}</td>
+                        </tr>
+                    </tbody>
+
+
+                </table>
+
+                <div class="other-controller">
+
+
+
+
+                    <div class="other-controller">
+
+
+
+
+
+                        <dir-pagination-controls boundary-links="true" max-size="15" on-page-change="moverA(newPageNumber)"></dir-pagination-controls>
+
+
+                   
+                    </div>
+
+
+
+
+
+                    <small>Items : {{orderhistory.conteo}}</small>
+
+                </div>
+
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--MODAL PART NUMBER-->
+<div id="mPN" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Part numbers</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row justify-content-between">
+
+                    <div class="col-xs-6">
+                        <label for="search">Search:</label>
+                        <input id="searchPN" class="form-control" placeholder="Filter text">
+                    </div>
+
+                </div>
+                <br>
+
+                <div class="form-group row">
+
+
+                    <table id="tblPN" class="table table-striped table-bordered w-100" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ITEM NO</th>
+                                <th>ITEM DESCRIPTION</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        </tbody>
+
+
+                    </table>
+                    <div id="paginationPN"></div>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div id="mtblSt" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Ship-To </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row justify-content-between">
+
+                    <div class="col-xs-6">
+                        <label for="search">Search:</label>
+                        <input ng-model="w" id="search" class="form-control" placeholder="Filter text">
+                    </div>
+
+                </div>
+                <br>
+
+                <div class="form-group row">
+
+
+                    <table id="tblSt" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Contact</th>
+                                <th>Alternate Address</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr dir-paginate="e in todoListships  | filter:w | itemsPerPage: pageSize5  ">
+                                <td><a data-dismiss='modal' ng-click="Mover7(e)">{{e.id}}</a></td>
+                                <td>{{e.cus_alt_adr_cd}}</td>
+                                <td>{{e.user_def_fld_1}}</td>
+                            </tr>
+
+
+                        </tbody>
+
+
+                    </table>
+                    <div ng-controller="OtherController5" class="other-controller">
+                        <small>Pagination</small>
+                        <div class="text-center">
+                            <dir-pagination-controls boundary-links="true" on-page-change="pageChangeHandler5(newPageNumber)"></dir-pagination-controls>
+                        </div>
+                        <small>Items : {{count5}}</small>
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="rma" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Parts</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <div class="row justify-content-between">
+
+                    <div class="col-xs-6">
+                        <label for="search">Search:</label>
+                        <input ng-model="r" id="search" class="form-control" placeholder="Filter text">
+                    </div>
+
+                </div>
+                <br>
+
+
+                <div class="form-group row">
+
+
+                    <table id="tblrma" class="table table-striped table-bordered table-hover responsive" style="width:100%;">
+                        <thead>
+                            <tr>
+
+                                <th>Parts</th>
+                                <th>Description</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr dir-paginate="x in items  | filter:r | itemsPerPage: pageSize2">
+                                <td><a data-dismiss='modal' ng-click="Mover(x.item_no)">{{x.item_no}}</a></td>
+                                <td>{{x.item_desc_1}}</td>
+                            </tr>
+                        </tbody>
+
+
+                    </table>
+
+                    <div ng-controller="OtherController2" class="other-controller">
+                        <small>Pagination</small>
+                        <div class="text-center">
+                            <dir-pagination-controls boundary-links="true" on-page-change="pageChangeHandler2(newPageNumber)"></dir-pagination-controls>
+                        </div>
+                        <small>Items : {{count2}}</small>
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+<div id="tblAm" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Customer</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row justify-content-between">
+
+                    <div class="col-xs-6">
+                        <label for="search">Search:</label>
+                        <input ng-model="p" id="search" class="form-control" placeholder="Filter text">
+                    </div>
+
+                </div>
+                <br />
+                <div class="form-group row">
+
+
+                    <table id="tblA" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr>
+
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Curr code</th>
+                                <th>Rate Exchange</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr dir-paginate="x in todolistclient | filter:customFilter | itemsPerPage: pageSize3">
+
+                             
+                                <td><a data-dismiss='modal' ng-click="Mover5(x.data.cus_no)" class="ng-binding">{{x.data.cus_no}}</a></td>
+                                <td>{{x.data.cus_name}}</td>
+                                <td>{{x.data.curr_cd}}</td>
+                                <td> {{x.rateExchange | toFixed}}</td>
+
+                            </tr>
+                        </tbody>
+
+
+                    </table>
+                    <div ng-controller="OtherController3" class="other-controller">
+                        <small>Pagination</small>
+                        <div class="text-center">
+                            <dir-pagination-controls boundary-links="true" on-page-change="pageChangeHandler3(newPageNumber)"></dir-pagination-controls>
+                        </div>
+                        <small>Customers : {{count3}}</small>
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tblSm" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Defect code</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <div class="form-group row">
+
+
+                    <table id="tblS" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr>
+
+                                <th>Code</th>
+                                <th>Description</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        </tbody>
+
+
+                    </table>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button data-target="modal" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+ 
+
+<!--Seq no-->
+<div id="tblQm" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Seq no</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <div class="form-group row">
+
+
+                    <table id="tblQ" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th>Seq No</th>
+                                <th>Orden type</th>
+                                <th>Orden No</th>
+                                <th>Item No</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        </tbody>
+
+
+                    </table>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!--MODAL FACTURAS-->
+<div id="tblIm" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="ddd" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Invoice No</h5>
+
+            </div>
+            <div class="modal-body">
+
+
+
+                <div class="table-responsive">
+
+                <table id="tblI" class="table table-striped table-bordered " style="min-width:100% !important;">
+                    <thead>
+                        <tr>
+                            <th>Invoice No</th>
+
+                            <th>Orden No</th>
+                            <th>Customer No</th>
+                            <th>Orden type</th>
+                            <th>ord_dt</th>
+                            <th>cusAltAdrCd</th>
+                            <th>currTrxRt</th>
+                            <th>currCd</th>
+                        </tr>
+                    </thead>
+
+                    <tbody> 
+                    </tbody>
+
+
+                </table> 
+                </div>
+
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>

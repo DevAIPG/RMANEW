@@ -1,0 +1,176 @@
+﻿@*RMA*@
+<!DOCTYPE html>
+<html lang="en"> 
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE = 11" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="description" content="Amphenol Industrial">
+    <meta property="og:title" content="Amphenol Industrial">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="-1">
+
+
+    <title>@ViewData["Title"] -Amphenol Industrial</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+
+    <!--Plugins todos-->
+    <link href="/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/paginate.css" />
+    <link rel="stylesheet" href="~/css/toastr.css" />
+    <link rel="stylesheet" href="~/css/query.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/swal.css" />
+    <link rel="stylesheet" href="~/css/styleadmin.css" />
+
+    <link rel="stylesheet" href="~/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/normalize.css" />
+    <link rel="stylesheet" href="~/css/datepicker.css" />
+    <link rel="apple-touch-icon" sizes="180x180" href="~/apple-touch-icon.png">
+
+    <link rel="icon" type="image/png" sizes="16x16" href="~/favicon-16x16.png">
+
+    <link rel="mask-icon" href="safari-pinned-tab.svg" color="#005eb8">
+
+
+    <meta name="msapplication-TileColor" content="#005eb8">
+    <meta name="theme-color" content="#ffffff">
+</head>
+<body>
+    <header class="mb-0">
+
+        <nav  style="background-color:lightskyblue" class="navbar navbar-expand-lg  navbar-toggleable-lg     sticky-top ">
+            <div class="container">
+
+
+                <div class="navbar-toggler-container">
+
+
+
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+
+                <div class="navbar-collapse  collapse d-lg-inline-flex flex-lg-row ">
+                  
+                    <ul  class= " navbar-nav navbar-nav-main">
+
+                        <li class=" nav-link  mr-2">
+
+                            <p class="nav-item mb-0 text-black-50" style="font-weight:bolder; font-size:22px">Amphenol-RMA</p>
+                        </li>
+                      
+                        <li class="nav-link p-0 mr-1">
+
+                            <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="Index">RMA Request</a>
+                        </li>
+
+
+                        <li class="nav-link p-0 mr-1" id="approversContainer">
+
+                       
+                            <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="approvers">Approvers</a>
+                        </li>
+
+                   
+
+                        <li class="nav-link p-0 mr-1">
+
+                            <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="Create">Create</a>
+                        </li>
+                        <li class="nav-link p-0">
+
+                            <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="Control">Approval Control</a>
+                        </li>
+                       
+
+
+
+
+                    </ul>
+
+                </div>
+
+
+
+            </div>
+        </nav>
+        <style>
+            .nav-item a,
+            .nav-item span {
+                color: #ffffff
+            }
+
+            .dropdown-itehover a, .nav-item:hover span {
+                color: black
+            }
+        </style>
+    </header>
+    <div class="container-fluid">
+        <main role="main" class="pb-3" ng-app="app">
+
+
+
+            @RenderBody()
+        </main>
+    </div>
+
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js?1"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js?1"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js?1" asp-append-version="true"></script>
+
+    <!--Todos plugins-->
+    <script src="~/js/all.min.js?1" asp-append-version="true"></script>
+    <script src="~/js/query1.4.js?1" asp-append-version="true"></script>
+    <script src="~/js/query.js?1" asp-append-version="true"></script>
+    <script src="~/js/paginate.js?1" asp-append-version="true"></script>
+    <script src="~/js/swal.js?1" asp-append-version="true"></script>
+    <script src="~/js/serial.js?1" asp-append-version="true"></script>
+    <script src="~/js/toastr.js?1" asp-append-version="true"></script>
+    <script src="~/js/toastmessage.js?1" asp-append-version="true"></script>
+    <script src="~/js/tinymce/js/tinymce/tinymce.min.js?1"></script>
+    <script src="~/js/metodos.js?1"></script>
+    <script src="~/js/angular.js?1"></script>
+    <script src="~/js/angular.route.js?1"></script>
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js?1"></script>
+    <script src="~/js/Datatables_.js?1"></script>
+
+
+    <script src="~/js/ui-bootstrap-tpls-2.5.0.min.js?1"></script>
+    <script src="~/js/angular-ui-utils.min.js?1"></script>
+    <script src="~/js/angular-datatables.js?1"></script>
+    <script src="~/js/dirPagination.js?1"></script>
+    <script src="~/js/q.js?1"></script>
+
+
+
+
+    <script src="~/js/create_edit_rma.js?1"></script>
+    <script>
+
+        $.ajax({
+            url: "/Client/Corrective/GetUsername",
+            type: "GET",
+
+            async: true,
+            cache: true,
+            success: function (data) {
+                if (data != "not found") {         //  Replace with targeted username
+                    $("#approversContainer").show();
+                } else {
+                    $("#approversContainer").hide();
+				}
+            }
+        });
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

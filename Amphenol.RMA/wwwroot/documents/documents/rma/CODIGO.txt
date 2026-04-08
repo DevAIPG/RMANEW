@@ -1,0 +1,49 @@
+
+            var file = new FileInfo(@"wwwroot\Book1.xlsx");
+            using (ExcelPackage excel = new ExcelPackage(file))
+            { /*Obtiene el libro donde quiero meter el nuevo dato*/
+                var sheet = excel.Workbook.Worksheets[0];
+                /*Selecciono el rango de celdas a modificar, los combino y meto el texto centrado*/
+
+                SLDocument sl = new SLDocument(@"wwwroot\Book1.xlsx");
+            SLWorksheetStatistics propiedades = sl.GetWorksheetStatistics();
+                int ultimaFila = propiedades.EndRowIndex;
+                int pocision = 2;
+
+
+                for (int x = ultimaFila; x >= 1; x--)
+                {
+                   string H = sl.GetCellValueAsString("H" + pocision + "");
+                    if (H != "")
+                    {
+                        if (H.Contains("0000."))
+                        {
+
+                            string[] valores = H.Split(".");
+
+                            H = "." + valores[1];
+
+                        }
+                      
+                            var cell = sheet.Cells["I" + pocision + ""];
+                        cell.Merge = false;
+                        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                        cell.Value = Convert.ToDouble(H);
+
+
+                        Console.WriteLine("El indicador es : " + Convert.ToDouble(H));
+
+                    }
+                    pocision++;
+
+                }
+
+
+
+
+                excel.Save();
+            }
+
+
+
+

@@ -1,0 +1,1060 @@
+﻿@model Amphenol.RMA.Models.CSEXSW_Rma
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout6.cshtml";
+}
+
+<style>
+    input[type=checkbox] {
+        /* Double-sized Checkboxes */
+        -ms-transform: scale(2); /* IE */
+        -moz-transform: scale(2); /* FF */
+        -webkit-transform: scale(2); /* Safari and Chrome */
+        -o-transform: scale(2); /* Opera */
+        transform: scale(2);
+        padding: 10px;
+    }
+</style>
+<br />
+<style>
+</style>
+<div>
+    <div class="card">
+        <div class="card-body">
+
+            <div class="row">
+                <div class="col-6">
+                    <h2 class="text-primary">RMA Request list</h2>
+                </div>
+                <div class="col-6 text-right">
+                    <a asp-area="Client" asp-controller="rma" asp-action="Create" class="btn btn-primary">Create New RMA Request #</a>
+
+                </div>
+            </div>
+            <input type="hidden" id="proceso" value="index" />
+
+            <a asp-action="ExportarExcel" class="btn btn-primary">
+                Export to Excel
+
+            </a>
+            <br />
+            <br />
+
+            <table id="tblCar" class="table table-striped table-bordered text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Actions</th>
+                        <th>RMA Request #</th>
+                        <th>RMA</th>
+                        <th>Prepared</th>
+                        <th>Date</th>
+                        <th>Submitted for Approval</th>
+                        <th>Approval Status</th>
+                        <th>Customer Part No</th>
+                        <th>Description</th>
+                        <th>Qty</th>
+                        <th>RMA Type of Request</th>
+                        <th>Total RMA Value</th>
+                        <th>Where built</th>
+                        <th>Approver</th>
+                        <th>Customer PO #</th>
+                        <th>Part #</th>
+                        <th>Approval date</th>
+                        <th>Customer complaint</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+</div>
+
+
+<!-- modal edit rma -->
+<div class="modal fade" id="meditrma" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog-lg modal-dialog-centered ml-5 mr-5 mb-5 mt-1" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">Edit RMA</h5>
+
+
+                <div class="d-flex">
+                    <button type="button" class="btn btn-primary btn-sm mr-2" id="btnsubmitrma"><i class="fa fa-arrow-right"></i> Submit</button>
+
+                    <button type="button" data-target="modal" data-dismiss="modal" id="btnclosemedit" class="btn btn-sm btn-danger float-right m-0"><i class="fa fa-times"></i> </button>
+
+                </div>
+
+            </div>
+            <div class="modal-body m-4">
+                <input type="hidden" name="name" value="" readonly id="rmaid" />
+                <input type="hidden" name="name" value="" readonly id="rmastatus" />
+                <input type="hidden" name="name" value="" readonly id="rmasubmit" />
+                <input type="hidden" name="name" value="" readonly id="rma500" />
+                <form action="/" method="post" id="frmheader">
+                    <div class="row">
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold float-left">RMA Request</label>
+                        </div>
+                        <div class="col-10">
+                            <select id="sreason" class="form-control form-control-sm w-25">
+                                <option value="0">Select an option</option>
+                                <option value="Billing Error">Billing Error</option>
+                                <option value="Buyback">Buyback</option>
+                                <option value="Price Adjustment">Price Adjustment</option>
+                                <option value="Price Protection">Price Protection</option>
+                                <option value="Quantity Issues - NG">Quantity Issues - NG </option>
+                                <option value="Quantity Issues - END">Quantity Issues - END</option>
+                                <option value="Shipping Errors">Shipping Errors</option>
+                                <option value="Stock Rotations">Stock Rotations</option>
+                                <option value="Ship and Debits">Ship and Debits</option>
+                                <option value="Scrap Allowance">Scrap Allowance</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row p-0 m-0 mt-2">
+                        <div class="col-2 m-0">
+                            <label class="control-label font-weight-bold ">RMA Request</label>
+                        </div>
+                        <div class="col-4">
+                            <input type="text" id="rmanumber" readonly class="form-control form-control-sm" />
+
+                        </div>
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Date</label>
+                        </div>
+                        <div class="col-4">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="text" id="daterma" readonly class="form-control form-control-sm" />
+
+                                </div>
+                                <div class="col-6 d-flex">
+                                    <h6><span class="badge badge-info" id="txtstatus"></span></h6>
+                                    <h6><span class="badge ml-2" id="txtsub"></span></h6>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                    <div class="row p-0 mt-2">
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Where built</label>
+                        </div>
+                        <div class="col-4">
+                            <select id="whereb" class="form-control form-control-sm">
+                            </select>
+
+                        </div>
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Total RMA Values</label>
+                        </div>
+                        <div class="col-4">
+                            <input type="text" id="totalrma" class="form-control form-control-sm" />
+
+                        </div>
+                    </div>
+
+
+                    <div class="row p-0 mt-2">
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Description</label>
+                        </div>
+                        <div class="col-4">
+                            <input type="text" id="desc" class="form-control form-control-sm" />
+
+                        </div>
+                        <div class="col-6">
+                            <div class="row">
+                                <div class="col-2">
+                                    <label class="control-label font-weight-bold">Customer</label>
+                                </div>
+                                <div class="col-4">
+                                    <input type="text" id="client" class="form-control form-control-sm" readonly />
+
+                                </div>
+
+                                <div class="col-2">
+                                    <label class="control-label font-weight-bold">PO #</label>
+                                </div>
+                                <div class="col-4">
+                                    <input type="text" id="po" class="form-control form-control-sm" />
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="row p-0 mt-2">
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Ship_To</label>
+                        </div>
+                        <div class="col-4">
+                            <input type="text" id="shipto" class="form-control form-control-sm" />
+
+                        </div>
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Contact</label>
+                        </div>
+                        <div class="col-4">
+                            <input type="text" id="contactrma" class="form-control form-control-sm" />
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="row p-0 mt-2">
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Phone</label>
+                        </div>
+                        <div class="col-4">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="number" id="phone" class="form-control form-control-sm" />
+
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" id="ext" class="form-control form-control-sm" />
+
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <div class="col-6">
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="control-label font-weight-bold float-left">
+                                        RMA Type Of Request:
+
+                                    </label>
+                                </div>
+                                <div class="col-6">
+                                    <select id="selectrmatype" class="form-control form-control-sm">
+                                        <option value="0">Select an option</option>
+                                        <option value="VALUE ADD RMA">VALUE ADD RMA</option>
+                                        @*                                         <option value="CREDIT & REPLACE">CREDIT & REPLACE</option>
+                                        *@
+                                        <option value="CREDIT ONLY">CREDIT ONLY</option>
+                                        <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
+                                    </select>
+                                </div>
+
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="row p-0 mt-2">
+                        <div class="col-2">
+                            <label class="control-label font-weight-bold">Fax</label>
+                        </div>
+                        <div class="col-2">
+                            <input type="text" id="fax" class="form-control form-control-sm" />
+
+                        </div>
+                        <div class="col-1">
+                            <label class="control-label font-weight-bold">Contact-Email</label>
+                        </div>
+                        <div class="col-3">
+                            <input type="email" id="email" class="form-control form-control-sm" />
+                        </div>
+
+                        <div class="col-1">
+                            <label class="control-label font-weight-bold">Company-Email</label>
+                        </div>
+                        <div class="col-3">
+                            <input type="email" id="emailc" readonly class="form-control form-control-sm h6" />
+                        </div>
+                    </div>
+
+                    <div class="row p-0 mt-2">
+                        <div class="col-12">
+                            <textarea id="comments" class="form-control form-control-sm">
+
+
+                            </textarea>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary float-right m-2" id="btnupdaterma"><i class="fa fa-save"></i>  Save changes</button>
+
+                </form>
+
+
+                <h1 class="text-primary mt-2">Add New Line <button class="btn btn-sm btn-secondary " id="btnshowline"> <i class="fa fa-plus"></i></button></h1>
+
+
+                <form id="frmnewline">
+
+
+                    <div class="row" id="rowadd" style="display:none;">
+
+                        <div class="col-2">
+                            <div class="input-group mb-3">
+                                <input id="invoicee" readonly="readonly" value="0" placeholder="Select invoice" name="invoice" class="inv t invoice form-control form-control-sm float-left invoiceenew" />
+                                <div class="input-group-append">
+                                    <button type="button" data-backdrop="static" class="btn btn-sm btn-primary" id="bntabrirfact"><i class="fa fa-search"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-1">
+                            <div class="input-group mb-3">
+                                <input readonly="readonly" name="seq" value="0" id="seqnew" placeholder="seq" class="t2 t seq form-control form-control-sm seq" />
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-sm btn-primary" id="btnopenseq"><i class="fa fa-search"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-1">
+                            <div class="input-group mb-3">
+                                <input onkeyup="javascript:this.value=this.value.toUpperCase();" name="coustumer" readonly type="text" class="form-control form-control-sm cos t  coustumer" id="pnnew">
+                                <div>
+                                    <button type="button" id="imgpn" class="btn btn-sm btn-primary"><i class="fa fa-search"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-1">
+                            <select class="form-control form-control-sm saction" id="sactions">
+                                <option value="C">VALUE ADD</option>
+                                <option value="C">CREDIT ONLY</option>
+                                <option value="C">DISTY SCRAP ALLOWANCE</option>
+                                <option value="C">REPLACE (New Order)</option>
+                            </select>
+                        </div>
+                        <div class="col-1">
+                            <div class="input-group mb-0">
+
+                                <select id='slocationsnew' onchange="validateLocation(this);" class="loc form-control form-control-sm" name="loc">
+                                    <option value="0">Select Loc</option>
+                                    <option value="ARM">ARM</option>
+                                    <option value="MRM">MRM</option>
+                                    <option value="NRM">NRM</option>
+                                </select>
+
+
+                            </div>
+                            <div class="row mb-2">
+                                <div id="msgloc" style="position:absolute !important; font-size:0.9vh; display:none;" class="alert alert-warning p-1 mt-0" role="alert">
+                                    Item Not Stocked at this location.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-1">
+                            <input type="number" id="qtynew" class="form-control form-control-sm" placeholder="Authorized Qty" />
+                        </div>
+                        <div class="col-1">
+                            <input type="number" class="form-control form-control-sm" id="txtprice" placeholder="Price" />
+                        </div>
+                        <div class="col-1">
+                            <input type="number" class="form-control form-control-sm" id="txtcost" placeholder="Unit Cost" />
+                        </div>
+                        <div class="col-1">
+                            <input class='w-100 text-center mt-2 mr-0 text-center' type='checkbox' id="carnew" />
+                        </div>
+                        <div class="col-1">
+                            <div class="input-group mb-3">
+                                <input class="text-center form-control form-control-sm btn-block" type="text" id="rcodenew" />
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-sm btn-primary" id="btncodes"><i class="fa fa-search"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-1">
+                            <button class="btn btn-primary btn-sm float-left" id="btnAddRow" disabled> Save Line</button>
+                            <button type="button" class="btn btn-sm btn-danger float-left ml-1" id="btncancelline"> <i class="fa fa-times"></i> </button>
+                        </div>
+
+                    </div>
+                </form>
+                <form id="frmlines">
+                    <table id="tbllineas" class="table table-borderless table-striped table-sm w-100">
+                        <thead class="bg-primary">
+                            <tr>
+                                <th class="text-white">Invoice #</th>
+                                <th class="text-white">SeqNo</th>
+                                <th class="text-white">Part Number</th>
+                                <th class="text-white">Action</th>
+                                <th class="text-white">Loc</th>
+                                <th class="text-white">Authorized Qty</th>
+                                <th class="text-white">Price</th>
+                                <th class="text-white">Unit Cost</th>
+                                <th class="text-white">Create CAR</th>
+                                <th class="text-white">Return Code</th>
+                                <th>Operations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+
+                    <h1 class="text-primary mt-2">Attachments</h1>
+
+                    <div class="row mb-2 float-right">
+                        <div class="col-12 d-flex">
+                            <form method="post" enctype="multipart/form-data">
+                                <input type="file" id="txtfile" class="form-control form-control-sm" />
+                                <button type="button" id="btnnewfile" class="btn btn-sm btn-secondary w-50"><i class="fa fa-plus"></i> Add file</button>
+
+                            </form>
+
+                        </div>
+                    </div>
+
+                    <table id="tblfiles" class="table table-borderless table-striped table-hover table-sm w-100 ">
+                        <thead class="bg-primary">
+                            <tr>
+                                <th class="text-white">ID</th>
+                                <th class="text-white">Filename</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+
+                </form>
+
+
+
+
+
+            </div>
+        </div>
+    </div>
+</div>
+<!--DEFECT CODES-->
+
+<div id="mcodes" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Defect code</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <div class="form-group row">
+
+
+                    <table id="tblcodes" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr>
+
+                                <th>Code</th>
+                                <th>Description</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        </tbody>
+
+
+                    </table>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button data-target="modal" type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--customarcomplain-->
+
+
+<div class="modal fade bd-example-modal-lg" id="Customer_complaint" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Customer Complaint</h5>
+                <div class="d-flex">
+                    <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+                </div>
+                @*<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>*@
+            </div>
+            <div class="modal-body">
+                <div class="form-group row">
+
+
+                    <div>
+                        <textarea name="Customer_complaintcontrol" id="Customer_complaintcontrol" class="form-control " rows="7">     </textarea>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+<!--DEFECT CODES in lines-->
+
+<div id="mcodes2" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Defect code</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <div class="form-group row">
+
+
+                    <table id="tblcodes2" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr>
+
+                                <th>Code</th>
+                                <th>Description</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        </tbody>
+
+
+                    </table>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button data-target="modal" type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!--part numbers-->
+<!--MODAL PART NUMBER-->
+<div id="mPN" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Part numbers</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <br>
+
+                <div class="form-group row">
+
+
+                    <table id="tblPN" class="table table-striped table-bordered w-100" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ITEM NO</th>
+                                <th>ITEM DESCRIPTION</th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        </tbody>
+
+
+                    </table>
+                    <div id="paginationPN"></div>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!--sequences-->
+<div class="modal fade" id="mseq" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content ">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">Invoice No</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped w-100" id="tblseq">
+                        <thead>
+                            <tr>
+                                <th>Seq No</th>
+                                <th>Orden type</th>
+                                <th>Orden No</th>
+                                <th>Item No</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- invoices -->
+<div class="modal fade" id="minvoices" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content ">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLongTitle">Invoice No</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped w-100" id="tblinvoices">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Order #</th>
+                                <th>Customer #</th>
+                                <th>Order Type</th>
+                                <th>ord_dt</th>
+                                <th>cusAltAdrCd</th>
+                                <th>currTrxRt</th>
+                                <th>currCd</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="modal fade" id="documents" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Attachments</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <div class="form-group row">
+
+
+                    <table id="tblStandar" class="table table-striped table-bordered" style="width:100%;">
+                        <thead>
+                            <tr>
+
+                                <th>Documents name</th>
+                                <th></th>
+
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                        </tbody>
+
+
+                    </table>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade bd-example-modal-lg" id="CreateOrderModel" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Create Order</h5>
+
+                <div class="d-flex">
+
+                    <button id="createorderyesbtn" onclick="CreateorderyesbtnF()" data-dismiss="modal" class="btn btn-primary mr-1">
+                        Yes
+                    </button>
+                    <button class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">No</button>
+                </div>
+
+            </div>
+            <div class="modal-body">
+
+                <div class="form-group row">
+
+
+                    <div>
+
+                        <h3 class="form-control">Do you want to create/update re-shipment/credit order now?</h3>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+<div id="lineas" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title lol" id="exampleModalLabel">Lines</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+
+
+
+
+                <table id="tbllineas" class="table table-striped table-bordered table-hover responsive" style="width:100%;">
+                    <thead>
+                        <tr>
+
+                            <th>Invoice Num.</th>
+                            <th>Seq No.</th>
+                            <th>Part Number</th>
+
+                            <th>Authorized Qty</th>
+                            <th>Price</th>
+                            <th>Unit Cost</th>
+                            <th>Action</th>
+                            <th>Return</th>
+
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    </tbody>
+
+
+                </table>
+
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+<partial name="_ModalsRma" />
+
+
+@section Scripts {
+    <script src="
+		    https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js
+                "></script>
+    <link href="
+		    https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css
+                " rel="stylesheet">
+
+    <script src="~/js/rma.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+
+    <script>
+
+
+        $(document).ready(function () {
+
+            /*
+             int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total,
+             string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
+                bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string rmareason)*/
+
+
+
+
+
+
+            //let rmarequest = $("#rmanumber").val();
+            //let status = $("#rmastatus").val();
+            //let submit = $("#rmasubmit").val();
+            //let rma500 = $("#rma500").val();
+            ////rmadata = fecha
+            //let date = $("#daterma").val();
+            //let whereb = $("#whereb").children("option:selected").val();
+            //let total = $("#totalrma").val();
+            //let client = $("#client").val();
+            //let rmatype = $("#selectrmatype").children("option:selected").val();
+            //let desc = $("#desc").val();
+
+
+            $("#sactions").select2();
+
+
+
+
+
+            $("#btncancelline").click(function () {
+                $("#invoicee").val("0");
+                $("#seqnew").val("0");
+                $("#pnnew").val("");
+                $("#slocationsnew").val(0);
+                $("#qtynew").val("");
+                $("#txtprice").val("0.00");
+                $("#txtcost").val("0.00");
+                $("#carnew").prop("checked", false);
+                $("#rcodenew").val("");
+
+            });
+
+        });
+
+        function Mover(data) {
+            $("#aa").val(data);
+            $("#aaa").val(data);
+        }
+
+
+        function CreateorderyesbtnF() {
+            let id = $("#createorderyesbtn").data("id");
+            console.log(id + " sdfsdfsdf");
+
+            $('#tblQm').modal('hide');
+
+            // First AJAX call: Fetch data using the ID
+            $.ajax({
+                url: '/Client/rma/RMA_IdTo_OrderCreate',
+                type: 'GET',
+                data: { id: id },
+                success: function (response) {
+                    console.log('Success:', response);
+
+                    var data = {
+                        rmaNo: response.rmaNo,
+                        orderDate: response.orderDate,
+                        //previewOnly: response.previewOnly
+                    };
+
+                    // Second AJAX call: Create the order
+                    $.ajax({
+                        url: '/Client/rma/CreateOrderpost',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            console.log('Order creation success:', response);
+                            alert('Order created: ' + response.message); // ✅ lowercase "message"
+                        },
+                        error: function (err) {
+                            console.error('Order creation error:', err);
+
+                            // If server sends JSON with message:
+                            if (err.responseJSON && err.responseJSON.message) {
+                                alert('Error: ' + err.responseJSON.message);
+                            } else {
+                                alert('An unexpected error occurred.');
+                            }
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    var err = xhr.responseJSON?.Error;
+                    console.error('Error fetching RMA data:', err);
+                    alert('Error: ' + err);
+                }
+            });
+        }
+
+
+
+        function Abrir(data) {
+            var now = new Date();
+            var datetime = now.getFullYear() + '/' + (now.getMonth() + 1) + '/' + now.getDate();
+            datetime += ' ' + now.getHours() +
+
+                ':' + now.getMinutes() + ':' + now.getSeconds();
+
+
+            $.ajax({
+                url: "/Client/rma/GetDetalles/?id=" + data + "&fecha=" + datetime,
+                type: "GET",
+                datatype: "json",
+                cache: true,
+
+                success: function (data) {
+                    var dd = data.data[0].id;
+                    $("#dd").val(dd);
+                    var aa = data.data[0].rmarequest;
+                    $("#aa").val(aa);
+                    var b = data.data[0].date;
+                    $("#b").val(b);
+                    var c = data.data[0].customer;
+                    $("#c").val(c);
+                    var d = data.data[0].customerpartno;
+                    $("#d").val(d);
+                    var e = data.data[0].customerpo;
+                    $("#e").val(e);
+                    var f = data.data[0].description;
+                    $("#f").val(f);
+                    var g = data.data[0].customercomplait;
+                    $("#g").val(g);
+                    var h = data.data[0].rmatypeofrequest;
+
+                    $("#h option[value='" + h + "']").attr("selected", true);
+
+                    var i = data.data[0].totalrmavalues;
+                    $("#i").val(i);
+                    var j = data.data[0].rmA500;
+                    $("#j option[value='" + j + "']").attr("selected", true);
+
+                    var k = data.data[0].wherebuilt;
+                    $("#k option[value='" + k + "']").attr("selected", true);
+
+                    console.log(data);
+
+                },
+                error: function (xhr, status, error) { $().toastmessage('showToast', { text: 'Error con ean ' + xhr.responseText, sticky: true, type: 'error' }); }
+            });
+
+        }
+
+        function Customer_complaint(data) {
+            console.log(data)
+            $("#Customer_complaintcontrol").val(data);
+        }
+        function Document(data) {
+            var now = new Date();
+            var datetime = now.getFullYear() + '/' + (now.getMonth() + 1) + '/' + now.getDate();
+            datetime += ' ' + now.getHours() +
+
+                ':' + now.getMinutes() + ':' + now.getSeconds();
+
+
+            $.ajax({
+                url: "/Client/rma/GetDocument/?id=" + data + "&fecha=" + datetime,
+                type: "GET",
+                datatype: "json",
+                cache: true,
+
+                success: function (data) {
+                    var pdf = "";
+                    console.log(data);
+                    $("#tblStandar").children("tbody").empty();
+
+                    for (i = 0; i < data.data.length; i++) {
+                        pdf = data.data[i].documento;
+                        id = data.data[i].id;
+                        $("#tblStandar").children("tbody").append('<tr>' +
+                            '<td align="center" style="dislay: none;">' + data.data[i].documento + '</td>' +
+                            '<td align="center" style="dislay: none;"> <a href=javascript:finestraSecundaria("../../../documents/documents/rma/' + pdf.replace(/\s/g, "¶") + '")><img src="../../../documento.png" ></a></td>' +
+                            '<td align="center" style="dislay: none;"><a onclick=Deletedocument("/Client/rma/Deletedocument/' + id + '") class="btn btn-danger text-white" style="cursor: pointer; width: 100px;"> <i class="fas fa-trash-alt"></i> Delete </a></td> </tr> ');
+                    }
+                },
+                error: function (xhr, status, error) { $().toastmessage('showToast', { text: 'Error con ean ' + xhr.responseText, sticky: true, type: 'error' }); }
+            });
+
+
+        }
+
+
+        function finestraSecundaria(url) {
+            var popUpWidth = screen.width * 0.70;  // Display popup window covering 70% of the screen.
+            var popUpHeight = screen.height * 0.70;
+
+        }
+
+        function Deletedocument(url) {
+            swal({
+                title: "Are you sure to delete?",
+                text: "This content cannot be recovered!",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#DD6B55",
+                confirmButtonText: "Yes delete!",
+                closeOnconfirm: true
+            }, function () {
+                $.ajax({
+                    type: 'DELETE',
+                    url: url,
+                    success: function (data) {
+                        if (data.success) {
+                            toastr.success(data.message);
+
+
+                            dataTable.ajax.reload();
+
+                        }
+                        else {
+                            toastr.error(data.message);
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+    <script>
+        $(function () {
+            $(".validar").keydown(function (event) {
+                //alert(event.keyCode);
+                if ((event.keyCode < 48 || event.keyCode > 57) && (event.keyCode < 96 || event.keyCode > 105) && event.keyCode !== 190 && event.keyCode !== 110 && event.keyCode !== 8 && event.keyCode !== 9) {
+                    return false;
+                }
+            });
+        });
+
+        $(function () {
+            $(".fecha").datepicker();
+        });
+    </script>
+
+}

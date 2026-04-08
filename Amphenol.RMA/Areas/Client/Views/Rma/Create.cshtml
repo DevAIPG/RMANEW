@@ -1,0 +1,361 @@
+﻿@model Amphenol.RMA.Models.ViewModels.csexsw_coustumerVM
+@{
+
+
+    ViewData["Title"] = "Create";
+    Layout = "~/Views/Shared/_Layout6.cshtml";
+}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.4/pagination.css" rel="stylesheet" />
+<link href="~/css/jquery.loadingModal.min.css" rel="stylesheet" />
+
+<br />
+<div class="gif">
+    <img src="~/tenor.gif" alt="">
+</div>
+<div class="cargar" ng-controller="Rma">
+
+
+    <br />
+    <br />
+
+    <form id="crearma" name="formulario" method="post" enctype="multipart/form-data" autocomplete="off">
+        <input type="hidden" id="proceso" value="create" />
+        <input type="hidden" id="folio" value="@ViewBag.folio" />
+        <input type="hidden" id="clientesmodelo" value="@Model.CSEXSW_Rma.Customer" />
+        <input type="hidden" id="preparado" value="@Model.CSEXSW_Rma.Preparado" />
+        <div class="row px-2 mx-2 card" style="    border-top: 8px deepskyblue solid;">
+
+            <div class="card-body">
+
+
+                <input asp-for="CSEXSW_Rma.Id" type="hidden" id="id" />
+                <div class="row mb-3">
+                    <div class="col">
+                        <h2 style="font-family:Arial" class="font-weight-bolder text-primary">New RMA Request</h2>
+                    </div>
+
+                </div>
+
+                <div class="form-group row">
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Rmarequest"></label>
+                        <input class="form-control" asp-for="CSEXSW_Rma.Rmarequest" readonly="readonly" placeholder="Enter value here" class="" id="foliorma" />
+                    </div>
+                    <input type="hidden" asp-for="CSEXSW_Rma.Status" id="rmastatus" />
+                    <input type="hidden" asp-for="CSEXSW_Rma.Approver" id="rmaapprover" />
+                    <input type="hidden" asp-for="CSEXSW_Rma.Sumbit" id="rmasumbit" />
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Date"></label>
+                        <input class="form-control" asp-for="CSEXSW_Rma.Date" value="@DateTime.Today.ToString("MM/dd/yyyy ")" readonly="readonly" style="background: #efef7b;" id="rmadata" />
+                    </div>
+                </div>
+                <div class="form-group row">
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Wherebuilt"></label>
+                        <select class="form-control" id="validar1" asp-for="CSEXSW_Rma.Wherebuilt">
+
+                            <option value="0">Select an option</option>
+                            @*<option value="ATZ">ATZ</option>*@
+
+                            <option value="Nogales">Nogales</option>
+                            <option value="Endicott">Endicott</option>
+                            <option value="Endicott">Mesa</option>
+                        </select><br />
+                        <span class="spam1 text-danger">Mandatory: Where built</span>
+                    </div>
+
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Totalrmavalues"></label>
+                        <input class="form-control" type="number" class="validar" style="background: #efef7b;" id="total" step="any" placeholder="0" min="0" asp-for="CSEXSW_Rma.Totalrmavalues" readonly="readonly" />
+                    </div>
+
+                </div>
+                <div class="form-group row">
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Customer"></label>
+                        <div class="d-flex ">
+
+
+                            <input class="form-control" style="margin-right:10px ; " asp-for="CSEXSW_Rma.Customer" id="client" placeholder="Enter value here" ng-model="clientobservado" ng-keyup="buscarclient()" onkeyup="javascript:this.value=this.value.toUpperCase();" />
+                            <a style="align-content:center " data-toggle='modal' data-target='#tblAm'>
+                                <img src="~/buscar.png" />
+                            </a>
+                        </div>
+                        <br />
+                        <span class="spam4 text-danger">Client not exit</span>
+
+                        <span class="spam3 text-danger">Mandatory: Customer</span>
+                    </div>
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Rmatypeofrequest"></label>
+                        <select class="form-control" id="select" asp-for="CSEXSW_Rma.Rmatypeofrequest">
+                            <option value="0">Select an option</option>
+                            <option value="VALUE ADD RMA">VALUE ADD RMA</option>
+                            @*                             <option value="CREDIT & REPLACE">CREDIT & REPLACE</option>
+ *@                           
+                            <option value="CREDIT ONLY">CREDIT ONLY</option>
+                            <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
+                        </select><br />
+                        <span class="spam2 text-danger">Mandatory: RMA type of Request</span>
+                    </div>
+
+
+                </div>
+                <div class="form-group row">
+
+
+                    <div class="col">
+
+                        <label>RMA Reason</label>
+
+                        <select class="form-control" id="sreason" asp-for="CSEXSW_Rma.reason">
+                            <option value="0">Select an option</option>
+                            <option value="1">Billing Error</option>
+                            <option value="2">Buyback</option>
+                            <option value="3">Price Adjustment</option>
+                            <option value="4">Price Protection</option>
+                            <option value="5">Quality Issues - NG </option>
+                            <option value="6">Quality Issues - END</option>
+                            <option value="7">Shipping Error</option>
+                            <option value="8">Contractual Return/Stock</option>
+                            <option value="9">Ship and Debits</option>
+                            <option value="10">Scrap Allowance</option>
+                            <option value="11">Marcomco-op</option>
+                        </select> <br />
+                        <span class="spam2 text-danger">Mandatory: RMA Reason</span>
+
+                    </div>
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Customercomplait" style="display:none;"></label>
+                        <input class="form-control" asp-for="CSEXSW_Rma.Customercomplait" style="display:none;" id="customercomplait" />
+                    </div>
+
+
+                </div>
+
+
+
+                <div class="form-group row">
+
+
+                    <div class="ocultar500 col">
+                        <label asp-for="CSEXSW_Rma.RMA500"></label>
+                        <select class="form-control" asp-for="CSEXSW_Rma.RMA500" id="rma500">
+                            <option value="">Select an option</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Customerpo"></label>
+                        <input class="form-control" id="customerpo" asp-for="CSEXSW_Rma.Customerpo" placeholder="Enter value here" />
+                    </div>
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Description"></label>
+                        <input class="form-control" asp-for="CSEXSW_Rma.Description" id="description" maxlength="29" />
+                    </div>
+
+                </div>
+
+                <div class="form-group row">
+
+
+                    <div class="col " ng-if="cliente == true">
+                        <label asp-for="CSEXSW_Rma.Ship_To"></label>
+
+                        <div class="d-flex">
+                            <input class="form-control  " style="margin-right:10px" asp-for="CSEXSW_Rma.Ship_To" ng-blur="ship()" id="ship" readonly="readonly" />
+                            <a data-toggle='modal' style="align-content:center" data-target='#mtblSt'><img src="~/buscar.png" /></a>
+                        </div>
+                        <br />  <span class="spam5 text-danger">Mandatory: Ship_To</span>
+                    </div>
+
+                    <div class="col ship">
+                        <label>Contact</label>
+                        <input class="form-control" type="text" id="contact" asp-for="CSEXSW_Rma.Contact" />
+
+                    </div>
+                </div>
+                <div class="ship form-group row">
+
+                    <div class=" col">
+                        <label>Import RMA Lines</label>
+                        <input class="form-control" type="file" name="archivos2" id="subidaArchivo2" style="margin-bottom:5px" />
+
+
+                        <button type="button" ng-click="importexcel()" class="btn btn-primary">Import</button>
+                    </div>
+
+                    <div class="col">
+                        <label>Phone</label>
+                        <input class="form-control" type="text" id="phone" asp-for="CSEXSW_Rma.Phone" />
+
+
+                    </div>
+                    <div class="col">
+                        <label>
+                            Ext.
+                        </label>
+                        <input class="form-control" type="text" id="ext" asp-for="CSEXSW_Rma.Ext" />
+
+
+                    </div>
+                </div>
+
+
+
+
+
+                <div class="ship form-group row">
+
+
+                    <div class="col">
+                        <label>Fax</label>
+                        <input class="form-control" type="text" id="fax" asp-for="CSEXSW_Rma.Fax" />
+
+                    </div>
+
+                    <div class="col">
+                        <label>Contact E-mail</label>
+                        <input class="form-control" type="text" id="contactemail" asp-for="CSEXSW_Rma.Email" />
+                        <span asp-validation-for="CSEXSW_Rma.Email" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="ship form-group row">
+
+
+
+                    <div class="col">
+                        <label>Company E-mail</label>
+                        <input class="form-control" type="text" id="companyemail" background: #efef7b;" readonly="readonly" asp-for="CSEXSW_Rma.Company" />
+
+                    </div>
+
+                    <div class="col">
+                        <a ng-if="cliente == true && count != 0 && clientelineas == true" class="btn btn-primary" data-toggle='modal' data-target='#tblIm2' style="color: white;" ng-click="moverA(1)">
+                            Invoice History Price
+                        </a>
+                    </div>
+
+                </div>
+                <div class="form-group row">
+
+                    <div class="col">
+                        <label asp-for="CSEXSW_Rma.Comment"></label>
+                        <textarea class="form-control" asp-for="CSEXSW_Rma.Customercomplait" rows="50" id="comment" class="form-control" style="height:100px; width:100%; resize:none; overflow-y:scroll;"></textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <partial  name="SharedRma/_Modalstabla" />
+
+        <table class="m-3" id="tblStandar" ng-if="cliente == true">
+            <thead>
+                <tr>
+
+                    <th>Attachments</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <form>
+
+                        <div class="form-group">
+
+                    <td align="center"><input type="file" class="form-control" name="archivos" id="subidaArchivo" multiple /></td>
+</div>
+                    </form>
+                 </tr>
+
+
+           </tbody>
+
+
+       </table>
+
+
+
+
+
+
+    </form>
+
+
+<div class="col-10 offset-0 mt-4">
+    <div class="form-group row">
+        <div class="col ">
+            <div class="row d-flex ">
+                <div class="col-1">
+                    <button type="submit" onclick="Cargar()" class="btn-primary btn form-control ">Save</button>
+                    &nbsp;
+                </div>
+                <div class="col-1">
+                    <button type="submit" id="creer" onclick="Cargar2()" class=" btn-primary btn form-control" style="display: none;">Submit</button>
+                    &nbsp;
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="spinner-border m-5" style="display:none;" role="status" id="loading">
+    <span class="sr-only">Loading...</span>
+</div>
+
+
+<div id="wrapper">
+    <section>
+        <div class="data-container"></div>
+        <div id="demo"></div>
+    </section>
+</div>
+
+@*<pre>{{todoListships | json}}
+        {{formulario | json}}</pre>*@
+<partial name="_ModalsRma" />
+</div>
+@section Scripts {
+    <script src="~/js/jquery.loadingModal.min.js"></script>
+    @*<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.4/pagination.min.js"></script>*@
+    <script src="
+                                    https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js
+                                    "></script>
+    <link href="
+                                    https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css
+                                    " rel="stylesheet">
+
+
+    <script>
+        $(".ocultar500").hide();
+
+
+
+        $(document).ready(function () {
+
+            //$(document).on("click", "#imgBuscarSeq", function () {
+            //    /* LoadSecuencias('10683426');*/
+
+            //});
+
+        });
+
+    </script>
+
+}

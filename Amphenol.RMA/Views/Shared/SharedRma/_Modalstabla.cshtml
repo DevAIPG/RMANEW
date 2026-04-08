@@ -1,0 +1,160 @@
+﻿@model Amphenol.RMA.Models.ViewModels.csexsw_coustumerVM
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"></script>
+
+
+<style>
+    input[type=checkbox] {
+        /* Double-sized Checkboxes */
+        -ms-transform: scale(2); /* IE */
+        -moz-transform: scale(2); /* FF */
+        -webkit-transform: scale(2); /* Safari and Chrome */
+        -o-transform: scale(2); /* Opera */
+        transform: scale(2);
+        padding: 10px; 
+    }
+</style> 
+<div class="row" ng-if="cliente == true && clientelineas == true">
+    <div class="col-6">
+        <h2 class="text-primary">Lines</h2>
+    </div>
+
+</div>
+
+<div class="table-responsive">
+<table class="table table-sm table-bordered" id="tblRoles" ng-if="cliente == true && clientelineas == true">
+    <thead>
+        <tr>
+            <th >Invoice Num.</th>
+            <th >Seq No.</th>
+            <th >Part Number</th>
+            <th >Action</th>
+            <th >Location</th>
+            <th >Authorized Qty</th>
+            <th >Price</th>
+            <th >Unit Cost</th>
+            <th >Create CAR</th>
+            <th >Return Code</th> 
+            <th> <a ng-click="todoAdd()"><i class="fa fa-plus" style="color: blue;"></i> </a><a ng-click="remove()"><i class="fas fa-trash-alt" style="color: red;"></i></a> </th>
+
+        </tr>
+    </thead>
+
+    <tbody>
+        <tr ng-repeat="x in todoList">
+
+            <td >
+                <div class="row">
+                    <div class="col-12">
+
+                        <div class="input-group mb-3">
+                            <div class="custom-file">
+                                <input id="inv{{x.linea}} invoicee" readonly="readonly"  asp-for="csexsw_costumber.Invoice" ng-model="x.invoice"
+                                       name="invoice" class="inv{{x.linea}} t invoice form-control" data-filterListId="{{x.linea}}" ng-click="abririnv()" />
+                            </div>
+                            <div class="input-group-append">
+                                <a class="d-flex"><img class="img-thumbnail align-middle bg-transparent mt-1" data-linea="{{x.linea}}" onclick="abrirfacturas(this);" src="~/buscar.png" width="30" height="30" /></a>
+                            </div>
+                        </div>
+                       
+                    </div> 
+                </div>
+
+
+            </td>
+            <td >
+                <div class="row">
+                    <div class="col-6">
+                        <input readonly="readonly" style="width: 100px;" asp-for="csexsw_costumber.Seq" ng-model="x.seq" name="seq" class="t2 seq{{x.linea}} t seq form-control seq" data-filterListId="{{x.linea}}"   />
+                    </div>
+                    <div class="col-6">
+                        <a class="d-flex">
+                            <img class="img-thumbnail align-middle bg-transparent mt-1" onclick="loadseq(this)" data-linea="{{x.linea}}" id="imgBuscarSeq{{x.linea}}" src="~/buscar.png" width="30" height="30" />
+                        </a>
+                    </div>
+                </div>
+            </td>
+
+
+            <td >
+                <div class="row">
+                    <div class="col-12">
+                        <div class="input-group mb-3">
+                            <div class="custom-file">
+                                @*onblur="espacios(); mensaje();" *@
+                                <input  onkeyup="javascript:this.value=this.value.toUpperCase();" ng-model="x.coustumer" name="coustumer"   type="text" class="form-control cos{{x.linea}} t  coustumer" disabled id="cos{{x.linea}}">
+
+                            </div>
+                            <div class="input-group-append">
+                                <a class="d-flex">
+                                    <img class="img-thumbnail align-right bg-transparent mt-1 imgpn" onclick="loadpn(this)" data-linea="{{x.linea}}" id="imgBuscarPN{{x.linea}}" src="~/buscar.png" width="30" height="30" />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </td>
+            @*ACTION*@ 
+            <td >
+                <div class="row">
+                    <div class="col-12">
+                        <div class="input-group mb-3">
+                            <div class="custom-file">
+                               <select ng-model="x.saction"  class="form-control form-control-sm saction" id="sactions">
+                                   <option value="C">VALUE ADD</option>
+                                   <option value="C">CREDIT ONLY</option>
+                                   <option value="C">DISTY SCRAP ALLOWANCE</option>
+                                   <option value="C">CREDIT & REPLACE</option>
+                               </select>
+                            </div>
+                           
+                        </div>
+                    </div>
+                </div>
+
+            </td>
+            <td>
+                <select id="loc{{x.linea}} locationn" ng-model="x.loc" data-filterListId="{{x.linea}}" data-linea="{{x.linea}}" onchange="Dato(this)" ng-change="select()" class="loc{{x.linea}} loc form-control" asp-for="csexsw_costumber.Loc" name="loc">
+                    <option value=""></option>
+                        <option value="ARM">ARM - Arizona RMA</option>
+                        <option value="MRM">MRM - Mesa RMA</option>
+                        <option value="NRM">NRM - Nogales RMA</option>
+                        <option value="ERM">ERM - Endicott RMA</option>
+                    </select>
+                <div id="msglocd{{x.linea}}" style="position:absolute !important; display:none;" class="alert alert-danger p-1 mt-1 msglocd{{x.linea}}" role="alert">
+                    Location is not the same
+                </div>
+                <div id="msgloc{{x.linea}}" style="position:absolute !important; display:none;" class="alert alert-warning p-1 mt-1 msgloc{{x.linea}}" role="alert">
+                    Item Not Stocked at this location.
+                </div>
+            </td>
+            <td ><input   asp-for="csexsw_costumber.Qty" ng-model="x.qty" name="qty" id="qty{{x.linea}}" class="validar qty form-control" data-linea="{{x.linea}}" onkeyup="enviaDatos(this)" step="any" placeholder="0" min="0" type="number" /></td>
+
+            <td ><input  asp-for="csexsw_costumber.Unit" ng-model="x.unit" name="unit" id="price{{x.linea}}"  class="validar price{{x.linea}} unit form-control" data-linea="{{x.linea}}" onkeyup="enviaDatos(this)" step="any" placeholder="0" min="0" type="number" /></td>
+            <td ><input   asp-for="csexsw_costumber.Cost" ng-model="x.acttion" name="acttion" id="cost{{x.linea}}" class="validar cost{{x.linea}} acttion{{x.linea}} acttion form-control" step="any" placeholder="0" min="0" type="number" /> </td>
+
+            <td ><input type="checkbox" class="carcheck{{x.linea}} m-2" ng-model="x.checkcar" />  <input name="checkcar" id="carcheck{{x.linea}}" class="checkcar form-check m-2" type="hidden" value="{{x.checkcar}}" asp-for="csexsw_costumber.Car" /></td>
+            <td class="d-flex">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="input-group mb-3">
+                            <div class="custom-file">
+                                <input readonly="readonly" asp-for="csexsw_costumber.Retur" class="code{{x.linea}}  code form-control" ng-model="x.code" name="code" data-filterListId="{{x.linea}}" />
+                            </div>
+                            <div class="input-group-append">
+                                <a><img class="img-thumbnail align-middle bg-transparent mt-1" id="imgReturnCode{{x.linea}}" data-linea="{{x.linea}}" onclick="abrirrc(this);" src="~/buscar.png" width="30" height="30" /></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td ><input type="checkbox" ng-model="x.done" class="form-check-inline m-2" /> </td>
+        </tr>
+
+    </tbody>
+
+</table>
+</div>

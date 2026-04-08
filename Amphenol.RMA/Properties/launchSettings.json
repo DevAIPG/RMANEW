@@ -1,0 +1,40 @@
+{
+  "profiles": {
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "Client/Rma",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Amphenol.RMA": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "sqlDebugging": false,
+      "launchUrl": "Client/Rma",
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "launchBrowser": true,
+      "launchUrl": "https://localhost:5001",
+      "environmentVariables": {
+        "ASPNETCORE_URLS": "https://localhost:5001;http://localhost:5000",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "distributionName": ""
+    }
+  },
+  "iisSettings": {
+    "windowsAuthentication": true,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:11991",
+      "sslPort": 0
+    }
+  }
+}

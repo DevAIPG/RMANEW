@@ -1,0 +1,485 @@
+using Amphenol.RMA.AccesoDatos.Data.Repository;
+using Amphenol.RMA.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Amphenol.RMA.AccesoDatos.Data
+{
+    public class OERDTFIL_SQLRepository : Repository<OERDTFIL_SQL>, IOERDTFIL_SQLRepository
+    {
+        private readonly ApplicationDbContext2 _db;
+        public OERDTFIL_SQLRepository(ApplicationDbContext2 db) : base(db)
+        {
+            _db = db;
+
+
+
+
+        }
+        public string nuevorma()
+        {
+            var nextrma = (from c in _db.OERMACTL_SQL
+                           where c.ID == 1
+                           select c.ctl_next_order_no).First();
+
+
+            int x = Int32.Parse(nextrma);
+
+            string numString = x.ToString();
+            x = x + 1;
+            var numeroFormato = x.ToString("D8");
+
+
+
+            var objDesdeDbz = _db.OERMACTL_SQL.FirstOrDefault(s => s.ID == 1);
+
+            objDesdeDbz.ctl_next_order_no = numeroFormato;
+
+            _db.SaveChanges();
+
+            return numString;
+        }
+
+        public void lineasnuevas(string numString, string cus, string po, string comment, string[] invoice, string[] seq, string[] qty, string[] coustumer, string[] code, string[] unit)
+        {
+
+
+            char pad = ' ';
+
+
+            if (cus != null)
+            {
+                cus = cus.PadLeft(20, pad);
+            }
+            var objDesdeDbt = new OERHDFIL_SQL();
+            objDesdeDbt.rma_no = numString.PadLeft(8, pad);
+            objDesdeDbt.cus_no = cus;
+            objDesdeDbt.cus_ship_to = "";
+            objDesdeDbt.oe_po_no = po;
+            objDesdeDbt.rma_cmt = comment;
+            objDesdeDbt.status = "O";
+            DateTime fecha = DateTime.Now;
+            objDesdeDbt.rma_dt_entered = fecha;
+            _db.OERHDFIL_SQL.Add(objDesdeDbt);
+
+            _db.SaveChanges();
+            string inv = "";
+
+            Int16 seqqaplicado = 0;
+            Int16 seqq = 1;
+
+            for (int i = 0; i < invoice.Length; i++)
+            {
+
+
+
+                if (invoice[i] != null)
+                {
+                    inv = invoice[i].PadLeft(8, pad);
+                }
+
+                if (seq[i] != null)
+                {
+
+
+                    seqqaplicado = Int16.Parse(seq[i]);
+                }
+
+
+                if (qty[i] == null)
+                {
+                    qty[i] = "0";
+                }
+
+
+                if (unit[i] == null)
+                {
+                    unit[i] = "0";
+                }
+
+                if (coustumer[i] == null)
+                {
+                    coustumer[i] = "";
+                }
+
+
+                var objDesdeDby = new OERDTFIL_SQL();
+                objDesdeDby.rma_no = numString.PadLeft(8, pad);
+                objDesdeDby.oe_cus_no = cus;
+                objDesdeDby.apply_to_invc_no = inv;
+                objDesdeDby.apply_to_seq_no = seqqaplicado;
+                objDesdeDby.rma_seq_no = seqq;
+                objDesdeDby.item_no = coustumer[i];
+                objDesdeDby.reason_cd = code[i];
+                objDesdeDby.pick_seq_no = " ";
+                objDesdeDby.oe_ord_no = " ";
+                objDesdeDby.oe_unique_seq_no = 0;
+                objDesdeDby.oe_unique_seq = 0;
+                objDesdeDby.oe_unit_price = Convert.ToDecimal(unit[i]);
+                objDesdeDby.rma_qty_rtn_auth = Convert.ToDecimal(qty[i]);
+                objDesdeDby.loc = "NG";
+                objDesdeDby.status = "O";
+
+
+                _db.OERDTFIL_SQL.Add(objDesdeDby);
+
+
+
+
+                _db.SaveChanges();
+                seqq++;
+            }
+
+        }
+
+
+        public void lineascrear(CSEXSW_Rma rma, int idRMA, string numString, string cus, string[] acttion, string[] invoice, string[] seq, string[] qty, string[] coustumer, string[] code, string[] unit)
+        {
+
+
+            var objDesdeDb8 = new CSEXSW_Rma();
+            objDesdeDb8.Crearcar = rma.Crearcar;
+
+            objDesdeDb8.Approver = rma.Approver;
+            objDesdeDb8.Comment = rma.Comment;
+            objDesdeDb8.Customer = rma.Customer;
+            objDesdeDb8.Customercomplait = rma.Customercomplait;
+            objDesdeDb8.Customerpartno = "";
+            objDesdeDb8.Customerpo = rma.Customerpo;
+            objDesdeDb8.Date = rma.Date;
+            objDesdeDb8.Description = rma.Description;
+            objDesdeDb8.Preparado = rma.Preparado;
+            objDesdeDb8.RMA500 = rma.RMA500;
+            objDesdeDb8.Sumbit = rma.Sumbit;
+            objDesdeDb8.Rmarequest = rma.Rmarequest;
+            objDesdeDb8.Rmatypeofrequest = rma.Rmatypeofrequest;
+            objDesdeDb8.Status = rma.Status;
+            objDesdeDb8.Totalrmavalues = rma.Totalrmavalues;
+            objDesdeDb8.turno = rma.turno;
+            if (objDesdeDb8.Wherebuilt == "ATZ")
+            {
+                objDesdeDb8.Wherebuilt = "MOD";
+
+            }
+            else
+            {
+                objDesdeDb8.Wherebuilt = rma.Wherebuilt;
+            }
+
+
+            _db.CSEXSW_Rma.Add(objDesdeDb8);
+
+            _db.SaveChanges();
+
+
+
+            for (int i = 0; i < invoice.Length; i++)
+            {
+                if (code[i] == null)
+                {
+                    code[i] = "";
+                }
+                if (unit[i] == null)
+                {
+                    unit[i] = "";
+                }
+                if (coustumer[i] == null)
+                {
+                    coustumer[i] = "";
+                }
+                if (qty[i] == null)
+                {
+                    qty[i] = "";
+                }
+                if (seq[i] == null)
+                {
+                    seq[i] = "";
+                }
+                if (invoice[i] == null)
+                {
+                    invoice[i] = "";
+                }
+                if (acttion[i] == null)
+                {
+                    acttion[i] = "";
+                }
+                var objDesdeDb = new csexsw_coustumer();
+                objDesdeDb.Invoice = invoice[i];
+                objDesdeDb.Qty = qty[i];
+                objDesdeDb.Seq = seq[i];
+                objDesdeDb.Coustumer = coustumer[i];
+                objDesdeDb.Retur = code[i];
+                objDesdeDb.Action = "C";
+                objDesdeDb.Cost = acttion[i];
+                objDesdeDb.Unit = unit[i];
+                objDesdeDb.RmaId = idRMA + 1;
+
+                _db.csexsw_coustumer.Add(objDesdeDb);
+
+                _db.SaveChanges();
+            }
+
+            string inv = "";
+            char pad = ' ';
+            Int16 seqqaplicado = 0;
+            Int16 seqq = 1;
+
+            for (int i = 0; i < invoice.Length; i++)
+            {
+
+
+
+                if (invoice[i] != "")
+                {
+                    inv = invoice[i].PadLeft(8, pad);
+                }
+
+                if (seq[i] != "")
+                {
+
+
+                    seqqaplicado = Int16.Parse(seq[i]);
+                }
+
+
+                if (qty[i] == "")
+                {
+                    qty[i] = "0";
+                }
+
+
+                if (unit[i] == "")
+                {
+                    unit[i] = "0";
+                }
+                if (acttion[i] == "")
+                {
+                    acttion[i] = "0";
+                }
+                if (coustumer[i] == "")
+                {
+                    coustumer[i] = "";
+                }
+
+
+                var objDesdeDbv = _db.imitmidx_sql.FirstOrDefault(s => s.item_no == coustumer[i]);
+
+                var objDesdeDby = new OERDTFIL_SQL();
+                objDesdeDby.item_desc_1 = objDesdeDbv.item_desc_1;
+                objDesdeDby.item_desc_2 = objDesdeDbv.item_desc_2;
+                objDesdeDby.uom = objDesdeDbv.uom;
+                objDesdeDby.rma_no = numString.PadLeft(8, pad);
+                objDesdeDby.oe_cus_no = cus;
+                objDesdeDby.apply_to_invc_no = inv;
+                objDesdeDby.apply_to_seq_no = seqqaplicado;
+                objDesdeDby.rma_seq_no = seqq;
+                objDesdeDby.item_no = coustumer[i];
+                objDesdeDby.reason_cd = code[i];
+                objDesdeDby.action = "C";
+                objDesdeDby.oe_unit_cost = Convert.ToDecimal(acttion[i]);
+                objDesdeDby.pick_seq_no = " ";
+                objDesdeDby.oe_ord_no = " ";
+                objDesdeDby.oe_unique_seq_no = 0;
+                objDesdeDby.oe_unique_seq = 0;
+                objDesdeDby.oe_unit_price = Convert.ToDecimal(unit[i]);
+                objDesdeDby.rma_qty_rtn_auth = Convert.ToDecimal(qty[i]);
+                if (objDesdeDb8.Wherebuilt == "Nogales")
+                {
+                    objDesdeDby.loc = "NG";
+                }
+                if (objDesdeDb8.Wherebuilt == "Endicott")
+                {
+                    objDesdeDby.loc = "EN";
+                }
+                if (objDesdeDb8.Wherebuilt == "ATZ")
+                {
+                    objDesdeDby.loc = "MOD";
+                }
+                objDesdeDby.status = "O";
+
+
+                _db.OERDTFIL_SQL.Add(objDesdeDby);
+
+
+
+
+                _db.SaveChanges();
+                seqq++;
+            }
+        }
+
+
+        public void lineas(CSEXSW_Rma rma, int idRMA, string numString, string cus, string[] acttion, string[] invoice, string[] seq, string[] qty, string[] coustumer, string[] code, string[] unit)
+        {
+            var objDesdeDb = _db.CSEXSW_Rma.FirstOrDefault(s => s.Id == rma.Id);
+            objDesdeDb.Approver = rma.Approver;
+            objDesdeDb.Crearcar = rma.Crearcar;
+
+            objDesdeDb.Customercomplait = rma.Customercomplait;
+            objDesdeDb.Customerpartno = rma.Customerpartno;
+            objDesdeDb.Customerpo = rma.Customerpo;
+            objDesdeDb.Date = rma.Date;
+            objDesdeDb.Description = rma.Description;
+            objDesdeDb.Preparado = rma.Preparado;
+            objDesdeDb.RMA500 = rma.RMA500;
+            objDesdeDb.Rmarequest = rma.Rmarequest;
+            objDesdeDb.Rmatypeofrequest = rma.Rmatypeofrequest;
+            objDesdeDb.Customer = rma.Customer;
+            objDesdeDb.turno = rma.turno;
+            objDesdeDb.Sumbit = rma.Sumbit;
+            objDesdeDb.Status = rma.Status;
+            objDesdeDb.Comment = rma.Comment;
+            objDesdeDb.Totalrmavalues = rma.Totalrmavalues;
+            if (objDesdeDb.Wherebuilt == "ATZ")
+            {
+                objDesdeDb.Wherebuilt = "MOD";
+
+            }
+            else
+            {
+                objDesdeDb.Wherebuilt = rma.Wherebuilt;
+            }
+            _db.SaveChanges();
+
+            for (int i = 0; i < invoice.Length; i++)
+            {
+                if (code[i] == null)
+                {
+                    code[i] = "";
+                }
+                if (unit[i] == null)
+                {
+                    unit[i] = "";
+                }
+                if (coustumer[i] == null)
+                {
+                    coustumer[i] = "";
+                }
+                if (qty[i] == null)
+                {
+                    qty[i] = "";
+                }
+                if (seq[i] == null)
+                {
+                    seq[i] = "";
+                }
+                if (invoice[i] == null)
+                {
+                    invoice[i] = "";
+                }
+                if (acttion[i] == null)
+                {
+                    acttion[i] = "";
+                }
+                var objDesdeDbt = new csexsw_coustumer();
+                objDesdeDbt.Invoice = invoice[i];
+                objDesdeDbt.Qty = qty[i];
+                objDesdeDbt.Seq = seq[i];
+                objDesdeDbt.Coustumer = coustumer[i];
+                objDesdeDbt.Retur = code[i];
+                objDesdeDbt.Unit = unit[i];
+                objDesdeDbt.RmaId = idRMA;
+                objDesdeDbt.Action = "C";
+                objDesdeDbt.Cost = acttion[i];
+
+                _db.csexsw_coustumer.Add(objDesdeDbt);
+
+                _db.SaveChanges();
+            }
+
+            string inv = "";
+            char pad = ' ';
+            Int16 seqqaplicado = 0;
+            Int16 seqq = 1;
+
+            for (int i = 0; i < invoice.Length; i++)
+            {
+
+
+
+                if (invoice[i] != "")
+                {
+                    inv = invoice[i].PadLeft(8, pad);
+                }
+
+                if (seq[i] != "")
+                {
+
+
+                    seqqaplicado = Int16.Parse(seq[i]);
+                }
+
+
+                if (qty[i] == "")
+                {
+                    qty[i] = "0";
+                }
+
+
+                if (unit[i] == "")
+                {
+                    unit[i] = "0";
+                }
+
+                if (acttion[i] == "")
+                {
+                    acttion[i] = "0";
+                }
+
+                if (coustumer[i] == "")
+                {
+                    coustumer[i] = "";
+                }
+                var objDesdeDbv = _db.imitmidx_sql.FirstOrDefault(s => s.item_no == coustumer[i]);
+
+                var objDesdeDby = new OERDTFIL_SQL();
+                objDesdeDby.item_desc_1 = objDesdeDbv.item_desc_1;
+                objDesdeDby.item_desc_2 = objDesdeDbv.item_desc_2;
+                objDesdeDby.uom = objDesdeDbv.uom;
+                objDesdeDby.rma_no = numString.PadLeft(8, pad);
+                objDesdeDby.oe_cus_no = cus;
+                objDesdeDby.apply_to_invc_no = inv;
+                objDesdeDby.apply_to_seq_no = seqqaplicado;
+                objDesdeDby.rma_seq_no = seqq;
+                objDesdeDby.item_no = coustumer[i];
+                objDesdeDby.reason_cd = code[i];
+                objDesdeDby.action = "C";
+                if (objDesdeDb.Wherebuilt == "Nogales")
+                {
+                    objDesdeDby.loc = "NG";
+                }
+                if (objDesdeDb.Wherebuilt == "Endicott")
+                {
+                    objDesdeDby.loc = "EN";
+                }
+                if (objDesdeDb.Wherebuilt == "ATZ")
+                {
+                    objDesdeDby.loc = "MOD";
+                }
+                objDesdeDby.oe_unit_cost = Convert.ToDecimal(acttion[i]);
+                objDesdeDby.pick_seq_no = " ";
+                objDesdeDby.oe_ord_no = " ";
+                objDesdeDby.oe_unique_seq_no = 0;
+                objDesdeDby.oe_unique_seq = 0;
+                objDesdeDby.oe_unit_price = Convert.ToDecimal(unit[i]);
+                objDesdeDby.rma_qty_rtn_auth = Convert.ToDecimal(qty[i]);
+
+                objDesdeDby.status = "O";
+
+
+                _db.OERDTFIL_SQL.Add(objDesdeDby);
+
+
+
+
+                _db.SaveChanges();
+                seqq++;
+            }
+        }
+
+    }
+}

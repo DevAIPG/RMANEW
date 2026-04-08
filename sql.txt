@@ -1,0 +1,71 @@
+CREATE OR ALTER PROCEDURE dbo.usp_CreateOEOrderFromRMA
+    @RmaNo             char(8),
+    @UserName          varchar(20) = NULL,         -- recorded in audits
+    @CtlKey            tinyint = 1,                -- OECTLFIL_SQL.OE_CTL_KEY_1
+    @AllowInsufficient bit = 1,                    -- 1 = allow allocate beyond OH; 0 = block
+    @DefaultLoc        char(3) = NULL              -- fallback location if RMA line has none
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @Now           datetime2(3) = SYSDATETIME();
+    DECLARE @TodayChar8    char(8) = CONVERT(char(8), @Now, 112); -- YYYYMMDD
+    DECLARE @TimeChar12    char(12) = REPLACE(REPLACE(CONVERT(varchar(12), @Now, 114), ':', ''), '.', ''); -- HHMMSSmmm
+    SET @UserName = ISNULL(@UserName, SUSER_SNAME());
+
+    -- Helper for char(8) right-justified numbers like '     119'
+    DECLARE @pad8 varchar(8) = '        ';
+    DECLARE @pad12 varchar(12) = '            ';
+    DECLARE @OrderType char(1) = 'O';
+
+    BEGIN TRY
+        BEGIN TRAN;
+
+        /* 1) Lock OE control row & get next order number (safe for concurrency) */
+        DECLARE @NextOrdNo int, @OrdNoChar char(8);
+        SELECT @NextOrdNo = START_ORD_NO
+        FROM dbo.OECTLFIL_SQL WITH (UPDLOCK, HOLDLOCK)
+        WHERE OE_CTL_KEY_1 = @CtlKey;
+
+        IF @NextOrdNo IS NULL
+        BEGIN
+            THROW 50001, 'OECTLFIL_SQL: control row not found.', 1;
+        END
+
+        SET @OrdNoChar = RIGHT(@pad8 + CAST(@NextOrdNo as varchar(8)), 8);
+
+        /* 2) Read RMA header */
+        DECLARE
+            @CusNo        char(20),
+            @BillName     char(40), @BillAddr1 char(40), @BillAddr2 char(40), @BillAddr3 char(40), @BillAddr4 char(40), @BillCountry char(3),
+            @ShipName     char(40), @ShipAddr1 char(40), @ShipAddr2 char(40), @ShipAddr3 char(40), @ShipAddr4 char(40), @ShipCountry char(3),
+            @ShipVia      char(3),  @ArTerms   char(3),  @FrtPay    char(2),  @TaxCd char(3), @TaxPct numeric(5,2),
+            @PoNo         char(25), @HoldFg char(1);
+
+        SELECT TOP 1
+            @CusNo      = CUS_NO,
+            @BillName   = BILL_TO_NAME,  @BillAddr1 = BILL_TO_ADDR_1, @BillAddr2 = BILL_TO_ADDR_2, @BillAddr3 = BILL_TO_ADDR_3, @BillAddr4 = BILL_TO_ADDR_4, @BillCountry = BILL_TO_COUNTRY,
+            @ShipName   = SHIP_TO_NAME,  @ShipAddr1 = SHIP_TO_ADDR_1, @ShipAddr2 = SHIP_TO_ADDR_2, @ShipAddr3 = SHIP_TO_ADDR_3, @ShipAddr4 = SHIP_TO_ADDR_4, @ShipCountry = SHIP_TO_COUNTRY,
+            @ShipVia    = SHIP_VIA_CD,   @ArTerms = AR_TERMS_CD, @FrtPay = FRT_PAY_CD,
+            @TaxCd      = TAX_CD,        @TaxPct = TAX_PCT,
+            @PoNo       = OE_PO_NO,
+            @HoldFg     = HOLD_FG
+        FROM dbo.OERHDFIL_SQL WITH (READCOMMITTED)
+        WHERE RMA_NO = @RmaNo;
+
+        IF @CusNo IS NULL
+        BEGIN
+            THROW 50002, 'RMA header not found or incomplete.', 1;
+        END
+
+        /* ... rest of procedure ... */
+
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0 ROLLBACK TRAN;
+        DECLARE @Err nvarchar(4000) = CONCAT('(', ERROR_NUMBER(), ') ', ERROR_MESSAGE());
+        THROW 51000, @Err, 1;
+    END CATCH
+END
+GO

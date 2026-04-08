@@ -1,0 +1,315 @@
+﻿@model Amphenol.RMA.Models.ViewModels.csexsw_coustumerVM
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout6.cshtml";
+}
+<br />
+
+<div class="gif">
+    <img src="~/tenor.gif" alt="">
+</div>
+<div class="cargar" ng-controller="Rma">
+    <div class="row">
+        <div class="col-6">
+            <h2 class="text-primary">Edit Item</h2>
+        </div>
+
+    </div>
+
+    <br />
+    <br />
+
+
+
+    <form id="crearma" method="post" asp-action="Edit" enctype="multipart/form-data" autocomplete="off">
+
+        <input type="hidden" id="proceso" value="edit" />
+        <input type="hidden" id="clientesmodelo" value="@Model.CSEXSW_Rma.Customer" />
+        <input type="hidden" id="preparado" value="@Model.CSEXSW_Rma.Preparado" />
+        <div class="row px-2 mx-2 border">
+
+            <div class="col-10 offset-1 mt-4">
+                <div class="form-group row">
+                    <div class="col-12 offset-3">
+                        <div class="row">
+                            <div>
+                                <button type="submit" onclick="Cargar()" class="btn btn-primary">Save</button>
+                                &nbsp;
+                            </div>
+                            <div>
+                                <button type="submit" onclick="Cargar2()" class="btn btn-primary">Sumbit</button>
+                                &nbsp;
+                            </div>
+                            @if (Model.CSEXSW_Rma.Status == "Remark")
+                            {
+                                <div>
+                                    <button type="submit" onclick="Cargar3()" class="btn btn-primary">Done</button>
+                                    &nbsp;
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <input asp-for="CSEXSW_Rma.Id" type="hidden" id="id" />
+
+                <div class="form-group row">
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Rmarequest"></label>
+                    </div>
+                    <div class="col-3">
+                        <input asp-for="CSEXSW_Rma.Rmarequest" readonly="readonly" placeholder="Enter value here" id="foliorma" />
+
+                    </div>
+                    <input type="hidden" asp-for="CSEXSW_Rma.Status" id="rmastatus" />
+                    <input type="hidden" asp-for="CSEXSW_Rma.Approver" id="rmaapprover" />
+                    <input type="hidden" asp-for="CSEXSW_Rma.Sumbit" id="rmasumbit" />
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Date"></label>
+                    </div>
+                    <div class="col-3">
+                        <input asp-for="CSEXSW_Rma.Date" readonly="readonly" value="@DateTime.Today.ToString("MM/dd/yyyy ")" style="background: #efef7b;" id="rmadata" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Wherebuilt"></label>
+                    </div>
+                    <div class="col-3">
+                        <select id="validar1" asp-for="CSEXSW_Rma.Wherebuilt">
+
+                            <option value="0">Select an option</option>
+                            <option value="ATZ">ATZ</option>
+
+                            <option value="Nogales">Nogales</option>
+                            <option value="Endicott">Endicott</option>
+                        </select><br />
+                        <span class="spam1 text-danger">Mandatory: Where built</span>
+                    </div>
+
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Totalrmavalues"></label>
+                    </div>
+                    <div class="col-3">
+                        <input type="number" class="validar" style="background: #efef7b;" id="total" step="any" placeholder="0" min="0" asp-for="CSEXSW_Rma.Totalrmavalues" readonly="readonly" />
+                    </div>
+
+                </div>
+                <div class="form-group row">
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Customer"></label>
+                    </div>
+                    <div class="col-3">
+                        <input asp-for="CSEXSW_Rma.Customer" id="client" ng-keyup="buscarclient()" style="width: 150px;" placeholder="Enter value here" onkeyup="javascript:this.value=this.value.toUpperCase();" /> <a data-toggle='modal' data-target='#tblAm'><img src="~/buscar.png" /></a>
+                        <br />
+                        <span class="spam4 text-danger">Client not exit</span>
+
+                        <span class="spam3 text-danger">Mandatory: Customer</span>
+                    </div>
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Rmatypeofrequest"></label>
+                    </div>
+                    <div class="col-3">
+                        <select id="select" asp-for="CSEXSW_Rma.Rmatypeofrequest">
+                            <option value="0">Select an option</option>
+                            <option value="VALUE ADD RMA">VALUE ADD RMA</option>
+                            <option value="CREDIT & REPLACE">CREDIT & REPLACE</option>
+                            <option value="CREDIT ONLY">CREDIT ONLY</option>
+                            <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
+                        </select><br />
+                        <span class="spam2 text-danger">Mandatory: RMA type of Request</span>
+                    </div>
+
+
+                </div>
+                <div class="form-group row">
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Customercomplait"></label>
+                    </div>
+                    <div class="col-3">
+                        <input asp-for="CSEXSW_Rma.Customercomplait" id="customercomplait" />
+                    </div>
+
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Description"></label>
+                    </div>
+                    <div class="col-3">
+                        <input asp-for="CSEXSW_Rma.Description" id="description" />
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-group row">
+
+                    <div class="ocultar500 col-3">
+                        <label asp-for="CSEXSW_Rma.RMA500"></label>
+                    </div>
+                    <div class="ocultar500 col-3">
+                        <select asp-for="CSEXSW_Rma.RMA500" id="rma500">
+                            <option value="">Select an option</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="col-3">
+                        <label asp-for="CSEXSW_Rma.Customerpo"></label>
+                    </div>
+                    <div class="col-3">
+                        <input asp-for="CSEXSW_Rma.Customerpo" placeholder="Enter value here" id="customerpo" />
+
+                    </div>
+
+                </div>
+
+                <div class="form-group row">
+
+                    <div class="col-3" ng-if="cliente == true">
+                        <label asp-for="CSEXSW_Rma.Ship_To"></label>
+                    </div>
+                    <div class="col-3" ng-if="cliente == true">
+                        <input asp-for="CSEXSW_Rma.Ship_To" ng-blur="ship()" id="ship" readonly="readonly" style="width: 150px;" /><a data-toggle='modal' data-target='#mtblSt'><img src="~/buscar.png" /></a>
+                        <br />  <span class="spam5 text-danger">Mandatory: Ship_To</span>
+                    </div>
+                    <div class="col-1 ship">
+                        <label>Contact</label>
+                    </div>
+                    <div class="col-5 ship">
+                        <input type="text" id="contact" asp-for="CSEXSW_Rma.Contact" style="width: 300px;" />
+
+                    </div>
+                </div>
+                <div class="form-group row ship">
+
+                    <div class=" col-3">
+                        <label>Import RMA Lines</label>
+                    </div>   <div class=" col-3">
+                        <input type="file" name="archivos2" id="subidaArchivo2" style="width: 70%;" />
+
+
+                        <button type="button" ng-click="importexcel()" class="btn btn-primary">Import</button>
+                    </div>
+                    <div class="col-1 ship">
+                        <label>Phone</label>
+                    </div>
+                    <div class="col-3 ship">
+                        <input type="text" id="phone" style="width: 150px;" asp-for="CSEXSW_Rma.Phone" />
+
+
+                    </div>
+                    <div class="col-2 ship">
+                        Ext.<input type="text" id="ext" style="width: 70%;" asp-for="CSEXSW_Rma.Ext" />
+
+
+                    </div>
+                </div>
+
+
+
+
+
+                <div class="ship form-group row">
+
+                    <div class="col-3">
+                        <label>Fax</label>
+                    </div>
+                    <div class="col-3">
+                        <input type="text" id="fax" asp-for="CSEXSW_Rma.Fax" />
+
+                    </div>
+                    <div class="col-1">
+                        <label>Contact E-mail</label>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" id="contactemail" style="width: 300px;" asp-for="CSEXSW_Rma.Email" />
+                        <span asp-validation-for="CSEXSW_Rma.Email" class="text-danger"></span>
+
+                    </div>
+                </div>
+
+                <div class="ship form-group row">
+
+
+                    <div class="col-3">
+                        <label>Company E-mail</label>
+                    </div>
+                    <div class="col-3">
+                        <input type="text" id="companyemail" style="width :250px; background: #efef7b;" readonly="readonly" asp-for="CSEXSW_Rma.Company" />
+
+                    </div>
+                    <div class="col-3">
+                    </div>
+                    <div class="col-3">
+                        <a ng-if="cliente == true && count != 0 && clientelineas == true" class="btn btn-primary" data-toggle='modal' data-target='#tblIm2' style="color: white;" ng-click="Mover8()">
+                            Invoice History Price
+                        </a>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-2">
+                        <label asp-for="CSEXSW_Rma.Comment"></label>
+                    </div>
+                    <div class="col-10">
+                        <textarea asp-for="CSEXSW_Rma.Comment" class="form-control" style="height:100px; width:100%;" id="comment"></textarea>
+                    </div>
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+        <partial name="SharedRma/_Modalstabla" />
+
+
+
+
+
+        <table id="tblStandar" ng-if="cliente == true">
+            <thead>
+                <tr>
+
+                    <th>Attachments</th>
+                    <th></th>
+                </tr>
+            </thead>
+            @if (Model.Lista2.Count() > 0)
+            {
+
+                @foreach (var dato in Model.Lista2)
+                {
+                    <tr>
+
+                        <td> <a href=javascript:finestraSecundaria("../../../documents/documents/rma/@dato.Documento.Replace(' ','¶')")>@dato.Documento</a></td>
+
+                        <td><a onclick='Deletedocument("/client/rma/Deletedocumentrma/@dato.Id")' style="cursor: pointer;"> <i class="fas fa-trash-alt" style="color: red;"></i> Delete </a></td>
+
+                    </tr>
+                }
+            }
+            <tbody>
+                <tr>
+
+
+                    <td align="center"><input type="file" name="archivos" id="subidaArchivo" multiple /></td>
+
+
+            </tbody>
+
+
+        </table>
+
+
+    </form>
+    <partial name="_ModalsRma" />
+</div>
+@section Scripts{
+    @if (Model.CSEXSW_Rma.Rmatypeofrequest != "DISTY SCRAP ALLOWANCE")
+    {
+<script>  $(".ocultar500").hide();</script>
+        }
+
+    }

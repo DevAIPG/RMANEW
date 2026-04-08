@@ -1,0 +1,284 @@
+﻿@model Amphenol.RMA.Models.ViewModels.csexsw_coustumerVM
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout6.cshtml";
+}
+<br />
+<style>
+</style>
+
+<div class="cargar"  ng-controller="Rma">
+
+
+    <input type="hidden" id="proceso" value="datos" />
+
+
+
+    <div class="row px-2 mx-2 border">
+
+        <div class="col-10 offset-1 mt-4">
+            <div class="form-group row">
+                <div class="col-12 offset-3">
+
+                </div>
+            </div>
+            <input asp-for="CSEXSW_Rma.Id" type="hidden" id="id"/>
+            <div class="form-group row">
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Rmarequest"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Rmarequest" readonly="readonly" placeholder="Enter value here" />
+
+                </div>
+                <input type="hidden" asp-for="CSEXSW_Rma.Status" />
+                <input type="hidden" asp-for="CSEXSW_Rma.Approver" />
+                <input type="hidden" asp-for="CSEXSW_Rma.Sumbit" />
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Date"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Date" class="fecha" value="@DateTime.Today.ToString("MM/dd/yyyy ")" readonly="readonly" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Wherebuilt"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Wherebuilt" readonly="readonly" />
+                </div>
+
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Totalrmavalues"></label>
+                </div>
+                <div class="col-3">
+                    <input type="number" class="validar" id="total" step="any" placeholder="0" min="0" asp-for="CSEXSW_Rma.Totalrmavalues" readonly="readonly" />
+                </div>
+
+            </div>
+            <div class="form-group row">
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Customercomplait"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Customercomplait" readonly="readonly" />
+                </div>
+
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Description"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Description" readonly="readonly" />
+                </div>
+
+            </div>
+
+
+
+            <div class="form-group row">
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Customer"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Customer" id="client" style="width: 150px;" readonly="readonly" />
+                </div>
+            
+             
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Customerpo"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Customerpo" readonly="readonly" />
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group row">
+
+                <div class="col-3">
+                    <label asp-for="CSEXSW_Rma.Ship_To"></label>
+                </div>
+                <div class="col-3">
+                    <input asp-for="CSEXSW_Rma.Ship_To" id="ship" readonly="readonly" />
+
+                </div>
+                <div class="col-1">
+                    <label>Contact</label>
+                </div>
+                <div class="col-5">
+                    <input type="text" id="contact" readonly="readonly" asp-for="CSEXSW_Rma.Contact"style="width: 300px;" />
+
+                </div>
+            </div>
+            <div class="form-group row">
+
+
+                <div class="col-2">
+                    <label>Phone</label>
+                </div>
+                <div class="col-2">
+                    <input type="text" id="phone" style="width: 100%" readonly="readonly" asp-for="CSEXSW_Rma.Phone" />
+
+
+                </div>
+                <div class="col-2">
+                    Ext.<input type="text" id="ext" style="width: 70%" readonly="readonly" asp-for="CSEXSW_Rma.Ext" />
+
+
+                </div>
+
+                <div class="col-6">
+                    RMA Type of Request: @Model.CSEXSW_Rma.Rmatypeofrequest <br />
+                    @if (Model.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
+                    {
+                        <label>RMA single line more than $500 ?</label> @Model.CSEXSW_Rma.RMA500
+                    }
+                </div>
+            </div>
+
+
+
+
+
+            <div class="form-group row">
+
+                <div class="col-3">
+                    <label>Fax</label>
+                </div>
+                <div class="col-3">
+                    <input type="text" id="fax" readonly="readonly" asp-for="CSEXSW_Rma.Fax" />
+
+                </div>
+                <div class="col-3">
+                    <label>Contact E-mail</label>
+                </div>
+                <div class="col-3">
+                    <input type="text" id="contactemail" style="width :250px;" readonly="readonly" asp-for="CSEXSW_Rma.Email" />
+
+                </div>
+            </div>
+
+            <div class="form-group row">
+
+
+                <div class="col-3">
+                    <label>Company E-mail</label>
+                </div>
+                <div class="col-3">
+                    <input type="text" id="companyemail" style="width :250px;" readonly="readonly" asp-for="CSEXSW_Rma.Company" />
+
+                </div>
+            </div>
+
+
+
+
+            <div class="form-group row">
+                <div class="col-2">
+                    <label asp-for="CSEXSW_Rma.Comment"></label>
+                </div>
+                <div class="col-10">
+                    <textarea asp-for="CSEXSW_Rma.Comment" class="form-control" style="height:100px; width:100%;"></textarea>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="row">
+        <div class="col-6">
+            <h2 class="text-primary">Lines</h2>
+        </div>
+
+    </div>
+
+
+
+    <table id="tblRoles">
+        <thead>
+            <tr>
+                <th>Invoice Num.</th>
+                <th>Seq No.</th>
+                <th>Part Number</th>
+
+                <th>Authorized Qty</th>
+                <th style="text-align: center;">Price</th>
+                <th>Unit Cost</th>
+                <th>Loc</th>
+                <th>Create CAR</th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="x in todoList">
+
+                <td><input readonly="readonly" style="width: 100px;" ng-model="x.invoice" name="invoice" /></td>
+                <td><input readonly="readonly" style="width: 100px;" ng-model="x.seq" name="seq" /> </td>
+
+
+                <td><input readonly="readonly" style="width: 200px;" ng-model="x.coustumer" name="coustumer" type="text" />  </td>
+
+                <td><input readonly="readonly" style="width: 150px;" ng-model="x.qty" name="qty" step="any" placeholder="0" min="0" type="number" /></td>
+
+                <td><input readonly="readonly" style="width: 100px;" ng-model="x.unit" name="unit" step="any" placeholder="0" min="0" type="number" /></td>
+                <td><input readonly="readonly" style="width: 100px;" ng-model="x.acttion" name="acttion" step="any" placeholder="0" min="0" type="number" /></td>
+                <td>
+                    <input readonly="readonly" style="width: 100px;" ng-model="x.loc" />
+                </td>
+                <td><input readonly="readonly" type="checkbox" class="carcheck{{x.linea}}" ng-model="x.checkcar" checked onclick="javascript: return false;" /> </td>
+                <td style="justify-content: center;"><input readonly="readonly" style="width: 100px;" ng-model="x.code" name="code" />  </td>
+
+            </tr>
+
+        </tbody>
+
+    </table>
+
+
+    <table id="tblStandar">
+        <thead>
+            <tr>
+
+                <th>Attachments</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @if (Model.Lista2.Count() > 0)
+            {
+
+                @foreach (var dato in Model.Lista2)
+                {
+                    <tr>
+
+                        <td> <a href=javascript:finestraSecundaria("../../../documents/documents/rma/@dato.Documento.Replace(' ', '¶')")>@dato.Documento</a></td>
+
+                        <td></td>
+
+                    </tr>
+                }
+            }
+
+
+
+        </tbody>
+
+
+    </table>
+
+
+
+</div>
+@section Scripts{
+ 
+
+
+}

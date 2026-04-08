@@ -1,0 +1,10 @@
+
+
+RMA --------------------------- http://m10testserver:8080/Cliente/Rma/Control
+Calibration ------------------ http://m10testserver:8080/Cliente/Parts/Calibrations
+Panel ------------------------------------- http://m10testserver:8080/
+Correctives ----------------------------------------- http://m10testserver:8080/Cliente/Corrective/Car
+ECR ---------------------------------------------------- http://m10testserver:8080/Cliente/Enginnering/Control
+ECN ----------------------------------------------------------     http://m10testserver:8080/Cliente/Enginnering/ECNindex
+Drawings ---------------------------------------------------http://m10testserver:8080/Cliente/Dibujos/Dibujos
+Order ------------------------------------------------------ http://m10testserver:8080/Cliente/order/index
