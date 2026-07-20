@@ -1466,7 +1466,7 @@ function Comments(data) {
         cache: true,
         success: function success(data_) {
             console.log(data_);
-            $("#commentcontrol").val( data_.data[0]);
+            $("#commentcontrol").text( data_.data[0]);
         },
         error: function error(xhr, status, _error19) {
             $().toastmessage("showToast", {

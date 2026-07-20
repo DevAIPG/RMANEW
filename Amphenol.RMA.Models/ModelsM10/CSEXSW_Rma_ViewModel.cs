@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -28,5 +29,6 @@ namespace Amphenol.RMA.Models.ModelsM10
         public string Approver { get; set; }
         public int res_id { get; set; }
         public string formated_date_approved { get; set; }
+        public bool CanGenerateOrder { get; set; }
     }
 }

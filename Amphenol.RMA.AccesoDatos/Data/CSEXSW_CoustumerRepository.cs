@@ -31,117 +31,53 @@ namespace Amphenol.RMA.AccesoDatos.Data
         public void lineas(CSEXSW_Rma rma, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, int idRMA, string[] code, decimal[] unit, string[] checkcar, string[] loc, bool inicio, string[] actions)
         {
 
-            if (inicio == true)
-            {
-
-
-
-                //if (_db.csexsw_coustumer.Where(x => x.RmaId == idRMA).Count() > 0)
-                //{
-                //    string connectionString = _configuration.GetConnectionString("Connection100").ToString();
-                //    var values = new List<Dictionary<string, object>>();
-                //    using (SqlConnection cn = new SqlConnection(connectionString))
-                //    {
-                //        cn.Open();
-                //        string query = @"Delete from CSEXSW_Coustumer where RmaId = "  + idRMA;
-                //        SqlCommand cmd = new SqlCommand(query, cn);
-
-                //         SqlDataReader rdr = cmd.ExecuteReader();
-
-
-
-                //        cn.Close();
-                //    }
-
-                //}
-
-                // _db.SaveChanges();
-            }
-
-
+            //if (inicio == true)
+            //{
+            //    //if (_db.csexsw_coustumer.Where(x => x.RmaId == idRMA).Count() > 0)
+            //    //{
+            //    //    string connectionString = _configuration.GetConnectionString("Connection100").ToString();
+            //    //    var values = new List<Dictionary<string, object>>();
+            //    //    using (SqlConnection cn = new SqlConnection(connectionString))
+            //    //    {
+            //    //        cn.Open();
+            //    //        string query = @"Delete from CSEXSW_Coustumer where RmaId = "  + idRMA;
+            //    //        SqlCommand cmd = new SqlCommand(query, cn);
+            //    //         SqlDataReader rdr = cmd.ExecuteReader();
+            //    //        cn.Close();
+            //    //    }
+            //    //}
+            //    // _db.SaveChanges();
+            //}
 
             for (int i = 0; i < invoice.Length; i++)
             {
-
-
-                if (code[i] == null)
+                var objDesdeDbr = new csexsw_coustumer
                 {
-                    code[i] = "";
-                }
-
-                if (coustumer[i] == null)
-                {
-                    coustumer[i] = "";
-                }
-
-
-                if (invoice[i] == null)
-                {
-                    invoice[i] = "";
-                }
-                if (actions[i] == null)
-                {
-                    actions[i] = "";
-                }
-                if (loc[i] == null)
-                {
-                    loc[i] = "";
-                }
-
-
-                var objDesdeDbr = new csexsw_coustumer();
-                objDesdeDbr.Invoice = invoice[i];
-                objDesdeDbr.Qty = decimal.Round(qty[i], 4);
-                objDesdeDbr.Seq = seq[i];
-
-
-
-
-                if (checkcar[i] == "true")
-                {
-                    objDesdeDbr.Car = true;
-                }
-                else
-                {
-                    objDesdeDbr.Car = false;
-                }
-
-                objDesdeDbr.Coustumer = coustumer[i];
-                objDesdeDbr.Retur = code[i];
-                objDesdeDbr.Loc = loc[i];
-                objDesdeDbr.Action = actions[i];
-                objDesdeDbr.Cost = Math.Round(acttion[i], 4);
-                objDesdeDbr.Unit = Math.Round(unit[i], 4);
-                objDesdeDbr.RmaId = idRMA;
-
-                int order = i;
-                if (i == 0)
-                {
-                    order = 1;
-
-                }
-                else
-                {
-                    order = order + 1;
-                }
-                objDesdeDbr.rma_seq_no = order;
-
+                    Invoice = invoice[i] ?? string.Empty,
+                    Qty = decimal.Round(qty[i], 4),
+                    Seq = seq[i],
+                    Car = checkcar[i] == "true",
+                    Coustumer = coustumer[i] ?? string.Empty,
+                    Retur = code[i] ?? string.Empty,
+                    Loc = loc[i] ?? string.Empty,
+                    Action = actions[i] ?? string.Empty,
+                    Cost = Math.Round(acttion[i], 4),
+                    Unit = Math.Round(unit[i], 4),
+                    RmaId = idRMA,
+                    rma_seq_no = i + 1
+                };
 
                 _db.csexsw_coustumer.Add(objDesdeDbr);
-
-                try
-                {
-
-                    _db.SaveChanges();
-
-                }
-                catch (Exception)
-                {
-                }
-
             }
 
-
+            try
+            {
+                _db.SaveChanges();
+            }
+            catch (Exception)
+            {
+                // Log exception
+            }
         }
     }
 }

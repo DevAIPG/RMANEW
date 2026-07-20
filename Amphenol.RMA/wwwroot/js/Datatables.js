@@ -45,7 +45,7 @@ $.ajax({
     }
 });
 //RMA
-function cargarDatatableRma() {
+function    cargarDatatableRma() {
     $.ajax({
         url: "/Client/rma/GetAllrma",
         type: "GET",

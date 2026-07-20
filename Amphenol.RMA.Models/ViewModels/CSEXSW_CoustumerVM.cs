@@ -10,8 +10,8 @@ namespace Amphenol.RMA.Models.ViewModels
     {
         public CSEXSW_Rma CSEXSW_Rma { get; set; }
         public csexsw_coustumer csexsw_costumber { get; set; }
-        public IEnumerable<csexsw_coustumer> Lista { get; set; }
-        public IEnumerable<CSEXSW_Attachmentrma> Lista2 { get; set; }
+        public IEnumerable<csexsw_coustumer> ItemLines { get; set; }
+        public IEnumerable<CSEXSW_Attachmentrma> Attachments { get; set; }
 
     }
 }

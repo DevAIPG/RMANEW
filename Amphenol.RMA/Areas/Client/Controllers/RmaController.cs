@@ -20,12 +20,16 @@ using SpreadsheetLight;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
-using System.Data.SqlClient;
+using System.Data;
+using Microsoft.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Amphenol.RMA.Services.Email;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Hosting;
+using System.Globalization;
 
 namespace Amphenol.RMA.Controllers
 {
@@ -47,13 +51,18 @@ namespace Amphenol.RMA.Controllers
         private readonly DbContext100 _context;
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
+        private readonly CustomerServiceManager _customerServiceManager;
         const string rootE = @"E:\CSFiles\documents\";
         const string rootEC = @"E:\CSFiles\";
 
         private readonly IHttpContextAccessor _httpContextAccessor;
 
 
-        public RmaController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContextM10 context2, DbContext100 context, IWebHostEnvironment hostingEnvironmen, IHttpContextAccessor httpContextAccessor)
+        public RmaController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContextM10 context2,
+                             DbContext100 context, IWebHostEnvironment hostingEnvironmen,
+                             IHttpContextAccessor httpContextAccessor, IEmailService emailService,
+                             IOptions<CustomerServiceManager> customerServiceManager)
         {
             _contenedorTrabajo = contenedorTrabajo;
             _context2 = context2;
@@ -62,8 +71,8 @@ namespace Amphenol.RMA.Controllers
             _hostingEnvironment = hostingEnvironmen;
             Configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
-
-
+            _emailService = emailService;
+            _customerServiceManager = customerServiceManager.Value;
         }
         public IConfiguration Configuration { get; }
         public async Task crearcar(csexsw_car objDesdeDbt, int idCAR)
@@ -75,16 +84,16 @@ namespace Amphenol.RMA.Controllers
         public async Task ScheduleJob2(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
         {
 
-            await _contenedorTrabajo.CSEXSW_Rma.SendMailAsync2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rmarequest);
+            //await _contenedorTrabajo.CSEXSW_Rma.SendMailAsync2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rmarequest);
         }
         public async Task ScheduleJob(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
         {
-            await _contenedorTrabajo.CSEXSW_Rma.SendMail(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rmarequest);
+            //await _contenedorTrabajo.CSEXSW_Rma.SendMail(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rmarequest);
 
         }
         public async Task ScheduleJob3(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
         {
-            await _contenedorTrabajo.CSEXSW_Rma.SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rmarequest);
+            //await _contenedorTrabajo.CSEXSW_Rma.SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rmarequest);
 
         }
         [HttpGet]
@@ -226,38 +235,50 @@ namespace Amphenol.RMA.Controllers
 
         }
 
-
-
         [HttpPost]
         public async Task<IActionResult> CreateOrderpost([FromBody] CreateOrder request)
         {
-            String cadena = User.Identity.Name;
+            string cadena = User.Identity.Name;
             string delimitador = @"\";
             string[] valores = cadena.Split(delimitador);
             string username = valores[1].Trim();
 
             try
             {
-                var result = await _context.Database.ExecuteSqlRawAsync(
-                 "EXEC dbo.usp_RMA_CreateReplacementOrder @RMA_NO = {0}, @NewOrderType = {1}, @UserName = {2}, @ProcessAllLines = {3}",
-                request.rmaNo, "O", username, 1);
+                using var conn = _context.Database.GetDbConnection();
+                await conn.OpenAsync();
 
-                if (result != 0)
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "dbo.usp_RMA_CreateReplacementOrder";
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new SqlParameter("@RMA_NO", request.rmaNo));
+                cmd.Parameters.Add(new SqlParameter("@NewOrderType", "O"));
+                cmd.Parameters.Add(new SqlParameter("@UserName", username));
+                cmd.Parameters.Add(new SqlParameter("@ProcessAllLines", 1));
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
                 {
-                    return Ok(new { success = true, message = "Order created successfully."});
+                    var status = reader["Status"]?.ToString();
+
+                    if (status == "SUCCESS")
+                    {
+                        var newOrderNumber = reader["NewOrderNumber"]?.ToString();
+
+                        return Ok(new { success = true, message = $"Order #<b>{newOrderNumber}</b> created successfully." });
+                    }
                 }
-                else
-                {
-                    return BadRequest(new { success = false, message = "Order creation failed."});
-                }
+
+                return BadRequest(new { success = false, message = "Order creation failed." });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log error if needed
-                return BadRequest(new { success = false, message = "An unexpected error occurred while creating the order."});
+                return BadRequest(new { success = false, message = "An unexpected error occurred while creating the order." });
             }
         }
-        
+
         [HttpPost]
         public IActionResult Importexcel()
         {
@@ -368,9 +389,9 @@ namespace Amphenol.RMA.Controllers
             csexsw_coustumerVM rma = new csexsw_coustumerVM()
             {
                 CSEXSW_Rma = new Models.CSEXSW_Rma(),
-                Lista = _contenedorTrabajo.csexsw_coustumer.GetAll(a => a.RmaId == id),
+                ItemLines = _contenedorTrabajo.csexsw_coustumer.GetAll(a => a.RmaId == id),
 
-                Lista2 = _contenedorTrabajo.CSEXSW_Attachmentrma.GetAll(a => a.RmaId == id),
+                Attachments = _contenedorTrabajo.CSEXSW_Attachmentrma.GetAll(a => a.RmaId == id),
 
 
             };
@@ -412,7 +433,7 @@ namespace Amphenol.RMA.Controllers
         }
 
         [HttpPost]
-        public RedirectToActionResult Aprobar(string commentt, int idsa)
+        public RedirectToActionResult Aprobar(string commentt, int idsa, bool isAutoApproved = false)
         {
             String cadena = User.Identity.Name;
             string delimitador = @"\";
@@ -421,11 +442,11 @@ namespace Amphenol.RMA.Controllers
 
             //res id
             //string var = "8";//_contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
+
+
+            string var = isAutoApproved ? "-4" : _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
 
             var rma = _context2.CSEXSW_Rma.Where(S => S.Id == idsa).FirstOrDefault();
-
-
 
             string QM = "";
             humres empQM = null;
@@ -439,6 +460,7 @@ namespace Amphenol.RMA.Controllers
                     QM = empQM.fullname;
                 }
             }
+
             if (rma.Wherebuilt == "Mesa")
             {
                 //Mesa
@@ -450,6 +472,7 @@ namespace Amphenol.RMA.Controllers
                     QM = empQM.fullname;
                 }
             }
+
             if (rma.Wherebuilt == "Endicott")
             {
                 //Endicot
@@ -462,8 +485,6 @@ namespace Amphenol.RMA.Controllers
                 }
             }
 
-
-
             //QD (Quality Director)
             var QDM10 = _context2.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
             string QD = "";
@@ -473,6 +494,7 @@ namespace Amphenol.RMA.Controllers
                 empQD = _context2.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
                 QD = empQD.fullname;
             }
+
             //GM (General Manager)
             var GMM10 = _context2.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
             humres empGM = null;
@@ -483,8 +505,6 @@ namespace Amphenol.RMA.Controllers
                 GM = empGM.fullname;
             }
 
-
-
             string mail1 = empQM.mail;
             string mail2 = empQD.mail;
             string mail3 = empGM.mail;
@@ -492,8 +512,6 @@ namespace Amphenol.RMA.Controllers
             string mail5 = "";
             string mail6 = "";
             string mailp = "";
-
-
 
             //OERHDFIL_SQL
             string retorno = _contenedorTrabajo.CSEXSW_Rma.Updateaprobar(idsa, commentt, var, mail1, mail2, mail3, mail4, mail5, mail6, mailp);
@@ -517,7 +535,6 @@ namespace Amphenol.RMA.Controllers
 
                     SqlDataReader rdr = cmd.ExecuteReader();
 
-
                     //get the data reader, etc.
                     while (rdr.Read())
                     {
@@ -526,15 +543,10 @@ namespace Amphenol.RMA.Controllers
                             IdActual = rdr["IdActual"],
                             IdInicial = rdr["IdInicial"],
                             Incremento = rdr["Incremento"]
-
-
                         });
-
 
                         idCAR = Convert.ToInt32(rdr["IdActual"]);
                     }
-
-
 
                     cn.Close();
                 }
@@ -543,8 +555,6 @@ namespace Amphenol.RMA.Controllers
                 var checkcars = _context2.csexsw_coustumer.Count(r => r.RmaId == idsa && r.Car == true);
                 if (checkcars > 0)
                 {
-
-
                     idCAR = idCAR + 1;
                     var objDesdeDb = _context2.CSEXSW_Rma.FirstOrDefault(s => s.Id == idsa);
 
@@ -571,12 +581,10 @@ namespace Amphenol.RMA.Controllers
                     objDesdeDbt.sumbit = false;
                     objDesdeDbt.Notes = "RMA Requests No" + objDesdeDb.Rmarequest + "Description: " + objDesdeDb.Description + " Customer complait: " + objDesdeDb.Customercomplait + " Approver: " + objDesdeDb.Approver + " RMA type of request: " + objDesdeDb.Rmatypeofrequest + " Where built: " + objDesdeDb.Wherebuilt;
                     BackgroundJob.Enqueue(() => crearcar(objDesdeDbt, idCAR));
-
-
-
                 }
             }
-            return RedirectToAction(nameof(Control));
+
+            return isAutoApproved ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Control));
         }
 
 
@@ -604,13 +612,7 @@ namespace Amphenol.RMA.Controllers
             try
             {
                 int id = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-
-
-
-
-
                 num = "" + id;
-
             }
             catch (Exception)
             {
@@ -642,9 +644,9 @@ namespace Amphenol.RMA.Controllers
             csexsw_coustumerVM rma = new csexsw_coustumerVM()
             {
                 CSEXSW_Rma = new Models.CSEXSW_Rma(),
-                Lista = _contenedorTrabajo.csexsw_coustumer.GetAll(a => a.RmaId == id),
+                ItemLines = _contenedorTrabajo.csexsw_coustumer.GetAll(a => a.RmaId == id),
 
-                Lista2 = _contenedorTrabajo.CSEXSW_Attachmentrma.GetAll(a => a.RmaId == id),
+                Attachments = _contenedorTrabajo.CSEXSW_Attachmentrma.GetAll(a => a.RmaId == id),
 
 
             };
@@ -818,11 +820,7 @@ namespace Amphenol.RMA.Controllers
 
         }
 
-
         [HttpPost]
-
-
-
         public IActionResult Done(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
             bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string[] actions)
         {
@@ -1144,7 +1142,6 @@ namespace Amphenol.RMA.Controllers
 
             var rmaS = _context2.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
 
-
             var arcusfil_sql = new arcusfil_sql();
 
             double tipo_cambio = rmaS.Totalrmavalues;
@@ -1158,8 +1155,6 @@ namespace Amphenol.RMA.Controllers
             {
                 tipo_cambio = Convert.ToDouble(rmaS.Totalrmavalues) / Convert.ToDouble(rate.RateExchange);
             }
-
-            //return Json(new { data = tipo_cambio , moneda = moneda, client = client , rate = Convert.ToDouble(rate.RateExchange) , total  = total });
 
             csexsw_coustumerVM rma = new csexsw_coustumerVM()
             {
@@ -1220,8 +1215,6 @@ namespace Amphenol.RMA.Controllers
                         }
                     }
 
-
-
                     //QD (Quality Director)
                     var QDM10 = _context2.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
                     string QD = "";
@@ -1240,21 +1233,9 @@ namespace Amphenol.RMA.Controllers
                         empGM = _context2.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
                         GM = empGM.fullname;
                     }
-                    //_context2.CSEXSW_Approver.Where(a => a.Rango == "QM").Select(a => a.Approver).FirstOrDefault();
-
-                    //_context2.CSEXSW_Approver.Where(a => a.Rango == "QD").Select(a => a.Approver).FirstOrDefault();
-
-                    //_context2.CSEXSW_Approver.Where(a => a.Rango == "GM").Select(a => a.Approver).FirstOrDefault();
-                    //string Dee = _context2.CSEXSW_Approver.Where(a => a.Rango == "Dee").Select(a => a.Approver).FirstOrDefault();
-                    //string Controller = _context2.CSEXSW_Approver.Where(a => a.Rango == "Controller").Select(a => a.Approver).FirstOrDefault();
-                    //string CSM = _context2.CSEXSW_Approver.Where(a => a.Rango == "CSM").Select(a => a.Approver).FirstOrDefault();
                     string mail1 = empQM.mail;
                     string mail2 = empQD.mail;
                     string mail3 = empGM.mail;
-                    //string mail4 = _context2.humres.Where(a => a.fullname == Dee).Select(a => a.mail).FirstOrDefault();
-                    //string mail5 = _context2.humres.Where(a => a.fullname == Controller).Select(a => a.mail).FirstOrDefault();
-                    //string mail6 = _context2.humres.Where(a => a.fullname == CSM).Select(a => a.mail).FirstOrDefault();
-                    //string mailp = _context2.humres.Where(a => a.fullname == var).Select(a => a.mail).FirstOrDefault();
                     string mail4 = "";
                     string mail5 = "";
                     string mail6 = "";
@@ -1305,164 +1286,9 @@ namespace Amphenol.RMA.Controllers
 
                         if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
                         {
-                            //if es mayor o igual a 5000 or una linea exceda 500 (total) QD
-                            //if (rma.CSEXSW_Rma.RMA500 == "Yes")
-                            //{
                             rma.CSEXSW_Rma.Approver = QD;
                             _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
                             _contenedorTrabajo.Save();
-
-
-                            //}
-                            //else
-                            //{
-                            //    if (tipo_cambio <= 4999)
-                            //    {
-
-                            //        var nextrma = (from c in _context.OERMACTL_SQL
-                            //                       where c.ID == 1
-                            //                       select c.ctl_next_order_no).First();
-
-
-                            //        int x = Int32.Parse(nextrma);
-                            //        string numString = x.ToString();
-                            //        x = x + 1;
-                            //        var numeroFormato = x.ToString("D8");
-                            //        _context.SaveChanges();
-
-
-                            //        var objDesdeDbz = _context.OERMACTL_SQL.FirstOrDefault(s => s.ID == 1);
-
-                            //        objDesdeDbz.ctl_next_order_no = numeroFormato;
-                            //        rma.CSEXSW_Rma.Approver = "";
-                            //        rma.CSEXSW_Rma.turno = numString;
-                            //        rma.CSEXSW_Rma.Status = "Approved";
-
-                            //        idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //        string cus = "";
-                            //        char pad = ' ';
-                            //        if (rma.CSEXSW_Rma.Customer != null)
-                            //        {
-                            //            cus = rma.CSEXSW_Rma.Customer.PadRight(20, pad);
-                            //        }
-                            //        //add lineas
-                            //        var lineasbyrma = _context2.csexsw_coustumer.Where(s => s.RmaId == id).ToArray();
-                            //        var acttion = lineasbyrma.Select(r => r.Cost).ToArray();
-                            //        var invoice = lineasbyrma.Select(r => r.Invoice).ToArray();
-                            //        var seq = lineasbyrma.Select(r => r.Seq).ToArray();
-                            //        var qty = lineasbyrma.Select(r => r.Qty).ToArray();
-                            //        var coustumer = lineasbyrma.Select(r => r.Coustumer).ToArray();
-                            //        var code = lineasbyrma.Select(r => r.Retur).ToArray();
-                            //        var unit = lineasbyrma.Select(r => r.Unit).ToArray();
-                            //        var checkcar = lineasbyrma.Select(r => r.Car == true ? "true" : "false").ToArray();
-                            //        var loc = lineasbyrma.Select(r => r.Loc).ToArray();
-
-                            //        string retorno =
-                            //            _contenedorTrabajo.OERDTFIL_SQL.lineascrear(rma.CSEXSW_Rma,
-                            //                 idRMA, numString, cus, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc);
-                            //        _contenedorTrabajo.Save();
-
-                            //        idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //        if (retorno == "Approved")
-                            //        {
-                            //            int idCAR = 0;
-
-                            //            ArrayList objs = new ArrayList();
-                            //            string connectionString = ConnectionM10.Connection;
-                            //            var values = new List<Dictionary<string, object>>();
-                            //            using (SqlConnection cn = new SqlConnection(connectionString))
-                            //            {
-                            //                cn.Open();
-                            //                string query = @"SELECT IDENT_CURRENT('csexsw_car') as IdActual,
-                            //                IDENT_SEED('csexsw_car') as IdInicial,
-                            //                IDENT_INCR('csexsw_car') as Incremento";
-                            //                SqlCommand cmd = new SqlCommand(query, cn);
-
-                            //                SqlDataReader rdr = cmd.ExecuteReader();
-
-                            //                //get the data reader, etc.
-                            //                while (rdr.Read())
-                            //                {
-                            //                    objs.Add(new
-                            //                    {
-                            //                        IdActual = rdr["IdActual"],
-                            //                        IdInicial = rdr["IdInicial"],
-                            //                        Incremento = rdr["Incremento"]
-
-
-                            //                    });
-
-
-                            //                    idCAR = Convert.ToInt32(rdr["IdActual"]);
-                            //                }
-                            //                cn.Close();
-                            //            }
-
-                            //            var objDesdeDblinea = _context2.csexsw_coustumer.Where(s => s.RmaId == idRMA).ToList();
-                            //            var checkcars = _context2.csexsw_coustumer.Count(r => r.RmaId == idRMA && r.Car == true);
-                            //            if (checkcars > 0)
-                            //            {
-
-
-                            //                idCAR = idCAR + 1;
-                            //                var objDesdeDb = _context2.CSEXSW_Rma.FirstOrDefault(s => s.Id == idRMA);
-
-                            //                string numString2 = idCAR.ToString();
-                            //                objDesdeDb.Car = objDesdeDb.Car + "  " + numString2;
-                            //                _context.SaveChanges();
-                            //                string Client = (from c in _context.arcusfil_sql
-                            //                                 where c.cus_no.Contains(objDesdeDb.Customer)
-                            //                                 select c.cus_name).First();
-                            //                var objDesdeDbt = new csexsw_car();
-                            //                objDesdeDbt.customercode = objDesdeDb.Customer;
-                            //                objDesdeDbt.Status = "In Process";
-                            //                DateTime fecha = DateTime.Now;
-                            //                objDesdeDbt.Issue_date = fecha;
-
-                            //                objDesdeDbt.Internalduedate = fecha.AddDays(30);
-                            //                objDesdeDbt.Responsabledate = fecha.AddDays(30);
-                            //                objDesdeDbt.customername = Client;
-                            //                objDesdeDbt.Defectcode = "";
-                            //                objDesdeDbt.Partnumber = "";
-                            //                objDesdeDbt.Rmanumber = objDesdeDb.turno;
-                            //                objDesdeDbt.po = objDesdeDb.Customerpo;
-
-                            //                objDesdeDbt.Notes = "RMA Requests No" + objDesdeDb.Rmarequest + "Description: " + objDesdeDb.Description + " Customer complait: " + objDesdeDb.Customercomplait + " Approver: " + objDesdeDb.Approver + " RMA type of request: " + objDesdeDb.Rmatypeofrequest + " Where built: " + objDesdeDb.Wherebuilt;
-                            //                BackgroundJob.Enqueue(() => crearcar(objDesdeDbt, idCAR));
-
-
-
-                            //            }
-                            //        }
-
-
-
-                            //    }
-
-                            //    if (tipo_cambio >= 20000)
-                            //    {
-                            //        rma.CSEXSW_Rma.Approver = QD;
-                            //        _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                            //        _contenedorTrabajo.Save();
-
-
-
-                            //    }
-
-                            //    if ((tipo_cambio >= 5000 && tipo_cambio <= 19999.99))
-                            //    {
-                            //        rma.CSEXSW_Rma.Approver = QD;
-                            //        _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                            //        _contenedorTrabajo.Save();
-
-
-
-                            //    }
-
-
-                            //}
                         }
 
 
@@ -1477,9 +1303,6 @@ namespace Amphenol.RMA.Controllers
                                 rma.CSEXSW_Rma.Approver = QM;
                                 _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
                                 _contenedorTrabajo.Save();
-
-
-
                             }
 
                             if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
@@ -1496,188 +1319,17 @@ namespace Amphenol.RMA.Controllers
                                 rma.CSEXSW_Rma.Approver = QD;
                                 _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
                                 _contenedorTrabajo.Save();
-
-
                             }
                         }
 
                         if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
                         {
-                            //if (rma.CSEXSW_Rma.RMA500 == "Yes")
-
-                            //{
                             rma.CSEXSW_Rma.Approver = QD;
                             _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
                             _contenedorTrabajo.Save();
-
-
-
-                            //                        }
-                            //                        else
-                            //                        {
-                            //                            if (tipo_cambio <= 4999)
-                            //                            {
-                            //                                var nextrma = (from c in _context.OERMACTL_SQL
-                            //                                               where c.ID == 1
-                            //                                               select c.ctl_next_order_no).First();
-
-
-                            //                                int x = Int32.Parse(nextrma);
-
-                            //                                string numString = x.ToString();
-                            //                                x = x + 1;
-                            //                                var numeroFormato = x.ToString("D8");
-                            //                                _context.SaveChanges();
-                            //                                var objDesdeDbz = _context.OERMACTL_SQL.FirstOrDefault(s => s.ID == 1);
-
-                            //                                objDesdeDbz.ctl_next_order_no = numeroFormato;
-                            //                                rma.CSEXSW_Rma.Approver = "";
-                            //                                rma.CSEXSW_Rma.turno = numString;
-                            //                                rma.CSEXSW_Rma.Status = "Approved";
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-
-                            //                                string cus = "";
-                            //                                char pad = ' ';
-
-                            //                                if (rma.CSEXSW_Rma.Customer != null)
-                            //                                {
-                            //                                    cus = rma.CSEXSW_Rma.Customer.PadRight(20, pad);
-                            //                                }
-
-                            //                                var lineasbyrma = _context2.csexsw_coustumer.Where(s => s.RmaId == id).ToArray();
-                            //                                var acttion = lineasbyrma.Select(r => r.Cost).ToArray();
-                            //                                var invoice = lineasbyrma.Select(r => r.Invoice).ToArray();
-                            //                                var seq = lineasbyrma.Select(r => r.Seq).ToArray();
-                            //                                var qty = lineasbyrma.Select(r => r.Qty).ToArray();
-                            //                                var coustumer = lineasbyrma.Select(r => r.Coustumer).ToArray();
-                            //                                var code = lineasbyrma.Select(r => r.Retur).ToArray();
-                            //                                var unit = lineasbyrma.Select(r => r.Unit).ToArray();
-                            //                                var checkcar = lineasbyrma.Select(r => r.Car == true ? "true" : "false").ToArray();
-                            //                                var loc = lineasbyrma.Select(r => r.Loc).ToArray();
-
-                            //                                string retorno =
-                            //                                    _contenedorTrabajo.OERDTFIL_SQL.lineascrear(rma.CSEXSW_Rma,
-                            //                                    idRMA, numString, cus, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc);
-                            //                                _contenedorTrabajo.Save();
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                if (retorno == "Approved")
-                            //                                {
-                            //                                    int idCAR = 0;
-
-                            //                                    ArrayList objs = new ArrayList();
-                            //                                    string connectionString = ConnectionM10.Connection;
-                            //                                    var values = new List<Dictionary<string, object>>();
-                            //                                    using (SqlConnection cn = new SqlConnection(connectionString))
-                            //                                    {
-                            //                                        cn.Open();
-                            //                                        string query = @"SELECT IDENT_CURRENT('csexsw_car') as IdActual,
-                            //IDENT_SEED('csexsw_car') as IdInicial,
-                            //IDENT_INCR('csexsw_car') as Incremento";
-                            //                                        SqlCommand cmd = new SqlCommand(query, cn);
-
-                            //                                        SqlDataReader rdr = cmd.ExecuteReader();
-
-
-                            //                                        //get the data reader, etc.
-                            //                                        while (rdr.Read())
-                            //                                        {
-                            //                                            objs.Add(new
-                            //                                            {
-                            //                                                IdActual = rdr["IdActual"],
-                            //                                                IdInicial = rdr["IdInicial"],
-                            //                                                Incremento = rdr["Incremento"]
-
-
-                            //                                            });
-
-
-                            //                                            idCAR = Convert.ToInt32(rdr["IdActual"]);
-                            //                                        }
-
-
-
-                            //                                        cn.Close();
-                            //                                    }
-
-                            //                                    var objDesdeDblinea = _context2.csexsw_coustumer.Where(s => s.RmaId == idRMA).ToList();
-                            //                                    var checkcars = _context2.csexsw_coustumer.Count(r => r.RmaId == idRMA && r.Car == true);
-                            //                                    if (checkcars > 0)
-                            //                                    {
-
-
-
-                            //                                        idCAR = idCAR + 1;
-                            //                                        var objDesdeDb = _context2.CSEXSW_Rma.FirstOrDefault(s => s.Id == idRMA);
-
-                            //                                        string numString2 = idCAR.ToString();
-                            //                                        objDesdeDb.Car = objDesdeDb.Car + "  " + numString2;
-                            //                                        _context.SaveChanges();
-                            //                                        string Client = (from c in _context.arcusfil_sql
-                            //                                                         where c.cus_no.Contains(objDesdeDb.Customer)
-                            //                                                         select c.cus_name).First();
-                            //                                        var objDesdeDbt = new csexsw_car();
-                            //                                        objDesdeDbt.customercode = objDesdeDb.Customer;
-                            //                                        objDesdeDbt.Status = "In Process";
-                            //                                        DateTime fecha = DateTime.Now;
-                            //                                        objDesdeDbt.Issue_date = fecha;
-                            //                                        objDesdeDbt.Owner = "8";
-                            //                                        objDesdeDbt.owner_name = "Benjamin Cervantes";
-                            //                                        objDesdeDbt.Internalduedate = fecha.AddDays(30);
-                            //                                        objDesdeDbt.Responsabledate = fecha.AddDays(30);
-                            //                                        objDesdeDbt.Partnumber = " ";
-                            //                                        objDesdeDbt.customername = Client;
-                            //                                        objDesdeDbt.Defectcode = "";
-                            //                                        objDesdeDbt.Partnumber = "";
-                            //                                        objDesdeDbt.Rmanumber = objDesdeDb.turno;
-                            //                                        objDesdeDbt.po = objDesdeDb.Customerpo;
-
-                            //                                        objDesdeDbt.Notes = "RMA Requests No" + objDesdeDb.Rmarequest + "Description: " + objDesdeDb.Description + " Customer complait: " + objDesdeDb.Customercomplait + " Approver: " + objDesdeDb.Approver + " RMA type of request: " + objDesdeDb.Rmatypeofrequest + " Where built: " + objDesdeDb.Wherebuilt;
-                            //                                        BackgroundJob.Enqueue(() => crearcar(objDesdeDbt, idCAR));
-
-
-
-                            //                                    }
-                            //                                }
-
-
-                            //                            }
-
-                            //                            if (tipo_cambio >= 20000)
-                            //                            {
-                            //                                rma.CSEXSW_Rma.Approver = QD;
-                            //                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                            //                                _contenedorTrabajo.Save();
-
-
-                            //                            }
-
-
-                            //                            if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
-
-                            //                            {
-                            //                                rma.CSEXSW_Rma.Approver = QD;
-                            //                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                            //                                _contenedorTrabajo.Save();
-
-
-
-
-                            //                            }
-
-
-                            //                        }
-
                         }
-
                     }
-
-
                 }
-
 
                 return Json(new { data = "Primeras lineas" });
             }
@@ -1693,7 +1345,6 @@ namespace Amphenol.RMA.Controllers
 
             }
             return Json(new { data = "Terminado" });
-
         }
 
         [HttpGet]
@@ -1794,1091 +1445,321 @@ namespace Amphenol.RMA.Controllers
         }
 
         [HttpPost]
-        public IActionResult Create(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
-                bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string rmareason, string[] actions)
+        public IActionResult Create(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client,
+                                    string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext,
+                                    string fax, string contactemail, string companyemail, string comment, bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq,
+                                    string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string rmareason, string[] actions)
         {
 
-            var num = "1";
+            string num = string.Empty;
             try
             {
-                int id2 = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-                num = "8" + id2.ToString("D4");
+                num = $"8{_contenedorTrabajo.CSEXSW_Rma.Releaserma():D4}";
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-            }
-            var arcusfil_sql = new arcusfil_sql();
-
-            double tipo_cambio = total;
-            arcusfil_sql = _context.arcusfil_sql.Where(a => a.cus_no.Trim() == client.Trim()).FirstOrDefault();
-
-            var moneda = arcusfil_sql.curr_cd;
-            var rate = _context.Rate.Where(a => a.DateL == _context.Rate.Max(a => a.DateL) && a.SourceCurrency == "USD").FirstOrDefault();
-
-
-            if (moneda == "CNY")
-            {
-                tipo_cambio = Convert.ToDouble(total) / Convert.ToDouble(rate.RateExchange);
+                Console.WriteLine(string.Concat(ex, " Error generating RMA number"));
             }
 
-            //return Json(new { data = tipo_cambio , moneda = moneda, client = client , rate = Convert.ToDouble(rate.RateExchange) , total  = total });
+            var rma = BuildRmaModel(id, num, client, rmatypeofrequest, description, customerpo, shipto, contact, phone, ext, fax, contactemail, companyemail, comment, rmadata,
+                                    rmareason, rmawherebuilt, total);
 
-            csexsw_coustumerVM rma = new csexsw_coustumerVM()
+            if (!inicio)
             {
-                CSEXSW_Rma = new Models.CSEXSW_Rma(),
-            };
-            rma.CSEXSW_Rma.Approver = rmaapprover;
-            rma.CSEXSW_Rma.Contact = contact;
-            rma.CSEXSW_Rma.Email = contactemail;
-
-            rma.CSEXSW_Rma.Ext = ext;
-            rma.CSEXSW_Rma.Company = companyemail;
-            rma.CSEXSW_Rma.Fax = fax;
-            rma.CSEXSW_Rma.Phone = phone;
-
-            rma.CSEXSW_Rma.reason = rmareason;
-
-            rma.CSEXSW_Rma.Wherebuilt = rmawherebuilt;
-            rma.CSEXSW_Rma.Ship_To = shipto;
-            //rma.CSEXSW_Rma.Customercomplait = customercomplait;
-            //rma.CSEXSW_Rma.Comment = "";
-
-            var cus_part_no = !string.IsNullOrEmpty(client.Trim()) ? _context.oecusitm_sql.Where(s => s.cus_no.Trim() == client.Trim()).FirstOrDefault() != null ? _context.oecusitm_sql.Where(s => s.cus_no.Trim() == client.Trim()).FirstOrDefault().cus_item_no.Trim() : "" : "";
-
-
-
-
-            rma.CSEXSW_Rma.Customerpartno = cus_part_no;
-            rma.CSEXSW_Rma.Customerpo = customerpo;
-            rma.CSEXSW_Rma.Date = rmadata;
-            rma.CSEXSW_Rma.Description = description;
-            rma.CSEXSW_Rma.Preparado = "";
-            rma.CSEXSW_Rma.RMA500 = rma500;
-            rma.CSEXSW_Rma.Sumbit = rmasumbit;
-            rma.CSEXSW_Rma.Rmarequest = num;
-            rma.CSEXSW_Rma.Id = id;
-            rma.CSEXSW_Rma.Rmatypeofrequest = rmatypeofrequest;
-            rma.CSEXSW_Rma.Customer = client;
-            rma.CSEXSW_Rma.turno = "";
-            rma.CSEXSW_Rma.Status = rmastatus;
-            rma.CSEXSW_Rma.Customercomplait = comment;
-            rma.CSEXSW_Rma.Totalrmavalues = total > 0 ? double.Parse(total.ToString("#.####")) : total;
-
-
-            String cadena = User.Identity.Name;
-            string delimitador = @"\";
-            string[] valores = cadena.Split(delimitador);
-            string usuario = valores[1];
-            string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            var fullname = _context2.humres.Where(s => s.res_id == int.Parse(var)).FirstOrDefault().fullname;
-            rma.CSEXSW_Rma.Preparado = fullname;
-            rma.CSEXSW_Rma.res_id = int.Parse(getResId());
-            rma.CSEXSW_Rma.Status = "Pending";
-            rma.CSEXSW_Rma.Sumbit = "Submitted";
-
-            int idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-
-            if (inicio == true)
-            {
-                if (ModelState.IsValid)
-                {
-                    string rutaPrincipal = rootEC;
-                    var archivos = HttpContext.Request.Form.Files;
-                    string QM = "";
-                    int QMI = 0;
-                    humres empQM = null;
-                    if (rmawherebuilt == "Nogales")
-                    {
-                        //QM Quality Manager NOG)
-                        var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100030).FirstOrDefault();
-                        if (QMM10 != null)
-                        {
-                            empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                            QM = empQM.fullname;
-                            QMI = empQM.res_id;
-                        }
-                    }
-                    if (rma.CSEXSW_Rma.Wherebuilt == "Mesa")
-                    {
-                        //Mesa
-                        //QM Quality Manager Mesa)
-                        var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
-                        if (QMM10 != null)
-                        {
-                            empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                            QM = empQM.fullname;
-                            QMI = empQM.res_id;
-                        }
-                    }
-                    if (rma.CSEXSW_Rma.Wherebuilt == "Endicott")
-                    {
-                        //Endicot
-                        //QM Quality Manager END)
-                        var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100039).FirstOrDefault();
-                        if (QMM10 != null)
-                        {
-                            empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                            QM = empQM.fullname;
-                            QMI = empQM.res_id;
-                        }
-                    }
-
-
-
-                    //QD (Quality Director)
-                    //QDI (Quality Director Id)
-                    var QDM10 = _context2.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
-                    string QD = "";
-                    int QDI = 0;
-                    humres empQD = null;
-                    if (QDM10 != null)
-                    {
-                        empQD = _context2.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
-                        QD = empQD.fullname;
-                        QDI = empQD.res_id;
-                    }
-                    //GM (General Manager)
-                    //GMI (General Manager Id)
-                    var GMM10 = _context2.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
-                    humres empGM = null;
-                    string GM = "";
-                    int GMI = 0;
-                    if (GMM10 != null)
-                    {
-                        empGM = _context2.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
-                        GM = empGM.fullname;
-                        GMI = empGM.res_id;
-                    }
-                    //_context2.CSEXSW_Approver.Where(a => a.Rango == "QM").Select(a => a.Approver).FirstOrDefault();
-
-                    //_context2.CSEXSW_Approver.Where(a => a.Rango == "QD").Select(a => a.Approver).FirstOrDefault();
-
-                    //_context2.CSEXSW_Approver.Where(a => a.Rango == "GM").Select(a => a.Approver).FirstOrDefault();
-                    //string Dee = _context2.CSEXSW_Approver.Where(a => a.Rango == "Dee").Select(a => a.Approver).FirstOrDefault();
-                    //string Controller = _context2.CSEXSW_Approver.Where(a => a.Rango == "Controller").Select(a => a.Approver).FirstOrDefault();
-                    //string CSM = _context2.CSEXSW_Approver.Where(a => a.Rango == "CSM").Select(a => a.Approver).FirstOrDefault();
-                    string mail1 = empQM.mail;
-                    string mail2 = empQD.mail;
-                    string mail3 = empGM.mail;
-                    //string mail4 = _context2.humres.Where(a => a.fullname == Dee).Select(a => a.mail).FirstOrDefault();
-                    //string mail5 = _context2.humres.Where(a => a.fullname == Controller).Select(a => a.mail).FirstOrDefault();
-                    //string mail6 = _context2.humres.Where(a => a.fullname == CSM).Select(a => a.mail).FirstOrDefault();
-                    //string mailp = _context2.humres.Where(a => a.fullname == var).Select(a => a.mail).FirstOrDefault();
-                    string mail4 = "";
-                    string mail5 = "";
-                    string mail6 = "";
-                    string mailp = "";
-
-                    var directoryrma = $@"documents\RMA\{rma.CSEXSW_Rma.Rmarequest}\Attachments\";
-                    if (rma.CSEXSW_Rma.Wherebuilt == "Nogales" || rma.CSEXSW_Rma.Wherebuilt == "Endicott")
-                    {
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "VALUE ADD RMA" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT & REPLACE" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT ONLY")
-                        {
-                            if (tipo_cambio <= 4999)
-                            {
-                                rma.CSEXSW_Rma.Approver = QM;
-                                rma.CSEXSW_Rma.res_id_approver = QMI;
-                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-                                _contenedorTrabajo.Save();
-                                if (archivos.Count() > 0)
-                                {
-                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                    {
-
-
-                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                                    }
-                                    //Editamos imagen
-                                    for (int i = 0; i < archivos.Count(); i++)
-                                    {
-
-                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                        var extension = Path.GetExtension(archivos[i].FileName);
-                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                        string archivodocumento = nombreArchivo;
-                                        //subimos nuevamente el archivo
-                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                        {
-                                            archivos[i].CopyTo(fileStreams);
-                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                            _contenedorTrabajo.Save();
-                                        }
-
-
-
-
-
-
-                                    }
-                                }
-
-
-                                BackgroundJob.Schedule(() => ScheduleJob(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-
-
-
-
-
-                            }
-
-                            if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
-                            {
-
-                                rma.CSEXSW_Rma.Approver = QD;
-                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-                                _contenedorTrabajo.Save();
-                                if (archivos.Count() > 0)
-                                {
-                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                    {
-
-
-                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                                    }
-                                    //Editamos imagen
-                                    for (int i = 0; i < archivos.Count(); i++)
-                                    {
-
-                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                        var extension = Path.GetExtension(archivos[i].FileName);
-                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                        string archivodocumento = nombreArchivo;
-                                        //subimos nuevamente el archivo
-                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                        {
-                                            archivos[i].CopyTo(fileStreams);
-                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                            _contenedorTrabajo.Save();
-                                        }
-                                    }
-                                }
-
-                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            }
-
-                            if (tipo_cambio >= 20000)
-                            {
-                                rma.CSEXSW_Rma.Approver = QD;
-                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-                                _contenedorTrabajo.Save();
-                                if (archivos.Count() > 0)
-                                {
-                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                    {
-                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-                                    }
-                                    //Editamos imagen
-                                    for (int i = 0; i < archivos.Count(); i++)
-                                    {
-                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                        var extension = Path.GetExtension(archivos[i].FileName);
-                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                        string archivodocumento = nombreArchivo;
-                                        //subimos nuevamente el archivo
-                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                        {
-                                            archivos[i].CopyTo(fileStreams);
-                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                            _contenedorTrabajo.Save();
-                                        }
-                                    }
-                                }
-                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            }
-                        }
-                        //actualizar res id de approver
-                        if (!string.IsNullOrEmpty(rma.CSEXSW_Rma.Approver))
-                        {
-                            var residapprover = _context2.humres.Where(s => s.fullname == rma.CSEXSW_Rma.Approver).FirstOrDefault().res_id;
-                            rma.CSEXSW_Rma.res_id_approver = residapprover;
-                            _context2.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
-                            _context2.SaveChanges();
-                        }
-
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
-                        {
-                            //if es mayor o igual a 5000 or una linea exceda 500 (total) QD
-                            //if (rma.CSEXSW_Rma.RMA500 == "Yes")
-                            //{
-                            rma.CSEXSW_Rma.Approver = QD;
-                            rma.CSEXSW_Rma.res_id_approver = QDI;
-                            _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                            _contenedorTrabajo.Save();
-
-                            idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-                            _contenedorTrabajo.Save();
-                            if (archivos.Count() > 0)
-                            {
-                                if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                {
-                                    Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-                                }
-                                //Editamos imagen
-                                for (int i = 0; i < archivos.Count(); i++)
-                                {
-                                    string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                    var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                    var extension = Path.GetExtension(archivos[i].FileName);
-                                    var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                    string archivodocumento = nombreArchivo;
-                                    //subimos nuevamente el archivo
-                                    using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                    {
-                                        archivos[i].CopyTo(fileStreams);
-                                        _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                        _contenedorTrabajo.Save();
-                                    }
-                                }
-                            }
-                            BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            //                        }
-                            //                        else
-                            //                        {
-                            //                            if (tipo_cambio <= 4999)
-                            //                            {
-                            //                                var nextrma = (from c in _context.OERMACTL_SQL
-                            //                                               where c.ID == 1
-                            //                                               select c.ctl_next_order_no).First();
-
-
-                            //                                int x = Int32.Parse(nextrma);
-
-                            //                                string numString = x.ToString();
-                            //                                x = x + 1;
-                            //                                var numeroFormato = x.ToString("D8");
-                            //                                _context.SaveChanges();
-
-                            //                                var objDesdeDbz = _context.OERMACTL_SQL.FirstOrDefault(s => s.ID == 1);
-
-                            //                                objDesdeDbz.ctl_next_order_no = numeroFormato;
-                            //                                rma.CSEXSW_Rma.Approver = "";
-                            //                                rma.CSEXSW_Rma.turno = numString;
-                            //                                rma.CSEXSW_Rma.Status = "Approved";
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                string cus = "";
-                            //                                char pad = ' ';
-                            //                                if (rma.CSEXSW_Rma.Customer != null)
-                            //                                {
-                            //                                    cus = rma.CSEXSW_Rma.Customer.PadRight(20, pad);
-                            //                                }
-                            //                                string retorno = _contenedorTrabajo.OERDTFIL_SQL.lineascrear(rma.CSEXSW_Rma,
-                            //                                         idRMA, numString, cus, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc);
-                            //                                _contenedorTrabajo.Save();
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                if (retorno == "Approved")
-                            //                                {
-                            //                                    int idCAR = 0;
-
-                            //                                    ArrayList objs = new ArrayList();
-                            //                                    string connectionString = ConnectionM10.Connection;
-                            //                                    var values = new List<Dictionary<string, object>>();
-                            //                                    using (SqlConnection cn = new SqlConnection(connectionString))
-                            //                                    {
-                            //                                        cn.Open();
-                            //                                        string query = @"SELECT IDENT_CURRENT('csexsw_car') as IdActual,
-                            //IDENT_SEED('csexsw_car') as IdInicial,
-                            //IDENT_INCR('csexsw_car') as Incremento";
-                            //                                        SqlCommand cmd = new SqlCommand(query, cn);
-
-                            //                                        SqlDataReader rdr = cmd.ExecuteReader();
-
-                            //                                        //get the data reader, etc.
-                            //                                        while (rdr.Read())
-                            //                                        {
-                            //                                            objs.Add(new
-                            //                                            {
-                            //                                                IdActual = rdr["IdActual"],
-                            //                                                IdInicial = rdr["IdInicial"],
-                            //                                                Incremento = rdr["Incremento"]
-                            //                                            });
-
-                            //                                            idCAR = Convert.ToInt32(rdr["IdActual"]);
-                            //                                        }
-
-                            //                                        cn.Close();
-                            //                                    }
-
-                            //                                    var objDesdeDblinea = _context2.csexsw_coustumer.Where(s => s.RmaId == idRMA).ToList();
-
-                            //                                    var checkcars = _context2.csexsw_coustumer.Count(r => r.RmaId == idRMA && r.Car == true);
-
-                            //                                    if (checkcars > 0)
-                            //                                    {
-
-                            //                                        //foreach (var filtro in objDesdeDblinea)
-                            //                                        //{
-
-                            //                                        idCAR = idCAR + 1;
-                            //                                        var objDesdeDb = _context2.CSEXSW_Rma.FirstOrDefault(s => s.Id == idRMA);
-                            //                                        //if (filtro.Car == true)
-                            //                                        //{
-                            //                                        string numString2 = idCAR.ToString();
-                            //                                        objDesdeDb.Car = objDesdeDb.Car + "  " + numString2;
-                            //                                        _context.SaveChanges();
-                            //                                        string Client = (from c in _context.arcusfil_sql
-                            //                                                         where c.cus_no.Contains(objDesdeDb.Customer)
-                            //                                                         select c.cus_name).First();
-                            //                                        var objDesdeDbt = new csexsw_car();
-                            //                                        objDesdeDbt.customercode = objDesdeDb.Customer;
-                            //                                        objDesdeDbt.Status = "In Process";
-                            //                                        DateTime fecha = DateTime.Now;
-                            //                                        objDesdeDbt.Issue_date = fecha;
-                            //                                        objDesdeDbt.Owner = "8";
-                            //                                        objDesdeDbt.owner_name = "Benjamin Cervantes";
-                            //                                        objDesdeDbt.Internalduedate = fecha.AddDays(30);
-                            //                                        objDesdeDbt.Responsabledate = fecha.AddDays(30);
-                            //                                        objDesdeDbt.customername = Client;
-                            //                                        objDesdeDbt.Defectcode = "";
-                            //                                        objDesdeDbt.Partnumber = "";
-                            //                                        objDesdeDbt.Rmanumber = objDesdeDb.turno;
-                            //                                        objDesdeDbt.po = objDesdeDb.Customerpo;
-
-                            //                                        objDesdeDbt.Notes = "RMA Requests No" + objDesdeDb.Rmarequest + "Description: " + objDesdeDb.Description + " Customer complait: " + objDesdeDb.Customercomplait + " Approver: " + objDesdeDb.Approver + " RMA type of request: " + objDesdeDb.Rmatypeofrequest + " Where built: " + objDesdeDb.Wherebuilt;
-                            //                                        BackgroundJob.Enqueue(() => crearcar(objDesdeDbt, idCAR));
-
-
-                            //                                        //}
-                            //                                        //}
-
-                            //                                    }
-                            //                                }
-
-                            //                                if (archivos.Count() > 0)
-                            //                                {
-                            //                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                            //                                    {
-                            //                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-                            //                                    }
-                            //                                    //Editamos imagen
-                            //                                    for (int i = 0; i < archivos.Count(); i++)
-                            //                                    {
-                            //                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                            //                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                            //                                        var extension = Path.GetExtension(archivos[i].FileName);
-                            //                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                            //                                        string archivodocumento = nombreArchivo;
-                            //                                        //subimos nuevamente el archivo
-                            //                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                            //                                        {
-                            //                                            archivos[i].CopyTo(fileStreams);
-                            //                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                            //                                            _contenedorTrabajo.Save();
-                            //                                        }
-                            //                                    }
-                            //                                }
-                            //                                BackgroundJob.Schedule(() => ScheduleJob3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            //                            }
-
-                            //                            if (tipo_cambio >= 20000)
-                            //                            {
-                            //                                rma.CSEXSW_Rma.Approver = QD;
-                            //                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                            //                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                            //                                _contenedorTrabajo.Save();
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-                            //                                _contenedorTrabajo.Save();
-                            //                                if (archivos.Count() > 0)
-                            //                                {
-                            //                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                            //                                    {
-                            //                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-                            //                                    }
-                            //                                    //Editamos imagen
-                            //                                    for (int i = 0; i < archivos.Count(); i++)
-                            //                                    {
-                            //                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                            //                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                            //                                        var extension = Path.GetExtension(archivos[i].FileName);
-                            //                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                            //                                        string archivodocumento = nombreArchivo;
-                            //                                        //subimos nuevamente el archivo
-                            //                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                            //                                        {
-                            //                                            archivos[i].CopyTo(fileStreams);
-                            //                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                            //                                            _contenedorTrabajo.Save();
-                            //                                        }
-                            //                                    }
-                            //                                }
-
-                            //                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            //                            }
-
-                            //                            if ((tipo_cambio >= 5000 && tipo_cambio <= 19999.99))
-                            //                            {
-                            //                                rma.CSEXSW_Rma.Approver = QD;
-                            //                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                            //                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                            //                                _contenedorTrabajo.Save();
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-                            //                                _contenedorTrabajo.Save();
-                            //                                if (archivos.Count() > 0)
-                            //                                {
-                            //                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                            //                                    {
-                            //                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-                            //                                    }
-                            //                                    //Editamos imagen
-                            //                                    for (int i = 0; i < archivos.Count(); i++)
-                            //                                    {
-                            //                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                            //                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                            //                                        var extension = Path.GetExtension(archivos[i].FileName);
-                            //                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                            //                                        string archivodocumento = nombreArchivo;
-                            //                                        //subimos nuevamente el archivo
-                            //                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                            //                                        {
-                            //                                            archivos[i].CopyTo(fileStreams);
-                            //                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                            //                                            _contenedorTrabajo.Save();
-                            //                                        }
-                            //                                    }
-                            //                                }
-                            //                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            //                            }
-                            //                        }
-                        }
-                    }
-
-                    if (rma.CSEXSW_Rma.Wherebuilt == "ATZ" || rma.CSEXSW_Rma.Wherebuilt == "MAO")
-                    {
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "VALUE ADD RMA" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT & REPLACE" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT ONLY")
-                        {
-                            if (tipo_cambio <= 4999)
-                            {
-                                rma.CSEXSW_Rma.Approver = QM;
-                                rma.CSEXSW_Rma.res_id_approver = QMI;
-                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-                                _contenedorTrabajo.Save();
-                                if (archivos.Count() > 0)
-                                {
-                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                    {
-                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-                                    }
-                                    //Editamos imagen
-                                    for (int i = 0; i < archivos.Count(); i++)
-                                    {
-                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                        var extension = Path.GetExtension(archivos[i].FileName);
-                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                        string archivodocumento = nombreArchivo;
-                                        //subimos nuevamente el archivo
-                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                        {
-                                            archivos[i].CopyTo(fileStreams);
-                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                            _contenedorTrabajo.Save();
-                                        }
-                                    }
-                                }
-                                BackgroundJob.Schedule(() => ScheduleJob(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            }
-
-                            if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
-                            {
-                                rma.CSEXSW_Rma.Approver = QD;
-                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-
-                                _contenedorTrabajo.Save();
-                                if (archivos.Count() > 0)
-                                {
-                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                    {
-                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                                    }
-                                    //Editamos imagen
-                                    for (int i = 0; i < archivos.Count(); i++)
-                                    {
-                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                        var extension = Path.GetExtension(archivos[i].FileName);
-                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                        string archivodocumento = nombreArchivo;
-                                        //subimos nuevamente el archivo
-                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                        {
-                                            archivos[i].CopyTo(fileStreams);
-                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                            _contenedorTrabajo.Save();
-                                        }
-                                    }
-                                }
-                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            }
-
-                            if (tipo_cambio >= 20000)
-                            {
-
-                                rma.CSEXSW_Rma.Approver = QD;
-                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-                                _contenedorTrabajo.Save();
-                                if (archivos.Count() > 0)
-                                {
-                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                    {
-                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                                    }
-                                    //Editamos imagen
-                                    for (int i = 0; i < archivos.Count(); i++)
-                                    {
-                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                        var extension = Path.GetExtension(archivos[i].FileName);
-                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                        string archivodocumento = nombreArchivo;
-                                        //subimos nuevamente el archivo
-                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                        {
-                                            archivos[i].CopyTo(fileStreams);
-                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                            _contenedorTrabajo.Save();
-                                        }
-                                    }
-                                }
-                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-                            }
-                        }
-
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
-                        {
-                            //if (rma.CSEXSW_Rma.RMA500 == "Yes")
-                            //{
-                            rma.CSEXSW_Rma.Approver = QD;
-                            rma.CSEXSW_Rma.res_id_approver = QDI;
-                            _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                            _contenedorTrabajo.Save();
-
-                            idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-                            _contenedorTrabajo.Save();
-                            if (archivos.Count() > 0)
-                            {
-                                if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                                {
-                                    Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                                }
-                                //Editamos imagen
-                                for (int i = 0; i < archivos.Count(); i++)
-                                {
-                                    string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                                    var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                                    var extension = Path.GetExtension(archivos[i].FileName);
-                                    var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                                    string archivodocumento = nombreArchivo;
-                                    //subimos nuevamente el archivo
-                                    using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                                    {
-                                        archivos[i].CopyTo(fileStreams);
-                                        _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                                        _contenedorTrabajo.Save();
-                                    }
-                                }
-                            }
-
-                            BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-
-                            //                        }
-                            //                        else
-                            //                        {
-                            //                            if (tipo_cambio <= 4999)
-                            //                            {
-                            //                                var nextrma = (from c in _context.OERMACTL_SQL
-                            //                                               where c.ID == 1
-                            //                                               select c.ctl_next_order_no).First();
-
-
-                            //                                int x = Int32.Parse(nextrma);
-
-                            //                                string numString = x.ToString();
-                            //                                x = x + 1;
-                            //                                var numeroFormato = x.ToString("D8");
-                            //                                _context.SaveChanges();
-
-
-                            //                                var objDesdeDbz = _context.OERMACTL_SQL.FirstOrDefault(s => s.ID == 1);
-
-                            //                                objDesdeDbz.ctl_next_order_no = numeroFormato;
-                            //                                rma.CSEXSW_Rma.Approver = "";
-                            //                                rma.CSEXSW_Rma.turno = numString;
-                            //                                rma.CSEXSW_Rma.Status = "Approved";
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-
-                            //                                string cus = "";
-                            //                                char pad = ' ';
-
-                            //                                if (rma.CSEXSW_Rma.Customer != null)
-                            //                                {
-                            //                                    cus = rma.CSEXSW_Rma.Customer.PadRight(20, pad);
-                            //                                }
-
-                            //                                string retorno = _contenedorTrabajo.OERDTFIL_SQL.lineascrear(rma.CSEXSW_Rma,
-                            //                                                        idRMA, numString, cus, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc);
-                            //                                _contenedorTrabajo.Save();
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                if (retorno == "Approved")
-                            //                                {
-                            //                                    int idCAR = 0;
-
-                            //                                    ArrayList objs = new ArrayList();
-                            //                                    string connectionString = ConnectionM10.Connection;
-                            //                                    var values = new List<Dictionary<string, object>>();
-                            //                                    using (SqlConnection cn = new SqlConnection(connectionString))
-                            //                                    {
-                            //                                        cn.Open();
-                            //                                        string query = @"SELECT IDENT_CURRENT('csexsw_car') as IdActual,
-                            //IDENT_SEED('csexsw_car') as IdInicial,
-                            //IDENT_INCR('csexsw_car') as Incremento";
-                            //                                        SqlCommand cmd = new SqlCommand(query, cn);
-
-                            //                                        SqlDataReader rdr = cmd.ExecuteReader();
-
-
-                            //                                        //get the data reader, etc.
-                            //                                        while (rdr.Read())
-                            //                                        {
-                            //                                            objs.Add(new
-                            //                                            {
-                            //                                                IdActual = rdr["IdActual"],
-                            //                                                IdInicial = rdr["IdInicial"],
-                            //                                                Incremento = rdr["Incremento"]
-
-
-                            //                                            });
-
-
-                            //                                            idCAR = Convert.ToInt32(rdr["IdActual"]);
-                            //                                        }
-
-
-
-                            //                                        cn.Close();
-                            //                                    }
-
-
-
-
-                            //                                    var objDesdeDblinea = _context2.csexsw_coustumer.Where(s => s.RmaId == idRMA).ToList();
-                            //                                    var checkcars = _context2.csexsw_coustumer.Count(r => r.RmaId == idRMA && r.Car == true);
-                            //                                    if (checkcars > 0)
-                            //                                    {
-
-                            //                                        //foreach (var filtro in objDesdeDblinea)
-                            //                                        //{
-
-
-
-
-
-                            //                                        idCAR = idCAR + 1;
-                            //                                        var objDesdeDb = _context2.CSEXSW_Rma.FirstOrDefault(s => s.Id == idRMA);
-                            //                                        //if (filtro.Car == true)
-                            //                                        //{
-                            //                                        string numString2 = idCAR.ToString();
-                            //                                        objDesdeDb.Car = objDesdeDb.Car + "  " + numString2;
-                            //                                        _context.SaveChanges();
-                            //                                        string Client = (from c in _context.arcusfil_sql
-                            //                                                         where c.cus_no.Contains(objDesdeDb.Customer)
-                            //                                                         select c.cus_name).First();
-                            //                                        var objDesdeDbt = new csexsw_car();
-                            //                                        objDesdeDbt.customercode = objDesdeDb.Customer;
-                            //                                        objDesdeDbt.Status = "In Process";
-                            //                                        DateTime fecha = DateTime.Now;
-                            //                                        objDesdeDbt.Issue_date = fecha;
-                            //                                        objDesdeDbt.Owner = "8";
-                            //                                        objDesdeDbt.owner_name = "Benjamin Cervantes";
-                            //                                        objDesdeDbt.Internalduedate = fecha.AddDays(30);
-                            //                                        objDesdeDbt.Responsabledate = fecha.AddDays(30);
-                            //                                        objDesdeDbt.customername = Client;
-                            //                                        objDesdeDbt.Defectcode = "";
-                            //                                        objDesdeDbt.Partnumber = "";
-                            //                                        objDesdeDbt.Rmanumber = objDesdeDb.turno;
-                            //                                        objDesdeDbt.po = objDesdeDb.Customerpo;
-
-                            //                                        objDesdeDbt.Notes = "RMA Requests No" + objDesdeDb.Rmarequest + "Description: " + objDesdeDb.Description + " Customer complait: " + objDesdeDb.Customercomplait + " Approver: " + objDesdeDb.Approver + " RMA type of request: " + objDesdeDb.Rmatypeofrequest + " Where built: " + objDesdeDb.Wherebuilt;
-                            //                                        BackgroundJob.Enqueue(() => crearcar(objDesdeDbt, idCAR));
-
-
-                            //                                        //}
-                            //                                        //}
-
-                            //                                    }
-                            //                                }
-
-
-                            //                                if (archivos.Count() > 0)
-                            //                                {
-                            //                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                            //                                    {
-
-
-                            //                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                            //                                    }
-                            //                                    //Editamos imagen
-                            //                                    for (int i = 0; i < archivos.Count(); i++)
-                            //                                    {
-
-                            //                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                            //                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                            //                                        var extension = Path.GetExtension(archivos[i].FileName);
-                            //                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                            //                                        string archivodocumento = nombreArchivo;
-                            //                                        //subimos nuevamente el archivo
-                            //                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                            //                                        {
-                            //                                            archivos[i].CopyTo(fileStreams);
-                            //                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                            //                                            _contenedorTrabajo.Save();
-                            //                                        }
-
-
-
-
-
-
-                            //                                    }
-                            //                                }
-
-
-
-                            //                                BackgroundJob.Schedule(() => ScheduleJob3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-
-
-
-
-
-                            //                            }
-
-                            //                            if (tipo_cambio >= 20000)
-                            //                            {
-                            //                                rma.CSEXSW_Rma.Approver = QD;
-                            //                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                            //                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                            //                                _contenedorTrabajo.Save();
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-                            //                                _contenedorTrabajo.Save();
-                            //                                if (archivos.Count() > 0)
-                            //                                {
-                            //                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                            //                                    {
-
-
-                            //                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                            //                                    }
-                            //                                    //Editamos imagen
-                            //                                    for (int i = 0; i < archivos.Count(); i++)
-                            //                                    {
-
-                            //                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                            //                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                            //                                        var extension = Path.GetExtension(archivos[i].FileName);
-                            //                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                            //                                        string archivodocumento = nombreArchivo;
-                            //                                        //subimos nuevamente el archivo
-                            //                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                            //                                        {
-                            //                                            archivos[i].CopyTo(fileStreams);
-                            //                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                            //                                            _contenedorTrabajo.Save();
-                            //                                        }
-
-
-
-
-
-
-                            //                                    }
-                            //                                }
-
-
-
-                            //                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-
-
-
-
-                            //                            }
-
-
-                            //                            if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
-
-                            //                            {
-                            //                                rma.CSEXSW_Rma.Approver = QD;
-                            //                                rma.CSEXSW_Rma.res_id_approver = QDI;
-                            //                                _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-                            //                                _contenedorTrabajo.Save();
-
-                            //                                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-                            //                                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-
-                            //                                _contenedorTrabajo.Save();
-                            //                                if (archivos.Count() > 0)
-                            //                                {
-                            //                                    if (!Directory.Exists(Path.Combine(rutaPrincipal, directoryrma)))
-                            //                                    {
-
-
-                            //                                        Directory.CreateDirectory(Path.Combine(rutaPrincipal, directoryrma));
-
-                            //                                    }
-                            //                                    //Editamos imagen
-                            //                                    for (int i = 0; i < archivos.Count(); i++)
-                            //                                    {
-
-                            //                                        string nombreArchivo = Path.GetFileName(archivos[i].FileName);
-                            //                                        var subidas = Path.Combine(rutaPrincipal, directoryrma);
-                            //                                        var extension = Path.GetExtension(archivos[i].FileName);
-                            //                                        var nuevaExtension = Path.GetExtension(archivos[i].FileName);
-                            //                                        string archivodocumento = nombreArchivo;
-                            //                                        //subimos nuevamente el archivo
-                            //                                        using (var fileStreams = new FileStream(Path.Combine(subidas, nombreArchivo), FileMode.Create))
-                            //                                        {
-                            //                                            archivos[i].CopyTo(fileStreams);
-                            //                                            _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
-                            //                                            _contenedorTrabajo.Save();
-                            //                                        }
-
-
-
-
-
-
-                            //                                    }
-                            //                                }
-
-
-
-                            //                                BackgroundJob.Schedule(() => ScheduleJob2(mail1, mail2, mail3, mail4, mail5, mail6, mailp, rma.CSEXSW_Rma.Rmarequest), TimeSpan.FromMinutes(5));
-
-
-
-
-                            //                            }
-
-
-                            //                        }
-
-
-                        }
-
-
-
-
-
-
-
-
-
-                    }
-
-
-                }
-
-
-                return Json(new { data = "Primeras lineas" });
-            }
-            if (finalizado != true)
-            {
-
-                idRMA = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-
-                BackgroundJob.Schedule(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions),
-       TimeSpan.FromSeconds(10));
-
-
+                int idRma = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
+
+                BackgroundJob.Schedule(() =>
+                    _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions), TimeSpan.FromSeconds(10)
+                );
 
                 return Json(new { data = "Lineas creadas" });
-
             }
-            if (rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT & REPLACE")
-            {
 
-            }
+
+            if (!ModelState.IsValid) return Json(new { data = "Model Invalid" });
+
+            double rmaTotal = GetRmaTotal(total, client);
+
+            ProcessRma(rma, rmaTotal, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc, inicio, actions);
+
             return Json(new { data = "Terminado" });
+        }
 
+        private double GetRmaTotal(double total, string client)
+        {
+            var customer = _context.arcusfil_sql
+                .FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
+
+            if (customer == null)
+                return total;
+
+            if (customer.curr_cd != "CNY")
+                return total;
+
+            var rate = _context.Rate
+                .OrderByDescending(x => x.DateL)
+                .FirstOrDefault(x => x.SourceCurrency == "USD");
+
+            if (rate == null)
+                return total;
+
+            return total / Convert.ToDouble(rate.RateExchange);
+        }
+
+        private csexsw_coustumerVM BuildRmaModel(int id, string rmaNumber, string client, string requestType, string description, string customerPo, string shipTo, string contact,
+                                                 string phone, string ext, string fax, string contactEmail, string companyEmail, string comment, string rmaDate, string reason,
+                                                 string whereBuilt, double total)
+        {
+            var customerItem = _context.oecusitm_sql.FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
+
+            string customerPart = customerItem?.cus_item_no?.Trim() ?? "";
+
+            string usuario = User.Identity.Name.Split('\\')[1];
+
+            string resId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario);
+
+            string fullname = _context2.humres.First(x => x.res_id == int.Parse(resId)).fullname;
+
+            return new csexsw_coustumerVM
+            {
+                CSEXSW_Rma = new CSEXSW_Rma
+                {
+                    Id = id,
+                    Rmarequest = rmaNumber,
+                    Customer = client,
+                    Customerpartno = customerPart,
+                    Customerpo = customerPo,
+                    Description = description,
+                    Contact = contact,
+                    Email = contactEmail,
+                    Phone = phone,
+                    Ext = ext,
+                    Fax = fax,
+                    Company = companyEmail,
+                    Customercomplait = comment,
+                    Wherebuilt = whereBuilt,
+                    Ship_To = shipTo,
+                    reason = reason,
+                    Status = "Pending",
+                    Sumbit = "Submitted",
+                    Preparado = fullname,
+                    res_id = int.Parse(getResId()),
+                    Date = rmaDate,
+                    Rmatypeofrequest = requestType,
+                    Totalrmavalues = total
+                }
+            };
+        }
+
+        private void ProcessRma(csexsw_coustumerVM rma, double rmaTotal, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, string[] code, decimal[] unit,
+                                string[] checkcar, string[] loc, bool inicio, string[] actions)
+        {
+
+            var qualityManager = GetQualityManager(rma.CSEXSW_Rma.Wherebuilt);
+            var qualityDirector = GetEmployeeByRole(100031);
+            var generalManager = GetEmployeeByRole(100032);
+            var customerServiceManager = _customerServiceManager;
+
+
+            var approvalFlow = new RmaApprovalFlow();
+
+            static Approver CreateApprover(dynamic employee) => new()
+            {
+                Id = employee.res_id,
+                Email = employee.mail,
+                Name = employee.fullname
+            };
+
+            if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
+            {
+                if (rmaTotal < 5000 && !unit.Any(x => x >= 500))
+                {
+                    approvalFlow.Approver = new Approver
+                    {
+                        Id = -4,
+                        Name = "System"
+                    };
+
+                    approvalFlow.NotifyEmails =
+                    [
+                        qualityDirector.mail,
+                        generalManager.mail,
+                        customerServiceManager.Email
+                    ];
+
+                    rma.CSEXSW_Rma.Status = "auto-approve";
+                }
+                else
+                {
+                    approvalFlow.Approver = CreateApprover(qualityDirector);
+
+                    approvalFlow.NotifyEmails =
+                    [
+                        qualityManager.mail,
+                        generalManager.mail,
+                        customerServiceManager.Email
+                    ];
+                }
+            }
+            else
+            {
+                switch (rmaTotal)
+                {
+                    case > 0 and < 5000:
+                        approvalFlow.Approver = CreateApprover(qualityManager);
+
+                        approvalFlow.NotifyEmails =
+                        [
+                            qualityDirector.mail,
+                            generalManager.mail,
+                            customerServiceManager.Email
+                        ];
+                        break;
+
+                    case >= 5000 and < 20000:
+                        approvalFlow.Approver = CreateApprover(qualityDirector);
+
+                        approvalFlow.NotifyEmails =
+                        [
+                            qualityManager.mail,
+                            generalManager.mail,
+                            customerServiceManager.Email
+                        ];
+                        break;
+
+                    default:
+                        approvalFlow.Approver = CreateApprover(qualityDirector);
+
+                        approvalFlow.FinalApprover = CreateApprover(generalManager);
+
+                        approvalFlow.NotifyEmails =
+                        [
+                            qualityManager.mail,
+                            customerServiceManager.Email
+                        ];
+                        break;
+                }
+            }
+
+            rma.CSEXSW_Rma.Approver = approvalFlow.Approver.Name;
+            rma.CSEXSW_Rma.res_id_approver = approvalFlow.Approver.Id;
+
+
+            SaveRma(rma, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc, inicio, actions, approvalFlow);
+        }
+
+        private void SaveRma(csexsw_coustumerVM rma, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, string[] code, decimal[] unit, string[] checkcar,
+                             string[] loc, bool inicio, string[] actions, RmaApprovalFlow approvalFlow)
+        {
+            _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
+            _contenedorTrabajo.Save();
+
+            int idRma = _contenedorTrabajo.CSEXSW_Rma.intRMA();
+
+            //BackgroundJob.Enqueue(() =>
+            _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions);
+            //);
+
+            SaveAttachments(idRma, rma.CSEXSW_Rma.Rmarequest);
+
+            BackgroundJob.Enqueue(() => SendRmaCreationNotification(idRma, approvalFlow));
+
+            if (rma.CSEXSW_Rma.Status == "auto-approve")
+            {
+                Aprobar("RMA auto-approved", idRma, true);
+            }
+        }
+
+        private void SaveAttachments(int rmaId, string rmaNumber)
+        {
+            var files = HttpContext.Request.Form.Files;
+
+            if (!files.Any()) return;
+
+            string directory = Path.Combine(rootEC, "documents", "RMA", rmaNumber, "Attachments");
+
+            Directory.CreateDirectory(directory);
+
+            foreach (var file in files)
+            {
+                string fileName = Path.GetFileName(file.FileName);
+
+                using var stream = new FileStream(Path.Combine(directory, fileName), FileMode.Create);
+
+                file.CopyTo(stream);
+
+                _contenedorTrabajo.csexsw_coustumer.archivos(fileName, rmaId);
+            }
+
+            _contenedorTrabajo.Save();
+        }
+
+        private humres GetEmployeeByRole(int roleId)
+        {
+            var role = _context2.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
+
+            if (role == null) return null;
+
+            return _context2.humres.FirstOrDefault(x => x.res_id == role.EmpID);
+        }
+
+        private humres GetQualityManager(string site)
+        {
+            var roles = new Dictionary<string, int>
+            {
+                { "Nogales", 100030 },
+                { "Mesa", 100062 },
+                { "Endicott", 100039 }
+            };
+
+            return roles.TryGetValue(site, out int roleId) ? GetEmployeeByRole(roleId) : null;
+        }
+        public async Task SendRmaCreationNotification(int rmaId, RmaApprovalFlow approvalFlow)
+        {
+
+            var rma = _context2.CSEXSW_Rma.FirstOrDefault(x => x.Id == rmaId);
+
+            var lines = _context2.csexsw_coustumer.Where(x => x.RmaId == rmaId).OrderBy(x => x.rma_seq_no).ToList();
+
+
+            var subject = $"RMA request {rma.Rmarequest.Trim()} generated";
+            var overviewTemplate = await System.IO.File.ReadAllTextAsync(Path.Combine(_hostingEnvironment.ContentRootPath, "Services", "Email", "Templates", "RmaOverview.html"));
+            var lineTemplate = await System.IO.File.ReadAllTextAsync(Path.Combine(_hostingEnvironment.ContentRootPath, "Services", "Email", "Templates", "RmaDetailLine.html"));
+
+            overviewTemplate = overviewTemplate.Replace("{Instructions}", "");
+            overviewTemplate = overviewTemplate.Replace("{RmaRequestId}", rma.Rmarequest.Trim());
+            overviewTemplate = overviewTemplate.Replace("{RequestDate}", rma.Date);
+            overviewTemplate = overviewTemplate.Replace("{CustomerNumber}", rma.Customer);
+            overviewTemplate = overviewTemplate.Replace("{CustomerName}", rma.cus_name);
+            overviewTemplate = overviewTemplate.Replace("{WhereBuilt}", rma.Wherebuilt);
+            overviewTemplate = overviewTemplate.Replace("{RequestType}", rma.Rmatypeofrequest);
+            overviewTemplate = overviewTemplate.Replace("{Reason}", rma.reason);
+            overviewTemplate = overviewTemplate.Replace("{Comments}", rma.Customercomplait);
+            overviewTemplate = overviewTemplate.Replace("{Total}", rma.Totalrmavalues.ToString("C", CultureInfo.GetCultureInfo("en-US")));
+
+
+            var lineSection = string.Empty;
+            foreach (var line in lines)
+            {
+                var newLine = lineTemplate;
+                newLine = newLine.Replace("{PartNumber}", line.Coustumer);
+                newLine = newLine.Replace("{Qty}", line.Qty.ToString());
+                newLine = newLine.Replace("{Price}", line.Unit.ToString("C", CultureInfo.GetCultureInfo("en-US")));
+                newLine = newLine.Replace("{LineTotal}", (line.Qty * line.Unit).ToString("C", CultureInfo.GetCultureInfo("en-US")));
+
+                lineSection += newLine;
+            }
+
+            overviewTemplate = overviewTemplate.Replace("{RmaLines}", DateTime.Today.Year.ToString());
+            overviewTemplate = overviewTemplate.Replace("{Year}", DateTime.Today.Year.ToString());
+
+            await _emailService.SendEmail(subject, overviewTemplate, [approvalFlow.Approver.Email], approvalFlow.NotifyEmails);
         }
 
         [HttpPost]
 
         public IActionResult Edit(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
-            bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc)
+        bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc)
         {
             var arcusfil_sql = new arcusfil_sql();
 
@@ -4121,10 +3002,14 @@ namespace Amphenol.RMA.Controllers
             string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
 
             usuario = var.Trim();
+#if DEBUG
             var info = _contenedorTrabajo.CSEXSW_Rma.GetAll(a =>
              a.Status == "Pending").OrderByDescending(a => a.Date);
-            //var info = _contenedorTrabajo.CSEXSW_Rma.GetAll(a => a.res_id_approver == int.Parse(var) &&
-            // a.Status == "Pending").OrderByDescending(a => a.Date);
+#else
+            var info = _contenedorTrabajo.CSEXSW_Rma.GetAll(a => a.res_id_approver == int.Parse(var) &&
+             a.Status == "Pending").OrderByDescending(a => a.Date);
+#endif
+
             return Json(new { data = info });
 
         }
