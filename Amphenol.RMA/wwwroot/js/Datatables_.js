@@ -54,8 +54,10 @@ function cargarDatatableRma() {
         cache: true,
         success: function (data) {
             var username = parseInt(data.resid);
-            dataTable = $("#tblCar").DataTable({
+            dataTable = $("#GeneratedRmaTable").DataTable({
                 destroy: true,
+                autoWidth: false,
+                scrollX: true,
                 pageLength: 5,
                 lengthMenu: [5, 10, 25, 50, 100],
                 "order": [[1, "desc"]],
@@ -63,174 +65,152 @@ function cargarDatatableRma() {
                 columns: [
                     {
                         "data": "id",
-                        "width": "6%",
+                        "width": "120px",
                         "render": function render(data, type, row) {
+                            const complaintButton = `
+                                    <a class="btn btn-light btn-sm action-btn d-flex align-items-center gap-1" data-toggle="modal" data-target="#Customer_complaint"
+                                            onclick="Customer_complaint('${row.customercomplait}')" data-bs-toggle="tooltip" data-bs-placement="right" title="View Customer Complaint">
+                                        <i class="fa fa-comments"></i>
+                                     </a>`;
                             if (row.status != "Approved" && parseInt(row.res_id) == username) {
-
+                                const editButton = `
+                                    <a class="btn btn-light btn-sm action-btn d-flex align-items-center justify-content-center" id="btneditlines"
+                                              data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit RMA">
+                                        <i class="fa fa-pen"></i>
+                                    </a>`;
                                 if (row.status == "Rejected") {
                                     return `
-  <div class="d-flex flex-column gap-1">
-    <a class="btn btn-sm btn-success d-flex align-items-center justify-content-center"
-       id="btneditlines" data-id="${row.id}">
-       <i class="fa fa-pen me-1"></i> Edit
-    </a>
-    <a class="btn btn-sm btn-secondary d-flex align-items-center justify-content-center"
-       id="btnresubmit" data-id="${row.id}">
-       <i class="fa fa-retweet me-1"></i> Re-submit
-    </a>
-  </div>
-`;
-
-
+                                        <div class="d-flex gap-1">
+                                            ${editButton}
+                                            ${complaintButton}
+                                            <a class="btn btn-primary btn-sm  d-flex align-items-center justify-content-center" id="btnresubmit"
+                                                      data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title=" Re-submit RMA" >
+                                                <i class="fa fa-redo"></i>
+                                            </a>
+                                        </div>`;
                                 }
                                 else {
                                     if (row.status == "Remark") {
                                         return `
-  <div class="d-flex flex-column gap-1">
-    <a class="btn btn-success btn-sm d-flex align-items-center justify-content-center gap-1" 
-       id="btneditlines" data-id="${row.id}">
-      <i class="fa fa-pen"></i> Edit
-    </a>
-    <a class="btn btn-primary btn-sm d-flex align-items-center justify-content-center gap-1" 
-       id="btndone" data-id="${row.id}">
-      <i class="fa fa-retweet"></i> Done
-    </a>
-  </div>
-`;
-
-
+                                            <div class="d-flex gap-1">
+                                             ${editButton}
+                                             ${complaintButton}
+                                            <a class="btn btn-primary btn-sm d-flex align-items-center justify-content-center gap-1" 
+                                               id="btndone" data-id="${row.id}">
+                                              <i class="fa fa-retweet"></i> Done
+                                            </a>
+                                          </div>`;
                                     }
-                                    else {
-                                        return `<a class="btn btn-success btn-sm d-flex align-items-center gap-1" 
-           id="btneditlines" data-id="${row.id}">
-           <i class="fa fa-pen"></i> Edit
-        </a>`;
 
-
-                                    }
+                                    return `
+                                    <div class="d-flex gap-1">
+                                        ${editButton}
+                                        ${complaintButton}
+                                    </div>`;
                                 }
                             }
                             else {
+                                const viewButton = `
+                                    <a class="btn btn-light btn-sm action-btn d-flex align-items-center" id="btnviewlines" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="View RMA">
+                                        <i class="fa fa-eye"></i>
+                                    </a>`;
 
-                                
-                                
-                                if (row.sumbit == "Submitted" && row.status == "Approved") {
+                                if (row.sumbit === "Submitted" && row.status === "Approved") {
 
-                                    return `
-  <div class="d-flex flex-column gap-1">
-    <a class="btn btn-primary btn-sm d-flex align-items-center gap-1"
-     id="btnviewlines" data-id="${row.id}">
-     <i class="fa fa-eye"></i> View
-  </a>
-    <a class="btn btn-success btn-sm d-flex align-items-center justify-content-center gap-1" 
-       id="btncreateorder"  data-toggle="modal" data-target="#CreateOrderModel"  data-id="${row.id}">
-      <i class="fa fa-retweet"></i> Create Order
-    </a>
-  </div>
-`;
- 
-                                } else {
+                                    const generateOrderButtonColor = row.canGenerateOrder ? 'btn-primary' : 'btn-warning';
+                                    const generateOrderButtonModal = row.canGenerateOrder ? 'data-toggle="modal" data-target="#CreateOrderModel' : '';
+                                    const generateOrderButtonTitle = row.canGenerateOrder ? 'Generate Order' : 'Awaiting returned products';
 
                                     return `
-  <a class="btn btn-primary btn-sm d-flex align-items-center gap-1" 
-     id="btnviewlines" data-id="${row.id}">
-     <i class="fa fa-eye"></i> View
-  </a>
-`;
+                                    <div class="d-flex gap-1">
+                                        ${viewButton}
+                                        ${complaintButton}
+                                        <a class="btn ${generateOrderButtonColor} btn-sm action-btn d-flex align-items-center justify-content-center gap-1" id="btncreateorder"
+                                            ${generateOrderButtonModal} data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="${generateOrderButtonTitle}">
+                                            <i class="fa fa-file-invoice"></i>
+                                        </a>
+                                    </div>`;
                                 }
 
-
-
+                                return `
+                                <div class="d-flex gap-1">
+                                    ${viewButton}
+                                    ${complaintButton}
+                                </div>`;
                             }
                         }
-
                     },
                     {
+                        "width": "110px",
                         "data": "rmarequest"
                     },
                     {
+                        "width": "110px",
                         "data": "turno",
-                        "render": function render(data, type, row) {
-
-
-                            return `<p>${data}<p>`
-
-                        }
                     },
                     {
+                        "width": "130px",
                         "data": "preparado"
                     },
                     {
+                        "width": "110px",
                         "data": "date"
                     },
                     {
+                        "width": "170px",
                         "data": "sumbit",
                         render: function (data, type, row) {
                             if (data == "Submitted") {
-                                return `<span class="badge bg-success text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">
-  Submitted
-</span>`;
-
+                                return `<span class="badge bg-success text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Submitted</span>`;
                             }
                             else {
-                                return `<span class="badge bg-secondary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">
-  Not Submitted
-</span>`;
-
+                                return `<span class="badge bg-secondary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Not Submitted</span>`;
                             }
                         }
                     },
                     {
+                        "width": "170px",
                         "data": "status",
                         render: function (data, type, row) {
                             if (data == "Approved") {
-                                return `<span class="badge bg-success text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">
-  Approved
-</span>`;
-
+                                return `<span class="badge bg-success text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Approved</span>`;
                             }
                             if (data == "Pending") {
-                                return `<span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">
-  Pending
-</span>`;
+                                return `<span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Pending</span>`;
 
                             }
                             else {
                                 if (data == "Rejected") {
-                                    return `<span class="badge bg-danger text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">
-  Rejected
-</span>`;
-
+                                    return `<span class="badge bg-danger text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Rejected</span>`;
                                 } else {
                                     if (data == "Remark") {
-                                        return `<span class="badge bg-primary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">
-  Remark
-</span>`;
-
+                                        return `<span class="badge bg-primary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Remark</span>`;
                                     }
                                     else {
-                                        return `<span class="badge bg-secondary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">
-  Created
-</span>`;
-
+                                        return `<span class="badge bg-secondary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Created</span>`;
                                     }
                                 }
                             }
                         }
                     },
                     {
+                        "width": "200px",
                         "data": "customerpartno"
                     },
                     {
+                        "width": "200px",
                         "data": "description"
                     },
                     {
+                        "width": "100px",
                         "data": "qty"
                     },
                     {
+                        "width": "200px",
                         "data": "rmatypeofrequest"
                     },
                     {
+                        "width": "120px",
                         "data": "totalrmavalues",
                         render: function (data) {
 
@@ -238,50 +218,31 @@ function cargarDatatableRma() {
                         }
                     },
                     {
+                        "width": "100px",
                         "data": "wherebuilt"
                     },
                     {
+                        "width": "130px",
                         "data": "approver"
                     },
                     {
+                        "width": "140px",
                         "data": "customerpo"
                     },
                     {
-                        //"data": "coustumer",
+                        "width": "110px",
                         "data": "parts",
-                        "width": "10%"
                     },
                     {
+                        "width": "150px",
                         "data": "formated_date_approved"
-                    },
-                    //{
-                    //    "data": "date_approved",
-                    //    render: function (data, type, row) {
-
-                    //        var options = {
-                    //            weekday: "short",
-                    //            year: "numeric",
-                    //            month: "2-digit",
-                    //            day: "numeric"
-                    //        };
-                    //        if (data !== null) {
-                    //            return new Date(data).toLocaleDateString("en", options);
-
-                    //        } else {
-                    //            return "";
-                    //        }
-
-                    //    }
-                    //},
-                    {
-                        data: "customercomplait",
-                        render: function (data) {
-                            return `<a class="btn btn-success btn-sm d-flex align-items-center gap-1" data-toggle="modal" data-target="#Customer_complaint"  onclick="Customer_complaint('${data}')" >
-            Show Customer Complaint
-                     </a>`;
-                        }
                     }
                 ],
+                drawCallback: function () {
+                    $('[data-bs-toggle="tooltip"]').each(function () {
+                        new bootstrap.Tooltip(this);
+                    });
+                },
                 "language": {
                     "emptyTable": "No records found"
                 }
@@ -663,10 +624,10 @@ function cargarDatatableRma() {
                         Coustumer: pn,
                         Loc: loc,
                         Qty: qty,
-                        Cost:price,
+                        Cost: price,
                         Seq: seq,
                         Action: actionselected,
-                        Unit:cost ,
+                        Unit: cost,
                         Retur: rcode,
                         RmaId: id,
                         Car: car
@@ -1616,112 +1577,113 @@ function reloadLineasControl() {
 function cargarDatatableRma2() {
 
     dataTable = $("#tblCar").DataTable({
-        "order": [[0, "desc"]],
+        "order": [[2, "desc"]],
+        "fixedColumns": {
+            start: 1 // Freezes the first column (left side)
+        },
+        pageLength: 5,
+        lengthMenu: [5, 10, 25, 50, 100],
         "scrollX": true,
         "ajax": {
             "url": "/Client/rma/GetAllrma2",
             "type": "GET",
             "dataType": "json"
         },
-        "columns": [{
-            "data": "rmarequest"
-        }, {
-            "data": "date"
-        }, {
-            "data": "preparado"
-        }, {
-            "data": "status"
-        }, {
-            "data": "customerpartno"
-        }, {
-            "data": "description"
-        }, {
-            "data": "customercomplait"
-        }, {
-            "data": "rmatypeofrequest"
-        }, {
-            "data": "totalrmavalues",
-            render: function (data) {
+        "columns": [
+            {
+                "width": "70px",
+                "data": "id",
+                "render": function render(data, type, row) {
+                    return `
+                        <div class="d-flex gap-1">
+                              <a href="#" class="btn btn-sm btn-light action-btn d-flex align-items-center gap-1" data-id="${row.id}" id="btneditlinescontrol" 
+                                data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="right" title="Edit RMA Request">
+                                <i class="fas fa-edit"></i>
+                              </a>
+                            <div class="dropdown">
+                              <button class="btn btn-light action-btn d-flex" type="button" id="moreOptions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fa fa-ellipsis-v"></i>
+                              </button>
+                              <div class="dropdown-menu" aria-labelledby="moreOptions">
+                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" onclick="lineas(${data})" data-toggle="modal" data-target="#lineas">
+                                       <span><i class="fa fa-list me-2"></i>View RMA Lines</span>
+                                    </a>
+                                    <a class="btn btn-light btn-sm action-btn d-flex dropdown-item" data-toggle="modal" data-target="#Customer_complaint" onclick="Customer_complaint('${row.customercomplait}')">
+                                        <span><i class="fa fa-comments me-2"></i>Customer Complaint</span>
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" data-toggle="modal" data-target="#Comments" onclick="Comments(${data})">
+                                       <span><i class="fa fa-info-circle me-2"></i>Aditional Information</span>
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" data-toggle="modal" data-target="#Remark" onclick="Remark(${data})">
+                                       <span><i class="fa fa-sticky-note me-2"></i>Remarks</span>
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" data-toggle="modal" data-target="#documents" onclick="Abrir(${data})">
+                                       <span><i class="fa fa-paperclip me-2"></i>Attachments</span>
+                                    </a>
+                              </div>
+                            </div>
+                         </div>`;
+                }
+            },
+            {
+                "data": "id",
+                "width": "180",
+                "render": function render(data, type, row) {
+                    return `
+                    <div class="d-flex w-100 gap-1">
+                        <a href="#" class="btn btn-sm btn-danger flex-fill w-50"  data-toggle="modal" data-target="#Rechazar" onclick="Disapprove(${data})"
+                            data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="right" title="Reject Request">
+                            <span><i class="fa fa-times me-2"></i>Reject</span>
+                        </a>
+                        <a href="#" class="btn btn-sm btn-success flex-fill w-50" data-toggle="modal" data-target="#Aprobar" onclick="Pass(${data})"
+                            data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="right" title="Approve Request">
+                            <span><i class="fa fa-check me-2"></i>Approve</span>
+                        </a>
+                    </div>
+                    `;
+                }
+            },
+            {
+                "width": "110px",
+                "data": "rmarequest"
+            }, {
+                "width": "110px",
+                "data": "date"
+            }, {
+                "width": "130px",
+                "data": "preparado"
+            }, {
+                "width": "200px",
+                "data": "customerpartno"
+            }, {
+                "width": "200px",
+                "data": "description"
+            }, {
+                "width": "200px",
+                "data": "rmatypeofrequest"
+            }, {
+                "width": "120px",
+                "data": "totalrmavalues",
+                render: function (data) {
 
-                return data.toFixed(4);
+                    return data.toFixed(4);
+                }
+            }, {
+                "width": "100px",
+                "data": "wherebuilt"
+            }, {
+                "width": "130px",
+                "data": "approver"
+            }, {
+                "width": "140px",
+                "data": "customerpo"
             }
-        }, {
-            "data": "wherebuilt"
-        }, {
-            "data": "approver"
-        }, {
-            "data": "customerpo"
-        },
-        {
-            "data": "id",
-            "width": "9%",
-            "render": function render(data, type, row) {
-                return `
-  <a href="#" class="btn btn-sm btn-success " data-id="${row.id}" id="btneditlinescontrol">
-    <i class="fas fa-edit"></i> View
-  </a>
-  <a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#lineas" onclick="lineas(${data})">
-    <i class="fa fa-list"></i> Lines
-  </a>
-`;        //return "  <a href='/Client/rma/Datos/" + data + "' style='cursor:pointer; ' data-id="+row.id+"> <i class='fas fa-edit'style='color: green;'></i>Data</a>               <a data-toggle='modal' data-target='#lineas' onclick='lineas(" + data + ")'  style='cursor: pointer; '>Lines</a><a  data-toggle='modal' data-target='#Rechazar' onclick='Disapprove(" + data + ")'  style='cursor:pointer; color: red;'> Reject  </a> <a data-toggle='modal' data-target='#Aprobar' onclick='Pass(" + data + ")' style='cursor:pointer; color: green;'> Approve </a>  <a data-toggle='modal' data-target='#documents' style='cursor:pointer;' onclick='Abrir(" + data + ")'>Attachmements</a><a data-toggle='modal' data-target='#Remark' onclick='Remark(" + data + ")' style='cursor:pointer; color: blue;'> Remark </a><a data-toggle='modal' data-target='#Comments' onclick='Comments(" + data + ")' style='cursor:pointer;' href='#'> Additional Information </a> ";
-            }
-        },
-        {
-            "data": "id",
-            "width": "10%",
-            "render": function render(data, type, row) {
-                return `
-  <a href="#" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#Rechazar" onclick="Disapprove(${data})">
-    <i class="fa fa-times"></i> Reject
-  </a>
-  <a href="#" class="btn btn-sm btn-success" data-toggle="modal" data-target="#Aprobar" onclick="Pass(${data})">
-    <i class="fa fa-check"></i> Approve
-  </a>
-`;
-
-            }
-        },
-        {
-            "data": "id",
-            "width": "7%",
-            "render": function render(data, type, row) {
-                return `
-  <a href="#" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#documents" onclick="Abrir(${data})">
-    <i class="fa fa-paperclip"></i> Attachments
-  </a>
-`;
-
-
-            }
-        },
-        {
-            "data": "id",
-            "width": "7%",
-            "render": function render(data, type, row) {
-                return `
-  <a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#Remark" onclick="Remark(${data})">
-    <i class="fa fa-eraser"></i> Remark
-  </a>
-`;
-
-
-            }
-        },
-        {
-            "data": "id",
-            "width": "7%",
-            "render": function render(data, type, row) {
-                return `
-  <a href="#" class="btn btn-sm btn-info" data-toggle="modal" data-target="#Comments" onclick="Comments(${data})">
-    <i class="fa fa-info-circle"></i> Additional Information
-  </a>
-`;
-
-
-            }
-        }
-
         ],
+        drawCallback: function () {
+            $('[data-bs-toggle="tooltip"]').each(function () {
+                new bootstrap.Tooltip(this);
+            });
+        },
         "language": {
             "emptyTable": "No records found."
         }
