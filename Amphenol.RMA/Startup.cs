@@ -1,6 +1,7 @@
 ﻿using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.AccesoDatos.Data.Repository;
-
+using Amphenol.RMA.Models;
+using Amphenol.RMA.Services.Email;
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Builder;
@@ -61,6 +62,10 @@ namespace Amphenol.RMA
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
+
+            services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
+            services.Configure<CustomerServiceManager>(Configuration.GetSection("CustomerServiceManager"));
+            services.AddTransient<IEmailService, EmailService>();
 
         }
 
