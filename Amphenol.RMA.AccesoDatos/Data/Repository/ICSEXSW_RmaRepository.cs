@@ -16,12 +16,12 @@ namespace Amphenol.RMA.AccesoDatos.Data.Repository
         void UpdateRechazo(int id);
         int intRMA();
         int Releaserma();
-        Task<bool> SendMailAsync3(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
-        Task<bool> SendMailAsync4(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
-        Task<bool> SendMailAsync5(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
+        //Task<bool> SendMailAsync3(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
+        //Task<bool> SendMailAsync4(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
+        //Task<bool> SendMailAsync5(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
 
-        Task<bool> SendMailAsync2(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
-        Task<bool> SendMail(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
+        //Task<bool> SendMailAsync2(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
+        //Task<bool> SendMail(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
         void UpdateRema(int idrema, string commentrema, string var);
         void Updatedesaprobar(int ids, string comment, string var/* string mail1, string mail2, string mail3, string mail4, string mail5, string mail6,  string mailp*/);
         string Updateaprobar(int idsa, string commentt, string var, string mail1, string mail2, string mail3, string mail4, string mail5, string mail6,  string mailp);

@@ -133,6 +133,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
                     while (rdr.Read())
                     {
+                        var rmaNumber = rdr["turno"].ToString();
+
                         CSEXSW_Rma_ViewModel model = new CSEXSW_Rma_ViewModel
                         {
                             Id = Convert.ToInt32(rdr["Id"]),
@@ -150,15 +152,25 @@ namespace Amphenol.RMA.AccesoDatos.Data
                             Preparado = rdr["Preparado"].ToString(),
                             Sumbit = rdr["Sumbit"].ToString(),
                             Status = rdr["Status"].ToString(),
-                            turno = rdr["turno"].ToString(),
+                            turno = rmaNumber,
                             Approver = rdr["Approver"].ToString(),
                             res_id = Convert.ToInt32(rdr["res_id"]),
                             formated_date_approved = rdr["formated_date_approved"].ToString()
                         };
 
+                        var receivedlines = _db2.OERDTFIL_SQL
+                            .AsNoTracking()
+                            .Where(o => o.rma_no.Trim() == rmaNumber.Trim());
+
+                        model.CanGenerateOrder =
+                            receivedlines.Any() &&
+                            receivedlines.All(o => o.RmaQtyRtnActual > 0) &&
+                            model.Status == "Approved";
+
                         result.Add(model);
                     }
                 }
+
                 return result;
             }
             catch (Exception ex)
@@ -167,644 +179,644 @@ namespace Amphenol.RMA.AccesoDatos.Data
             }
         }
 
-        public async Task<bool> SendMailAsync5(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
-        {
+        //public async Task<bool> SendMailAsync5(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
+        //{
 
 
 
 
-            var objDesdeDbs = _db.CSEXSW_Rma.Where(s => s.Rmarequest == rmarequest).FirstOrDefault();
+        //    var objDesdeDbs = _db.CSEXSW_Rma.Where(s => s.Rmarequest == rmarequest).FirstOrDefault();
 
 
 
-            string coustumercorreo = "";
-            var objDesdeDbL = _db.csexsw_coustumer.Where(s => s.RmaId == objDesdeDbs.Id).ToList();
+        //    string coustumercorreo = "";
+        //    var objDesdeDbL = _db.csexsw_coustumer.Where(s => s.RmaId == objDesdeDbs.Id).ToList();
 
-            if (objDesdeDbL.Count() > 0)
-            {
+        //    if (objDesdeDbL.Count() > 0)
+        //    {
 
-                foreach (var filtro in objDesdeDbL)
-                {
-                    coustumercorreo = coustumercorreo + " " + filtro.Coustumer;
-                }
+        //        foreach (var filtro in objDesdeDbL)
+        //        {
+        //            coustumercorreo = coustumercorreo + " " + filtro.Coustumer;
+        //        }
 
-            }
-            string encabezado = "RMA Approval has been rejected: " + objDesdeDbs.Rmarequest + "";
-            string mensaje = "<p> RMA has been rejected:  &nbsp; " + objDesdeDbs.Rmarequest + "<br />" + objDesdeDbs.Preparado + " at  &nbsp; " + objDesdeDbs.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbs.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbs.Date + "<br />Customer: &nbsp; " + objDesdeDbs.Customer + "<br />Customer Part #: &nbsp; " + coustumercorreo + "<br />Customer PO #: &nbsp; " + objDesdeDbs.Customerpo + " <br />Description: &nbsp;" + objDesdeDbs.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbs.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbs.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbs.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbs.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbs.Approver + "<br />Reject Comments: &nbsp;" + objDesdeDbs.Comment + "</p>";
-            try
-            {
+        //    }
+        //    string encabezado = "RMA Approval has been rejected: " + objDesdeDbs.Rmarequest + "";
+        //    string mensaje = "<p> RMA has been rejected:  &nbsp; " + objDesdeDbs.Rmarequest + "<br />" + objDesdeDbs.Preparado + " at  &nbsp; " + objDesdeDbs.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbs.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbs.Date + "<br />Customer: &nbsp; " + objDesdeDbs.Customer + "<br />Customer Part #: &nbsp; " + coustumercorreo + "<br />Customer PO #: &nbsp; " + objDesdeDbs.Customerpo + " <br />Description: &nbsp;" + objDesdeDbs.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbs.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbs.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbs.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbs.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbs.Approver + "<br />Reject Comments: &nbsp;" + objDesdeDbs.Comment + "</p>";
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage();
-                oMailMessagep.IsBodyHtml = true;
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage();
+        //        oMailMessagep.IsBodyHtml = true;
 
 
-                // Rellenamos el mensaje
-                oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
-                oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
+        //        // Rellenamos el mensaje
+        //        oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
+        //        oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
 
-                //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
-                oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
+        //        //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
+        //        oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
 
-                // Asunto y cuerpo
-                oMailMessagep.Subject = encabezado;
-                oMailMessagep.Body = mensaje;
+        //        // Asunto y cuerpo
+        //        oMailMessagep.Subject = encabezado;
+        //        oMailMessagep.Body = mensaje;
 
 
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbs.Id).ToList();
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbs.Id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
 
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            {
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
+        //    }
 
-            await Task.Delay(10000);
-            return true;
-        }
+        //    await Task.Delay(10000);
+        //    return true;
+        //}
 
-        public async Task<bool> SendMailAsync4(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
-        {
-            var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Rmarequest == rmarequest).FirstOrDefault();
+        //public async Task<bool> SendMailAsync4(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
+        //{
+        //    var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Rmarequest == rmarequest).FirstOrDefault();
 
 
-            string result = "";
-            var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //    string result = "";
+        //    var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-            if (objDesdeDbT.Count() > 0)
-            {
+        //    if (objDesdeDbT.Count() > 0)
+        //    {
 
-                foreach (var filtro in objDesdeDbT)
-                {
-                    result = result + " " + filtro.Coustumer;
-                }
+        //        foreach (var filtro in objDesdeDbT)
+        //        {
+        //            result = result + " " + filtro.Coustumer;
+        //        }
 
-            }
+        //    }
 
 
-            string EmailDestino = mailp;
-            string encabezadoaprobador = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
-            string mensajeaprobador = "<p>Review by your Global Marketing Dir role</p><br/><p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
+        //    string EmailDestino = mailp;
+        //    string encabezadoaprobador = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
+        //    string mensajeaprobador = "<p>Review by your Global Marketing Dir role</p><br/><p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
 
-            string mailaprobador = "";
-            string connectionString = _configuration.GetConnectionString("Connection100").ToString();
-            using (SqlConnection cn2 = new SqlConnection(connectionString))
-            {
-                cn2.Open();
-                string query2 = @"select mail from humres where fullname = '" + objDesdeDbR.Approver + "'";
-                SqlCommand cmd2 = new SqlCommand(query2, cn2);
+        //    string mailaprobador = "";
+        //    string connectionString = _configuration.GetConnectionString("Connection100").ToString();
+        //    using (SqlConnection cn2 = new SqlConnection(connectionString))
+        //    {
+        //        cn2.Open();
+        //        string query2 = @"select mail from humres where fullname = '" + objDesdeDbR.Approver + "'";
+        //        SqlCommand cmd2 = new SqlCommand(query2, cn2);
 
-                SqlDataReader rdr2 = cmd2.ExecuteReader();
+        //        SqlDataReader rdr2 = cmd2.ExecuteReader();
 
-                //get the data reader, etc.
-                while (rdr2.Read())
-                {
+        //        //get the data reader, etc.
+        //        while (rdr2.Read())
+        //        {
 
 
-                    mailaprobador = rdr2["mail"].ToString();
+        //            mailaprobador = rdr2["mail"].ToString();
 
 
 
-                }
+        //        }
 
 
 
-                cn2.Close();
-            }
-            try
-            {
+        //        cn2.Close();
+        //    }
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage(EmailOrigen, mailaprobador, encabezadoaprobador, mensajeaprobador);
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage(EmailOrigen, mailaprobador, encabezadoaprobador, mensajeaprobador);
 
-                oMailMessagep.IsBodyHtml = true;
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //        oMailMessagep.IsBodyHtml = true;
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
 
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            {
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
+        //    }
 
-            string encabezado = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
-            string mensaje = "<p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
+        //    string encabezado = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
+        //    string mensaje = "<p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
 
-            try
-            {
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage();
-                oMailMessagep.IsBodyHtml = true;
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage();
+        //        oMailMessagep.IsBodyHtml = true;
 
 
-                // Rellenamos el mensaje
-                oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
-                oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
+        //        // Rellenamos el mensaje
+        //        oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
+        //        oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
 
-                //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
-                oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
+        //        //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
+        //        oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
 
-                // Asunto y cuerpo
-                oMailMessagep.Subject = encabezado;
-                oMailMessagep.Body = mensaje;
+        //        // Asunto y cuerpo
+        //        oMailMessagep.Subject = encabezado;
+        //        oMailMessagep.Body = mensaje;
 
 
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
 
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            {
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
-            await Task.Delay(10000);
-            return true;
-        }
+        //    }
+        //    await Task.Delay(10000);
+        //    return true;
+        //}
 
-        public async Task<bool> SendMail(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
-        {
-            var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Rmarequest == rmarequest).FirstOrDefault();
+        //public async Task<bool> SendMail(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
+        //{
+        //    var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Rmarequest == rmarequest).FirstOrDefault();
 
-            string result = "";
-            try
-            {
-                var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //    string result = "";
+        //    try
+        //    {
+        //        var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-                if (objDesdeDbT.Count() > 0)
-                {
+        //        if (objDesdeDbT.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbT)
-                    {
-                        result = result + " " + filtro.Coustumer;
-                    }
+        //            foreach (var filtro in objDesdeDbT)
+        //            {
+        //                result = result + " " + filtro.Coustumer;
+        //            }
 
-                }
-            }
-            catch (Exception)
-            {
+        //        }
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
-            string rango = _db.CSEXSW_Approver.Where(a => a.Approver == objDesdeDbR.Approver).Select(a => a.Rango).FirstOrDefault();
-            string encabezado = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
-            string mensaje = "<p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
-            string encabezadoaprobador = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
-            string mensajeaprobador = "<p>Review by your " + rango + " role</p><br/><p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
+        //    }
+        //    string rango = _db.CSEXSW_Approver.Where(a => a.Approver == objDesdeDbR.Approver).Select(a => a.Rango).FirstOrDefault();
+        //    string encabezado = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
+        //    string mensaje = "<p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
+        //    string encabezadoaprobador = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
+        //    string mensajeaprobador = "<p>Review by your " + rango + " role</p><br/><p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
 
-            string mailaprobador = "";
-            string connectionString = _configuration.GetConnectionString("ConnectionM10").ToString();
-            using (SqlConnection cn2 = new SqlConnection(connectionString))
-            {
-                cn2.Open();
-                string query2 = @"select mail from humres where fullname = '" + objDesdeDbR.Approver + "'";
-                SqlCommand cmd2 = new SqlCommand(query2, cn2);
+        //    string mailaprobador = "";
+        //    string connectionString = _configuration.GetConnectionString("ConnectionM10").ToString();
+        //    using (SqlConnection cn2 = new SqlConnection(connectionString))
+        //    {
+        //        cn2.Open();
+        //        string query2 = @"select mail from humres where fullname = '" + objDesdeDbR.Approver + "'";
+        //        SqlCommand cmd2 = new SqlCommand(query2, cn2);
 
-                SqlDataReader rdr2 = cmd2.ExecuteReader();
+        //        SqlDataReader rdr2 = cmd2.ExecuteReader();
 
-                //get the data reader, etc.
-                while (rdr2.Read())
-                {
+        //        //get the data reader, etc.
+        //        while (rdr2.Read())
+        //        {
 
 
-                    mailaprobador = rdr2["mail"].ToString();
+        //            mailaprobador = rdr2["mail"].ToString();
 
 
 
-                }
+        //        }
 
 
 
-                cn2.Close();
-            }
-            try
-            {
+        //        cn2.Close();
+        //    }
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage(EmailOrigen, mailaprobador, encabezadoaprobador, mensajeaprobador);
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage(EmailOrigen, mailaprobador, encabezadoaprobador, mensajeaprobador);
 
-                oMailMessagep.IsBodyHtml = true;
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //        oMailMessagep.IsBodyHtml = true;
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            { }
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    { }
 
-            try
-            {
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage();
-                oMailMessagep.IsBodyHtml = true;
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage();
+        //        oMailMessagep.IsBodyHtml = true;
 
 
-                // Rellenamos el mensaje
-                oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
-                oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
+        //        // Rellenamos el mensaje
+        //        oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
+        //        oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
 
-                //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
-                oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
+        //        //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
+        //        oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
 
-                // Asunto y cuerpo
-                oMailMessagep.Subject = encabezado;
-                oMailMessagep.Body = mensaje;
+        //        // Asunto y cuerpo
+        //        oMailMessagep.Subject = encabezado;
+        //        oMailMessagep.Body = mensaje;
 
 
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
 
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            {
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
+        //    }
 
-            await Task.Delay(10000);
+        //    await Task.Delay(10000);
 
-            return true;
-        }
+        //    return true;
+        //}
 
-        public async Task<bool> SendMailAsync2(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
-        {
+        //public async Task<bool> SendMailAsync2(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
+        //{
 
-            int id = (from c in _db.CSEXSW_Rma
-                      where c.Rmarequest == rmarequest
-                      select c.Id).First();
+        //    int id = (from c in _db.CSEXSW_Rma
+        //              where c.Rmarequest == rmarequest
+        //              select c.Id).First();
 
-            string result = "";
-            var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == id).ToList();
+        //    string result = "";
+        //    var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == id).ToList();
 
-            if (objDesdeDbT.Count() > 0)
-            {
+        //    if (objDesdeDbT.Count() > 0)
+        //    {
 
-                foreach (var filtro in objDesdeDbT)
-                {
-                    result = result + " " + filtro.Coustumer;
-                }
+        //        foreach (var filtro in objDesdeDbT)
+        //        {
+        //            result = result + " " + filtro.Coustumer;
+        //        }
 
-            }
-            var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
-            string rango = _db.CSEXSW_Approver.Where(a => a.Approver == objDesdeDbR.Approver).Select(a => a.Rango).FirstOrDefault();
-            string encabezado = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
-            string mensaje = "<p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
-            string encabezadoaprobador = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
-            string mensajeaprobador = "<p>Review by your " + rango + " role</p><br/><p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
+        //    }
+        //    var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+        //    string rango = _db.CSEXSW_Approver.Where(a => a.Approver == objDesdeDbR.Approver).Select(a => a.Rango).FirstOrDefault();
+        //    string encabezado = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
+        //    string mensaje = "<p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
+        //    string encabezadoaprobador = "New RMA Approval has been created: " + objDesdeDbR.Rmarequest + "";
+        //    string mensajeaprobador = "<p>Review by your " + rango + " role</p><br/><p>Please review this new RMA request:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "</p>";
 
-            string mailaprobador = "";
-            string connectionString = _configuration.GetConnectionString("Connection100").ToString();
-            using (SqlConnection cn2 = new SqlConnection(connectionString))
-            {
-                cn2.Open();
-                string query2 = @"select mail from humres where fullname = '" + objDesdeDbR.Approver + "'";
-                SqlCommand cmd2 = new SqlCommand(query2, cn2);
+        //    string mailaprobador = "";
+        //    string connectionString = _configuration.GetConnectionString("Connection100").ToString();
+        //    using (SqlConnection cn2 = new SqlConnection(connectionString))
+        //    {
+        //        cn2.Open();
+        //        string query2 = @"select mail from humres where fullname = '" + objDesdeDbR.Approver + "'";
+        //        SqlCommand cmd2 = new SqlCommand(query2, cn2);
 
-                SqlDataReader rdr2 = cmd2.ExecuteReader();
+        //        SqlDataReader rdr2 = cmd2.ExecuteReader();
 
-                //get the data reader, etc.
-                while (rdr2.Read())
-                {
+        //        //get the data reader, etc.
+        //        while (rdr2.Read())
+        //        {
 
 
-                    mailaprobador = rdr2["mail"].ToString();
+        //            mailaprobador = rdr2["mail"].ToString();
 
 
 
-                }
+        //        }
 
 
 
-                cn2.Close();
-            }
-            try
-            {
+        //        cn2.Close();
+        //    }
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage(EmailOrigen, mailaprobador, encabezadoaprobador, mensajeaprobador);
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage(EmailOrigen, mailaprobador, encabezadoaprobador, mensajeaprobador);
 
-                oMailMessagep.IsBodyHtml = true;
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == id).ToList();
+        //        oMailMessagep.IsBodyHtml = true;
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            {
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
-            try
-            {
+        //    }
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage();
-                oMailMessagep.IsBodyHtml = true;
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage();
+        //        oMailMessagep.IsBodyHtml = true;
 
 
-                // Rellenamos el mensaje
-                oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
-                oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
+        //        // Rellenamos el mensaje
+        //        oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
+        //        oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
 
-                //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
-                oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
+        //        //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
+        //        oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
 
-                // Asunto y cuerpo
-                oMailMessagep.Subject = encabezado;
-                oMailMessagep.Body = mensaje;
+        //        // Asunto y cuerpo
+        //        oMailMessagep.Subject = encabezado;
+        //        oMailMessagep.Body = mensaje;
 
 
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
 
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            {
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
+        //    }
 
-            await Task.Delay(10000);
-            return true;
-        }
+        //    await Task.Delay(10000);
+        //    return true;
+        //}
 
 
-        public async Task<bool> SendMailAsync3(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
-        {
+        //public async Task<bool> SendMailAsync3(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest)
+        //{
 
 
-            int id = (from c in _db.CSEXSW_Rma
-                      where c.Rmarequest == rmarequest
-                      select c.Id).First();
+        //    int id = (from c in _db.CSEXSW_Rma
+        //              where c.Rmarequest == rmarequest
+        //              select c.Id).First();
 
-            string result = "";
-            var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == id).ToList();
+        //    string result = "";
+        //    var objDesdeDbT = _db.csexsw_coustumer.Where(s => s.RmaId == id).ToList();
 
-            if (objDesdeDbT.Count() > 0)
-            {
+        //    if (objDesdeDbT.Count() > 0)
+        //    {
 
-                foreach (var filtro in objDesdeDbT)
-                {
-                    result = result + " " + filtro.Coustumer;
-                }
+        //        foreach (var filtro in objDesdeDbT)
+        //        {
+        //            result = result + " " + filtro.Coustumer;
+        //        }
 
-            }
+        //    }
 
 
 
-            var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+        //    var objDesdeDbR = _db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
 
 
 
-            string encabezado = "New RMA Approval has been approved: " + objDesdeDbR.Rmarequest + "";
-            string mensaje = "<p>RMA has been approved:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "<br />Approval Comments: &nbsp;" + objDesdeDbR.Comment + "</p>";
-            try
-            {
+        //    string encabezado = "New RMA Approval has been approved: " + objDesdeDbR.Rmarequest + "";
+        //    string mensaje = "<p>RMA has been approved:  &nbsp; " + objDesdeDbR.Rmarequest + "<br />" + objDesdeDbR.Preparado + " at  &nbsp; " + objDesdeDbR.Date + "<br />RMA Request #: &nbsp; " + objDesdeDbR.Rmarequest + "<br />Date : &nbsp; " + objDesdeDbR.Date + "<br />Customer: &nbsp; " + objDesdeDbR.Customer + "<br />Customer Part #: &nbsp; " + result + "<br />Customer PO #: &nbsp; " + objDesdeDbR.Customerpo + " <br />Description: &nbsp;" + objDesdeDbR.Description + "<br />Customer Complaint: &nbsp;" + objDesdeDbR.Customercomplait + "<br />RMA Type of Request: &nbsp;" + objDesdeDbR.Rmatypeofrequest + "<br />Total RMA Value: &nbsp;" + objDesdeDbR.Totalrmavalues + "<br />Where Built: &nbsp;" + objDesdeDbR.Wherebuilt + "<br />Approver: &nbsp;" + objDesdeDbR.Approver + "<br />Approval Comments: &nbsp;" + objDesdeDbR.Comment + "</p>";
+        //    try
+        //    {
 
 
-                string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
-                string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
-                string path;
-                MailMessage oMailMessagep = new MailMessage();
-                oMailMessagep.IsBodyHtml = true;
+        //        string EmailOrigen = _configuration.GetConnectionString("correo").ToString();
+        //        string Contraseña = _configuration.GetConnectionString("contrasennia").ToString();
+        //        string path;
+        //        MailMessage oMailMessagep = new MailMessage();
+        //        oMailMessagep.IsBodyHtml = true;
 
 
-                // Rellenamos el mensaje
-                oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
-                oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
-                oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
+        //        // Rellenamos el mensaje
+        //        oMailMessagep.From = new MailAddress(EmailOrigen);  // Remitente
+        //        oMailMessagep.To.Add(new MailAddress(mail1));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail2));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail3));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail4));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail5));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mail6));    // Destino
+        //        oMailMessagep.To.Add(new MailAddress(mailp));    // Destino
 
-                //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
-                oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
+        //        //oMailMessagep.CC.Add(new MailAddress();  // Destino (en Carbon Copy)
+        //        oMailMessagep.Bcc.Add(new MailAddress("ccorona@amphenol-aio.com"));    // Destino (en Blind Carbon Copy, oculto)
 
-                // Asunto y cuerpo
-                oMailMessagep.Subject = encabezado;
-                oMailMessagep.Body = mensaje;
+        //        // Asunto y cuerpo
+        //        oMailMessagep.Subject = encabezado;
+        //        oMailMessagep.Body = mensaje;
 
 
-                var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
+        //        var objDesdeDbA = _db.CSEXSW_Attachmentrma.Where(s => s.RmaId == objDesdeDbR.Id).ToList();
 
-                if (objDesdeDbA.Count() > 0)
-                {
+        //        if (objDesdeDbA.Count() > 0)
+        //        {
 
-                    foreach (var filtro in objDesdeDbA)
-                    {
-                        path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
+        //            foreach (var filtro in objDesdeDbA)
+        //            {
+        //                path = @"wwwroot\documents\documents\rma\" + filtro.Documento;
 
 
-                        oMailMessagep.Attachments.Add(new Attachment(path));
+        //                oMailMessagep.Attachments.Add(new Attachment(path));
 
 
-                    }
+        //            }
 
-                }
-                SmtpClient oSmtpClientp = new SmtpClient();
+        //        }
+        //        SmtpClient oSmtpClientp = new SmtpClient();
 
-                oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
-                oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
-                oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
-                oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
-                oSmtpClientp.Send(oMailMessagep);
-                oSmtpClientp.Dispose();
-            }
-            catch (Exception)
-            {
+        //        oSmtpClientp.EnableSsl = Convert.ToBoolean(_configuration.GetConnectionString("EnableSsl"));
+        //        oSmtpClientp.Host = _configuration.GetConnectionString("hostcorreo");
+        //        oSmtpClientp.Port = Convert.ToInt32(_configuration.GetConnectionString("puerto"));
+        //        oSmtpClientp.Credentials = new System.Net.NetworkCredential(EmailOrigen, Contraseña);
+        //        oSmtpClientp.Send(oMailMessagep);
+        //        oSmtpClientp.Dispose();
+        //    }
+        //    catch (Exception)
+        //    {
 
-            }
-            await Task.Delay(10000);
-            return true;
-        }
+        //    }
+        //    await Task.Delay(10000);
+        //    return true;
+        //}
 
         public void UpdateRema(int idrema, string commentrema, string var)
         {
@@ -1977,7 +1989,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 {
 
 
-                    BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
+                    //BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
 
 
 
@@ -1986,7 +1998,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 {
                     BackgroundJob.Enqueue(() => falloRMA(nextrma, objDesdeDbs.Id, objDesdeDbs.reason));
 
-                    BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
+                    //BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
 
                 }
 
@@ -2509,7 +2521,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 {
 
 
-                    BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
+                    //BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
 
 
 
@@ -2518,7 +2530,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 {
                     BackgroundJob.Enqueue(() => falloRMA(nextrma, objDesdeDbs.Id, objDesdeDbs.reason));
 
-                    BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
+                    //BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
 
                 }
 
