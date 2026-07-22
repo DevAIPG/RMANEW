@@ -35,3 +35,63 @@ $(document).ready(function () {
 
     });
 });
+function OnCreateOrderClicked(id) {
+    $.ajax({
+        "url": "/Client/rma/GetGeneratedOrderNumber",
+        type: "POST",
+        dataType: "json",
+        data: { id: id },
+        cache: true,
+        async: true,
+        success: function success(data) {
+            if (!data.wasSuccessful) {
+                $().toastmessage('showToast', {
+                    text: data.message,
+                    sticky: false,
+                    type: 'error'
+                });
+                return;
+            }
+
+            const hasOrder = !!data.orderNumber?.trim();
+
+            $("#createOrderTitle").text(
+                hasOrder ? "Existing Order" : "Create Order"
+            );
+
+            $("#createOrderMessage").html(
+                hasOrder
+                    ? `Order #<b>${data.orderNumber}</b> has already been generated for this RMA Request`
+                    : "Do you want to create a new re-shipment / credit order?"
+            );
+
+            const options = hasOrder
+                ? `
+                    <button class="btn btn-secondary me-3" data-dismiss="modal">
+                        OK
+                    </button>
+                  `
+                : `
+                    <button class="btn btn-secondary me-3" data-dismiss="modal">
+                        No
+                    </button>
+                    <button id="createorderyesbtn"
+                            onclick="CreateorderyesbtnF(${id})"
+                            data-dismiss="modal"
+                            class="btn btn-primary">
+                        Yes
+                    </button>
+                  `;
+
+            $("#createOrderFooter").html(options);
+            $('#CreateOrderModel').modal("show");
+        },
+        error: function error(xhr, status, _error4) {
+            $().toastmessage('showToast', {
+                text: 'Error con ean ' + xhr.responseText,
+                sticky: true,
+                type: 'error'
+            });
+        }
+    });
+}

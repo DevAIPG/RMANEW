@@ -20,7 +20,13 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             modelBuilder.Entity<oecusitm_sql>().ToTable(nameof(oecusitm_sql)).HasNoKey();
             modelBuilder.Entity<CreateOrder>().HasNoKey();
-
+            modelBuilder.Entity<Oelincmt_sql>(entity =>
+            {
+                entity.ToTable("Oelincmt_sql", tb =>
+                {
+                    tb.HasTrigger("cs_OrderLineCommentChanges");
+                });
+            });
         }
 
 
@@ -73,6 +79,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
         public DbSet<SYCDEFIL_SQL> SYCDEFIL_SQL { get; set; }
 
         public DbSet<CreateOrder> CreateOrders { get; set; }
+
+        public DbSet<Oeordhdr_sql> OEORDHDR_SQL { get; set; }
+        public DbSet<Oelincmt_sql> OELINCMT_SQL { get; set; }
 
     }
 }

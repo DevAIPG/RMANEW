@@ -58,8 +58,8 @@ function cargarDatatableRma() {
                 destroy: true,
                 autoWidth: false,
                 scrollX: true,
-                pageLength: 5,
-                lengthMenu: [5, 10, 25, 50, 100],
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
                 "order": [[1, "desc"]],
                 data: data.data,
                 columns: [
@@ -117,9 +117,17 @@ function cargarDatatableRma() {
 
                                 if (row.sumbit === "Submitted" && row.status === "Approved") {
 
-                                    const generateOrderButtonColor = row.canGenerateOrder ? 'btn-primary' : 'btn-warning';
-                                    const generateOrderButtonModal = row.canGenerateOrder ? 'data-toggle="modal" data-target="#CreateOrderModel' : '';
-                                    const generateOrderButtonTitle = row.canGenerateOrder ? 'Generate Order' : 'Awaiting returned products';
+                                    const hasOrder = !!row.orderNumber?.trim();
+
+                                    const generateOrderButtonColor = !row.canGenerateOrder
+                                        ? 'btn-warning'
+                                        : hasOrder ? 'btn-success' : 'btn-primary';
+
+                                    const generateOrderButtonModal = row.canGenerateOrder ? `OnClick="OnCreateOrderClicked(${row.id})"` : '';
+
+                                    const generateOrderButtonTitle = !row.canGenerateOrder
+                                        ? 'Awaiting returned products'
+                                        : hasOrder ? `Order #${row.orderNumber} Generated` : 'Generate New Order';
 
                                     return `
                                     <div class="d-flex gap-1">
@@ -287,29 +295,17 @@ function cargarDatatableRma() {
                 })
             });
 
-            $(document).on("click", "#btncreateorder", function () {
-                let id = $(this).data("id");
+            //$(document).on("click", "#btncreateorder", function () {
+            //    let id = $(this).data("id");
 
-                $("#createorderyesbtn").attr("data-id", id);
+            //    $("#createorderyesbtn").attr("data-id", id);
 
-                console.log(id);
-            });
+            //    //console.log(id);
+            //});
 
 
         }
     });
-
-
-
-
-
-
-
-
-
-
-
-
 
     function openinvoices() {
         const client = document.getElementById("client").value;
@@ -1096,6 +1092,7 @@ function cargarDatatableRma() {
         $("#meditrma").modal("show");
     });
 }
+
 function reloadFilesEdit() {
 
 
@@ -1581,8 +1578,8 @@ function cargarDatatableRma2() {
         "fixedColumns": {
             start: 1 // Freezes the first column (left side)
         },
-        pageLength: 5,
-        lengthMenu: [5, 10, 25, 50, 100],
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
         "scrollX": true,
         "ajax": {
             "url": "/Client/rma/GetAllrma2",

@@ -2,17 +2,21 @@
 using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Models;
 using Amphenol.RMA.Models.ModelsM10;
-
 using Amphenol.RMA.Models.ViewModels;
+using Amphenol.RMA.Services.Email;
 using Amphenol.RMA.Utilidades;
 using Hangfire;
+using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using OfficeOpenXml;
 using OfficeOpenXml.Table;
@@ -21,15 +25,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
-using Microsoft.Data.SqlClient;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Amphenol.RMA.Services.Email;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Hosting;
-using System.Globalization;
 
 namespace Amphenol.RMA.Controllers
 {
@@ -257,21 +257,71 @@ namespace Amphenol.RMA.Controllers
                 cmd.Parameters.Add(new SqlParameter("@UserName", username));
                 cmd.Parameters.Add(new SqlParameter("@ProcessAllLines", 1));
 
-                using var reader = await cmd.ExecuteReaderAsync();
+                string newOrderNumber = null;
 
-                if (await reader.ReadAsync())
+                using (var reader = await cmd.ExecuteReaderAsync())
                 {
-                    var status = reader["Status"]?.ToString();
-
-                    if (status == "SUCCESS")
+                    if (await reader.ReadAsync() && reader["Status"]?.ToString() == "SUCCESS")
                     {
-                        var newOrderNumber = reader["NewOrderNumber"]?.ToString();
-
-                        return Ok(new { success = true, message = $"Order #<b>{newOrderNumber}</b> created successfully." });
+                        newOrderNumber = reader["NewOrderNumber"]?.ToString();
                     }
                 }
 
-                return BadRequest(new { success = false, message = "Order creation failed." });
+                if (string.IsNullOrEmpty(newOrderNumber))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Order creation failed."
+                    });
+                }
+
+                var rmaNo = request.rmaNo.Trim().PadLeft(8, ' ');
+                var paddedOrderNumber = newOrderNumber.Trim().PadLeft(8, ' ');
+
+                var comments = await _context.OELINCMT_SQL
+                    .AsNoTracking()
+                    .Where(c => c.OrdType == "R" && c.OrdNo == rmaNo)
+                    .OrderBy(c => c.LineSeqNo)
+                    .ThenBy(c => c.CmtSeqNo)
+                    .ToListAsync();
+
+                if (comments.Any())
+                {
+                    var commentsToInsert = comments.Select(c => new Oelincmt_sql
+                    {
+                        OrdType = "O",
+                        OrdNo = paddedOrderNumber,
+                        LineSeqNo = c.LineSeqNo,
+                        LvlNo = c.LvlNo,
+                        CmtType = c.CmtType,
+                        CmtSeqNo = c.CmtSeqNo,
+                        Cmt = c.Cmt,
+                        CmtDocType = c.CmtDocType,
+                        Extra1 = c.Extra1,
+                        Extra2 = c.Extra2,
+                        Extra3 = c.Extra3,
+                        Extra4 = c.Extra4,
+                        Extra5 = c.Extra5,
+                        Extra6 = c.Extra6,
+                        Extra7 = c.Extra7,
+                        Extra8 = c.Extra8,
+                        Extra9 = c.Extra9,
+                        Extra10 = c.Extra10,
+                        Extra11 = c.Extra11,
+                        Extra12 = c.Extra12,
+                        Extra13 = c.Extra13,
+                        Extra14 = c.Extra14,
+                        Extra15 = c.Extra15,
+                        IsExt = c.IsExt,
+                        Filler0001 = c.Filler0001
+                    }).ToList();
+
+                    _context.OELINCMT_SQL.AddRange(commentsToInsert);
+
+                    await _context.SaveChangesAsync();
+                }
+                return Ok(new { success = true, message = $"Order #<b>{newOrderNumber}</b> created successfully." });
             }
             catch (Exception)
             {
@@ -3084,6 +3134,32 @@ namespace Amphenol.RMA.Controllers
             _contenedorTrabajo.CSEXSW_Rma.Remove(objFromDb);
             _contenedorTrabajo.Save();
             return Json(new { success = true, message = "RMA deleted successfully" });
+        }
+
+        [HttpPost]
+        public IActionResult GetGeneratedOrderNumber(int id)
+        {
+            try
+            {
+                if (id <= 0 || !_context2.CSEXSW_Rma.Any(s => s.Id == id))
+                {
+                    return Json(new { message = "Could not find record", orderNumber = "", wasSuccessful = false });
+                }
+                var rmano = _context2.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault().turno;
+
+                var existingOrder = _context.OEORDHDR_SQL
+                    .AsNoTracking()
+                    .Where(o => o.RmaNo.Trim() == rmano.Trim())
+                    .FirstOrDefault();
+
+                if (existingOrder is null) return Json(new { message = "Order has not been generated", orderNumber = "", wasSuccessful = true });
+
+                return Json(new { message = "An order number has been already been generated for this RMA", orderNumber = existingOrder.OrdNo.Trim(), wasSuccessful = true });
+            }
+            catch (Exception)
+            {
+                return Json(new { message = "An unexpected error ocurred", orderNumber = "", wasSuccessful = false });
+            }
         }
         #endregion
 

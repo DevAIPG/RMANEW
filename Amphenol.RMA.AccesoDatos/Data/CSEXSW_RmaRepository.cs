@@ -167,6 +167,12 @@ namespace Amphenol.RMA.AccesoDatos.Data
                             receivedlines.All(o => o.RmaQtyRtnActual > 0) &&
                             model.Status == "Approved";
 
+                        model.OrderNumber = _db2.OEORDHDR_SQL
+                        .AsNoTracking()
+                        .Where(o => o.RmaNo.Trim() == rmaNumber.Trim())
+                        .Select(o => o.OrdNo)
+                        .FirstOrDefault();
+
                         result.Add(model);
                     }
                 }
