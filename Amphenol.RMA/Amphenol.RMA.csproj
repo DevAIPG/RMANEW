@@ -88,6 +88,13 @@
     <ProjectReference Include="..\Amphenol.RMA.Utilidades\Amphenol.RMA.Utilidades.csproj" />
   </ItemGroup>
 
+
+ 
+
+  <ItemGroup>
+    <Folder Include="Areas\Client\Views\Shared\EditorTemplates\" />
+  </ItemGroup>
+
   <Target Name="MyPublishScripts" BeforeTargets="BeforePublish">
    
 

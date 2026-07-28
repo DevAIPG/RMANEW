@@ -1,5 +1,7 @@
 var persona = "";
 var dataTable;
+let invoiceTable = null;
+let currentCustomerId = "";
 var arrlinea = [];
 var arrRmaId = [];
 var arrRCode = [];
@@ -307,6 +309,7 @@ function cargarDatatableRma() {
         }
     });
 
+
     function openinvoices() {
         const client = document.getElementById("client").value;
         $.ajax({
@@ -527,571 +530,616 @@ function cargarDatatableRma() {
     $(document).on("click", "#btnviewlines", function () {
         let id = $(this).data("id");
         $.ajax({
-            url: "/Client/Rma/GetRmaInfo/?id=" + id,
-            type: "GET",
-            dataType: "json",
-            async: true,
-            cache: true,
-            success: function (data) {
+            url: '/Client/Rma/RmaModal',
+            type: 'GET',
+            data: {
+                id: id,
+                mode: 'view'
+            },
+            success: function (html) {
+                $('#meditrma .modal-content').html(html);
 
-                var rma = data.rma;
-                $("#rmaid").val(rma.id);
-                $("#rmastatus").val(rma.status);
-                $("#rmanumber").val(rma.rmarequest);
-                $("#whereb").append("<option value=" + rma.wherebuilt + ">" + rma.wherebuilt + "</option>");
-
-                if (rma.wherebuilt == "Nogales") {
-                    $("#whereb").append("<option value='Endicot'>Endicot</option>");
-                } else {
-                    $("#whereb").append("<option value='Nogales'>Nogales</option>");
-                }
-
-                $('#sreason option:selected').text(rma.reason);
-                $("#sreason")
-                $("#sreason").trigger("change");
-
-                $("#desc").val(rma.description);
-                $("#client").val(rma.customer);
-                $("#po").val(rma.customerpo);
-                $("#totalrma").val(rma.totalrmavalues);
-                $("#shipto").val(rma.ship_To);
-                $("#contactrma").val(rma.contact);
-                $("#phone").val(rma.phone);
-                $("#ext").val(rma.ext);
-                $("#selectrmatype").val(rma.rmatypeofrequest);
-                $("#email").val(rma.email);
-                $("#emailc").val(rma.company);
-                $("#comments").val(rma.comment);
-
-                $("#daterma").val(rma.date);
-
-                if (rma.status == "Pending") {
-                    $("#txtstatus").addClass("badge-warning");
-                }
-                if (rma.status == "Approved") {
-                    $("#txtstatus").addClass("badge-success");
-                } else {
-                    $("#txtstatus").addClass("badge-secondary");
-                }
-                $("#txtstatus").text(rma.status);
-                if (rma.sumbit == "Submitted") {
-                    $("#txtsub").addClass("badge-success");
-                    $("#btnsubmitrma").prop("disabled", true);
-                } else {
-                    $("#txtsub").addClass("badge-secondary");
-                    $("#btnsubmitrma").prop("disabled", false);
-                }
-                $("#txtsub").text(rma.sumbit);
-
-                console.log("LINEAS DE RMA");
-                console.log(data.lines);
-
-                reloadLineas();
-
-
-                $("#btncodes").click(function () {
-
-                    loadcodes();
-                    $("#mcodes").modal("show");
-                });
-                $("#imgpn").click(function () {
-                    LoadPartNumbers();
-                    $("#mPN").modal("show");
-                });
-
-
-                //add row 
-                $("#btnAddRow").click(function () {
-
-                    let invoice = $("#invoicee").val();
-                    let seq = $("#seqnew").val();
-                    let pn = $("#pnnew").val();
-                    let loc = $("#slocationsnew option:selected").val();
-                    let qty = $("#qtynew").val();
-                    let price = $("#txtprice").val();
-                    let cost = $("#txtcost").val();
-                    let car = $("#carnew").is(":checked") ? true : false;
-                    let rcode = $("#rcodenew").val();
-                    let id = $("#rmaid").val();
-                    var actionselected = $("#sactions option:selected").val();
-                    alert(actionselected);
-                    let linea = {
-                        Invoice: invoice,
-                        Coustumer: pn,
-                        Loc: loc,
-                        Qty: qty,
-                        Cost: price,
-                        Seq: seq,
-                        Action: actionselected,
-                        Unit: cost,
-                        Retur: rcode,
-                        RmaId: id,
-                        Car: car
-                    };
-                    var linedata = JSON.stringify(linea);
-
-                    $.ajax({
-                        url: "/Client/Rma/AddNewLine/?line=" + linedata,
-                        type: "GET",
-                        dataType: "json",
-                        async: true,
-                        cache: true,
-                        success: function (data) {
-
-                            if (data == true) {
-                                $("#frmnewline").trigger("reset");
-                                reloadLineas();
-                            }
-                        }
-                    });
-
-                });
-                //delete row
-                $(document).on("click", "#btnDeleteRow", function () {
-                    let id = $(this).data("id");
-
-
-                    Swal.fire({
-                        title: 'Are you sure to delete line #' + id + '?',
-                        text: "You won't be able to revert this!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Yes, delete it!'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $.ajax({
-                                url: "/Client/Rma/DeleteLinea/?id=" + id,
-                                type: "GET",
-                                dataType: "json",
-                                async: true,
-                                cache: true,
-                                success: function (data) {
-
-                                    if (data == true) {
-                                        reloadLineas();
-                                        Swal.fire(
-                                            'Deleted!',
-                                            'Your line has been deleted.',
-                                            'success'
-                                        );
-                                    }
-                                    else {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'Oops...',
-                                            text: 'Something went wrong!'
-                                        })
-                                    }
-                                }
-                            });
-
-                        }
-                    })
-
-
-                });
-
-                $(document).on("click", "#selectlinea", function () {
-                    let id = $(this).data("id");
-                    if ($(this).is(":checked")) {
-                    }
-                    else {
-                    }
-                    //alert("eliminar linea"+id);
-                });
-
-
-                $("#btnshowline").click(function () {
-                    $("#rowadd").fadeToggle("fast");
-                });
-                $(document).on("click", "#bntabrirfact", function () {
-                    //abrirfacturas();
-                    openinvoices();
-                    $("#minvoices").modal("show");
-                });
-                $(document).on("click", "#btnopenseq", function () {
-                    LoadSeq($(".invoiceenew").val());
-                    $("#mseq").modal("show");
-                });
-                $("#btncloseedit").click(function () {
-                    $("#meditrma").modal("hide");
-                });
-                $(document).on("click", "#btneditlinea", function () {
-
-                    let id = $(this).data("id");
-                    arrRmaId = [];
-                    arrRmaId.push(id);
-
-                    $("#slocations-" + id).prop("disabled", false);
-
-
-                    $("#qty-" + id).prop("readonly", false);
-                    $("#qty-" + id).focus();
-
-                    //$("#rcode-" + id).prop("readonly", false);
-
-
-                    $("#txtprice-" + id).prop("readonly", false);
-                    $("#txtcost-" + id).prop("readonly", false);
-                    $(".action-" + id).prop("disabled", false);
-                    $("#car-" + id).prop("disabled", false);
-                });
-
-
-                $(document).on("click", ".btnsavelinea", function () {
-                    let id = $(this).data("id");
-                    alert(id);
-                });
-
-
-                $("#tblfiles").DataTable({
-                    destroy: true,
-                    dom: "btpi",
-                    data: data.files,
-                    columns: [
-                        { data: "id" },
-                        {
-                            data: "documento",
-                            render: function (data, type, row) {
-                                return "<a class='btn-link open_file_control' id='btnopenfile' >" + data + "</a>  <a> <i data-fname=" + data + " data-id=" + row.id + " class='fa fa-trash text-danger'> </i>  </a>";
-                            }
-                        }
-
-                    ]
-
-                });
-
-
-                $(document).on("click", "#btnopenfile", function () {
-                    let rma = $("#rmanumber").val();
-                    let fname = $(this).text();
-
-                    alert(rma);
-                    alert(fname);
-
-                    $(this).prop("href", "/Client/rma/OpenFileRMA?rmano=" + rma + "&filename=" + fname);
-
-
-
-
-                });
+                $('#meditrma').modal('show');
+            },
+            error: function (xhr) {
+                alert('Unable to load RMA details.');
             }
         });
-        $("#frmheader input").attr("readonly", true);
-        $("#frmheader select").prop("disabled", true);
-        $("#frmheader textarea").prop("readonly", true);
-        $("#btnshowline").prop("disabled", true);
-        $("#btnupdaterma").prop("disabled", true);
-        $("#frmlines input").prop("disabled", true);
-        $("#frmlines table .btn").prop("disabled", true);
-        $("#btnsubmitrma").fadeOut();
-        $("#meditrma").modal("show");
+
+        //$.ajax({
+        //    url: "/Client/Rma/GetRmaInfo/?id=" + id,
+        //    type: "GET",
+        //    dataType: "json",
+        //    async: true,
+        //    cache: true,
+        //    success: function (data) {
+
+        //        var rma = data.rma;
+        //        $("#rmaid").val(rma.id);
+        //        $("#rmastatus").val(rma.status);
+        //        $("#rmanumber").val(rma.rmarequest);
+        //        $("#whereb").append("<option value=" + rma.wherebuilt + ">" + rma.wherebuilt + "</option>");
+
+        //        if (rma.wherebuilt == "Nogales") {
+        //            $("#whereb").append("<option value='Endicot'>Endicot</option>");
+        //        } else {
+        //            $("#whereb").append("<option value='Nogales'>Nogales</option>");
+        //        }
+
+        //        $('#sreason option:selected').text(rma.reason);
+        //        $("#sreason")
+        //        $("#sreason").trigger("change");
+
+        //        $("#desc").val(rma.description);
+        //        $("#client").val(rma.customer);
+        //        $("#po").val(rma.customerpo);
+        //        $("#totalrma").val(rma.totalrmavalues);
+        //        $("#shipto").val(rma.ship_To);
+        //        $("#contactrma").val(rma.contact);
+        //        $("#phone").val(rma.phone);
+        //        $("#ext").val(rma.ext);
+        //        $("#selectrmatype").val(rma.rmatypeofrequest);
+        //        $("#email").val(rma.email);
+        //        $("#emailc").val(rma.company);
+        //        $("#comments").val(rma.comment);
+
+        //        $("#daterma").val(rma.date);
+
+        //        if (rma.status == "Pending") {
+        //            $("#txtstatus").addClass("badge-warning");
+        //        }
+        //        if (rma.status == "Approved") {
+        //            $("#txtstatus").addClass("badge-success");
+        //        } else {
+        //            $("#txtstatus").addClass("badge-secondary");
+        //        }
+        //        $("#txtstatus").text(rma.status);
+        //        if (rma.sumbit == "Submitted") {
+        //            $("#txtsub").addClass("badge-success");
+        //            $("#btnsubmitrma").prop("disabled", true);
+        //        } else {
+        //            $("#txtsub").addClass("badge-secondary");
+        //            $("#btnsubmitrma").prop("disabled", false);
+        //        }
+        //        $("#txtsub").text(rma.sumbit);
+
+        //        console.log("LINEAS DE RMA");
+        //        console.log(data.lines);
+
+        //        reloadLineas();
+
+
+        //        $("#btncodes").click(function () {
+
+        //            loadcodes();
+        //            $("#mcodes").modal("show");
+        //        });
+        //        $("#imgpn").click(function () {
+        //            LoadPartNumbers();
+        //            $("#mPN").modal("show");
+        //        });
+
+
+        //        //add row 
+        //        $("#btnAddRow").click(function () {
+
+        //            let invoice = $("#invoicee").val();
+        //            let seq = $("#seqnew").val();
+        //            let pn = $("#pnnew").val();
+        //            let loc = $("#slocationsnew option:selected").val();
+        //            let qty = $("#qtynew").val();
+        //            let price = $("#txtprice").val();
+        //            let cost = $("#txtcost").val();
+        //            let car = $("#carnew").is(":checked") ? true : false;
+        //            let rcode = $("#rcodenew").val();
+        //            let id = $("#rmaid").val();
+        //            var actionselected = $("#sactions option:selected").val();
+        //            alert(actionselected);
+        //            let linea = {
+        //                Invoice: invoice,
+        //                Coustumer: pn,
+        //                Loc: loc,
+        //                Qty: qty,
+        //                Cost: price,
+        //                Seq: seq,
+        //                Action: actionselected,
+        //                Unit: cost,
+        //                Retur: rcode,
+        //                RmaId: id,
+        //                Car: car
+        //            };
+        //            var linedata = JSON.stringify(linea);
+
+        //            $.ajax({
+        //                url: "/Client/Rma/AddNewLine/?line=" + linedata,
+        //                type: "GET",
+        //                dataType: "json",
+        //                async: true,
+        //                cache: true,
+        //                success: function (data) {
+
+        //                    if (data == true) {
+        //                        $("#frmnewline").trigger("reset");
+        //                        reloadLineas();
+        //                    }
+        //                }
+        //            });
+
+        //        });
+        //        //delete row
+        //        $(document).on("click", "#btnDeleteRow", function () {
+        //            let id = $(this).data("id");
+
+
+        //            Swal.fire({
+        //                title: 'Are you sure to delete line #' + id + '?',
+        //                text: "You won't be able to revert this!",
+        //                icon: 'warning',
+        //                showCancelButton: true,
+        //                confirmButtonColor: '#3085d6',
+        //                cancelButtonColor: '#d33',
+        //                confirmButtonText: 'Yes, delete it!'
+        //            }).then((result) => {
+        //                if (result.isConfirmed) {
+        //                    $.ajax({
+        //                        url: "/Client/Rma/DeleteLinea/?id=" + id,
+        //                        type: "GET",
+        //                        dataType: "json",
+        //                        async: true,
+        //                        cache: true,
+        //                        success: function (data) {
+
+        //                            if (data == true) {
+        //                                reloadLineas();
+        //                                Swal.fire(
+        //                                    'Deleted!',
+        //                                    'Your line has been deleted.',
+        //                                    'success'
+        //                                );
+        //                            }
+        //                            else {
+        //                                Swal.fire({
+        //                                    icon: 'error',
+        //                                    title: 'Oops...',
+        //                                    text: 'Something went wrong!'
+        //                                })
+        //                            }
+        //                        }
+        //                    });
+
+        //                }
+        //            })
+
+
+        //        });
+
+        //        $(document).on("click", "#selectlinea", function () {
+        //            let id = $(this).data("id");
+        //            if ($(this).is(":checked")) {
+        //            }
+        //            else {
+        //            }
+        //            //alert("eliminar linea"+id);
+        //        });
+
+
+        //        $("#btnshowline").click(function () {
+        //            $("#rowadd").fadeToggle("fast");
+        //        });
+        //        $(document).on("click", "#bntabrirfact", function () {
+        //            //abrirfacturas();
+        //            openinvoices();
+        //            $("#minvoices").modal("show");
+        //        });
+        //        $(document).on("click", "#btnopenseq", function () {
+        //            LoadSeq($(".invoiceenew").val());
+        //            $("#mseq").modal("show");
+        //        });
+        //        $("#btncloseedit").click(function () {
+        //            $("#meditrma").modal("hide");
+        //        });
+        //        $(document).on("click", "#btneditlinea", function () {
+
+        //            let id = $(this).data("id");
+        //            arrRmaId = [];
+        //            arrRmaId.push(id);
+
+        //            $("#slocations-" + id).prop("disabled", false);
+
+
+        //            $("#qty-" + id).prop("readonly", false);
+        //            $("#qty-" + id).focus();
+
+        //            //$("#rcode-" + id).prop("readonly", false);
+
+
+        //            $("#txtprice-" + id).prop("readonly", false);
+        //            $("#txtcost-" + id).prop("readonly", false);
+        //            $(".action-" + id).prop("disabled", false);
+        //            $("#car-" + id).prop("disabled", false);
+        //        });
+
+
+        //        $(document).on("click", ".btnsavelinea", function () {
+        //            let id = $(this).data("id");
+        //            alert(id);
+        //        });
+
+
+        //        $("#tblfiles").DataTable({
+        //            destroy: true,
+        //            dom: "btpi",
+        //            data: data.files,
+        //            columns: [
+        //                { data: "id" },
+        //                {
+        //                    data: "documento",
+        //                    render: function (data, type, row) {
+        //                        return "<a class='btn-link open_file_control' id='btnopenfile' >" + data + "</a>  <a> <i data-fname=" + data + " data-id=" + row.id + " class='fa fa-trash text-danger'> </i>  </a>";
+        //                    }
+        //                }
+
+        //            ]
+
+        //        });
+
+
+        //        $(document).on("click", "#btnopenfile", function () {
+        //            let rma = $("#rmanumber").val();
+        //            let fname = $(this).text();
+
+        //            alert(rma);
+        //            alert(fname);
+
+        //            $(this).prop("href", "/Client/rma/OpenFileRMA?rmano=" + rma + "&filename=" + fname);
+        //        });
+        //    }
+        //});
+        //$("#frmheader input").attr("readonly", true);
+        //$("#frmheader select").prop("disabled", true);
+        //$("#frmheader textarea").prop("readonly", true);
+        //$("#btnshowline").prop("disabled", true);
+        //$("#btnupdaterma").prop("disabled", true);
+        //$("#frmlines input").prop("disabled", true);
+        //$("#frmlines table .btn").prop("disabled", true);
+        //$("#btnsubmitrma").fadeOut();
+        //$("#meditrma").modal("show");
     });
     $(document).on("click", "#btneditlines", function () {
 
         let id = $(this).data("id");
-
         $.ajax({
-            url: "/Client/Rma/GetRmaInfo/?id=" + id,
-            type: "GET",
-            dataType: "json",
-            async: true,
-            cache: true,
-            success: function (data) {
+            url: '/Client/Rma/RmaModal',
+            type: 'GET',
+            data: {
+                id: id,
+                mode: 'edit'
+            },
+            success: function (html) {
+                $('#meditrma .modal-content').html(html);
 
-                var rma = data.rma;
-                $("#rmaid").val(rma.id);
-                $("#rmanumber").val(rma.rmarequest);
-                $("#rmastatus").val(rma.status);
-                $("#rmasubmit").val(rma.sumbit);
-                $("#rma500").val(rma.rma500);
-                $("#whereb").append("<option value=" + rma.wherebuilt + ">" + rma.wherebuilt + "</option>");
+                $('#meditrma').modal('show');
 
-                $('#sreason option:selected').text(rma.reason);
+                const customerId = $('#meditrma #inputCustomer').val();
 
-                $("#sreason").trigger("change");
+                if (customerId) {
 
-                if (rma.wherebuilt == "Nogales") {
-                    $("#whereb").append("<option value='Endicot'>Endicot</option>");
-                } else {
-                    $("#whereb").append("<option value='Nogales'>Nogales</option>");
-                }
-                $("#desc").val(rma.description);
-                $("#client").val(rma.customer);
-                $("#po").val(rma.customerpo);
-                $("#totalrma").val(rma.totalrmavalues);
-                $("#shipto").val(rma.ship_To);
-                $("#contactrma").val(rma.contact);
-                $("#phone").val(rma.phone);
-                $("#ext").val(rma.ext);
-                $("#selectrmatype").val(rma.rmatypeofrequest);
-                $("#email").val(rma.email);
-                $("#emailc").val(rma.company);
-                $("#comments").val(rma.comment);
-
-                $("#daterma").val(rma.date);
-                if (rma.status == "Pending") {
-                    $("#txtstatus").addClass("badge-warning");
-                }
-                if (rma.status == "Approved") {
-                    $("#txtstatus").addClass("badge-success");
-                } else {
-                    $("#txtstatus").addClass("badge-secondary");
-                }
-                $("#txtstatus").text(rma.status);
-                if (rma.sumbit == "Submitted") {
-                    $("#txtsub").addClass("badge-success");
-                    $("#btnsubmitrma").prop("disabled", true);
-                } else {
-                    $("#txtsub").addClass("badge-secondary");
-                    $("#btnsubmitrma").prop("disabled", false);
-                }
-                $("#txtsub").text(rma.sumbit);
-
-                console.log("LINEAS DE RMA");
-                console.log(data.lines);
-
-                reloadLineas();
-
-
-                $("#btncodes").click(function () {
-                    loadcodes();
-                    $("#mcodes").modal("show");
-                });
-                $("#imgpn").click(function () {
-                    LoadPartNumbers();
-                    $("#mPN").modal("show");
-                });
-
-
-                //add row 
-                $("#btnAddRow").click(function () {
-
-                    let invoice = $("#invoicee").val();
-                    let seq = $("#seqnew").val();
-                    let pn = $("#pnnew").val();
-                    let loc = $("#slocationsnew option:selected").val();
-                    let qty = $("#qtynew").val();
-                    let price = $("#txtprice").val();
-                    let cost = $("#txtcost").val();
-                    let car = $("#carnew").is(":checked") ? true : false;
-                    let rcode = $("#rcodenew").val();
-                    let id = $("#rmaid").val();
-                    var actionselected = $("#sactions option:selected").val();
-
-                    let linea = {
-                        Invoice: invoice,
-                        Coustumer: pn,
-                        Loc: loc,
-                        Qty: qty,
-                        Cost: price,
-                        Seq: seq,
-                        Action: actionselected,
-                        Unit: cost,
-                        Retur: rcode,
-                        RmaId: id,
-                        Car: car
-                    };
-                    var linedata = JSON.stringify(linea);
-
-                    $.ajax({
-                        url: "/Client/Rma/AddNewLine/?line=" + linedata,
-                        type: "GET",
-                        dataType: "json",
-                        async: true,
-                        cache: true,
-                        success: function (data) {
-
-                            if (data == true) {
-                                $("#frmnewline").trigger("reset");
-                                reloadLineas();
-                            }
+                    $.get(
+                        "/client/corrective/GetAllSt/?client=" + customerId,
+                        function (data) {
+                            InitializeShipToTable(data);
                         }
-                    });
+                    );
 
-                });
-                //delete row
-                $(document).on("click", "#btnDeleteRow", function () {
-                    let id = $(this).data("id");
-
-
-                    Swal.fire({
-                        title: 'Are you sure to delete line #' + id + '?',
-                        text: "You won't be able to revert this!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Yes, delete it!'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $.ajax({
-                                url: "/Client/Rma/DeleteLinea/?id=" + id,
-                                type: "GET",
-                                dataType: "json",
-                                async: true,
-                                cache: true,
-                                success: function (data) {
-
-                                    if (data == true) {
-                                        reloadLineas();
-                                        Swal.fire(
-                                            'Deleted!',
-                                            'Your line has been deleted.',
-                                            'success'
-                                        );
-                                    }
-                                    else {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'Oops...',
-                                            text: 'Something went wrong!'
-                                        })
-                                    }
-                                }
-                            });
-
-                        }
-                    })
-
-
-                });
-
-                $(document).on("click", "#selectlinea", function () {
-                    let id = $(this).data("id");
-                    if ($(this).is(":checked")) {
-                    }
-                    else {
-                    }
-                    //alert("eliminar linea"+id);
-                });
-
-
-                $("#btnshowline").click(function () {
-                    $("#rowadd").fadeToggle("fast");
-                });
-                $(document).on("click", "#bntabrirfact", function () {
-                    //abrirfacturas();
-                    openinvoices();
-                    $("#minvoices").modal("show");
-                });
-                $(document).on("click", "#btnopenseq", function () {
-                    LoadSeq($(".invoiceenew").val());
-                    $("#mseq").modal("show");
-                });
-                $("#btncloseedit").click(function () {
-                    $("#meditrma").modal("hide");
-                });
-                //aquii
-                $(document).on("click", "#btneditlinea", function () {
-
-                    let id = $(this).data("id");
-                    arrRmaId = [];
-                    arrRmaId.push(id);
-                    $("#slocations-" + id).prop("disabled", false);
-
-                    $("#qty-" + id).prop("readonly", false);
-                    $("#qty-" + id).focus();
-
-                    //$("#rcode-" + id).prop("readonly", false);
-
-
-                    $("#txtprice-" + id).prop("readonly", false);
-                    $("#txtcost-" + id).prop("readonly", false);
-                    $(".action-" + id).prop("disabled", false);
-
-                    $("#car-" + id).prop("disabled", false);
-                });
-
-
-                $(document).on("click", ".btnsavelinea", function () {
-                    let id = $(this).data("id");
-                    let loc = $("#slocations-" + id).children("option:selected").val();
-                    let qty = $("#qty-" + id).val();
-                    let price = $("#txtprice-" + id).val();
-                    let cost = $("#txtcost-" + id).val();
-                    let code = $("#rcode-" + id).val();
-                    let car_val = $("#car-" + id).val();
-                    let actionn = $("#action option:selected").val();
-
-
-                    $.ajax({
-                        url: "/client/Rma/UpdateLinea?id=" + id + "&actionn=" + actionn + "&loc=" + loc + "&qty=" + qty + "&price=" + price + "&unitcost=" + cost + "&rcode=" + code + "&car=" + car_val,
-                        type: "GET",
-                        dataType: "json",
-                        cache: true,
-                        async: true,
-                        success: function success(data) {
-                            if (data == true) {
-                                reloadLineas();
-                            }
-                        }
-
-                    });
-
-                });
-
-
-                reloadFilesEdit();
-
-                $("#btnnewfile").click(function () {
-                    let file = $("#txtfile")[0].files[0];
-                    let rma_no = $("#rmanumber").val();
-
-                    const formData = new FormData();
-                    formData.append("file", file);
-                    formData.append("rma", rma_no)
-                    $.ajax({
-                        url: '/Client/rma/SaveFileRMA/',
-                        type: 'POST',
-                        dataType: "json",
-                        contentType: false,
-                        processData: false,
-                        async: true,
-                        data: formData,
-                        success: function (data) {
-                            reloadFilesEdit();
-                            $("#txtfile").val("");
-
-                        }
-                    })
-
-
-                });
-
-
-                //open edit
-                $(document).on("click", "#btnopenfile_edit", function () {
-
-
-                    let rma = $("#rmanumber").val();
-                    let fname = $(this).text();
-
-
-                    $(this).prop("href", "/Client/rma/OpenFileRMA?rmano=" + rma + "&filename=" + fname);
-
-                    //$.ajax({
-                    //    url: "/client/rma/OpenFileRMA/",
-                    //    type: "GET",
-                    //    data: { rmano: rma,filename:fname },
-                    //    dataType: "json",
-                    //    cache: true,
-                    //    async: true,
-                    //    success: function success(data) {
-                    //        return data;
-                    //    }  
-                    //    });
-
-                });
-
+                    LoadInvoiceTable(customerId.trim());
+                }
+            },
+            error: function (xhr) {
+                alert('Unable to load RMA details.');
             }
         });
+        //$.ajax({
+        //    url: "/Client/Rma/GetRmaInfo/?id=" + id,
+        //    type: "GET",
+        //    dataType: "json",
+        //    async: true,
+        //    cache: true,
+        //    success: function (data) {
 
-        $("#meditrma").modal("show");
+        //        var rma = data.rma;
+        //        $("#rmaid").val(rma.id);
+        //        $("#rmanumber").val(rma.rmarequest);
+        //        $("#rmastatus").val(rma.status);
+        //        $("#rmasubmit").val(rma.sumbit);
+        //        $("#rma500").val(rma.rma500);
+        //        $("#whereb").append("<option value=" + rma.wherebuilt + ">" + rma.wherebuilt + "</option>");
+
+        //        $('#sreason option:selected').text(rma.reason);
+
+        //        $("#sreason").trigger("change");
+
+        //        if (rma.wherebuilt == "Nogales") {
+        //            $("#whereb").append("<option value='Endicot'>Endicot</option>");
+        //        } else {
+        //            $("#whereb").append("<option value='Nogales'>Nogales</option>");
+        //        }
+        //        $("#desc").val(rma.description);
+        //        $("#client").val(rma.customer);
+        //        $("#po").val(rma.customerpo);
+        //        $("#totalrma").val(rma.totalrmavalues);
+        //        $("#shipto").val(rma.ship_To);
+        //        $("#contactrma").val(rma.contact);
+        //        $("#phone").val(rma.phone);
+        //        $("#ext").val(rma.ext);
+        //        $("#selectrmatype").val(rma.rmatypeofrequest);
+        //        $("#email").val(rma.email);
+        //        $("#emailc").val(rma.company);
+        //        $("#comments").val(rma.comment);
+
+        //        $("#daterma").val(rma.date);
+        //        if (rma.status == "Pending") {
+        //            $("#txtstatus").addClass("badge-warning");
+        //        }
+        //        if (rma.status == "Approved") {
+        //            $("#txtstatus").addClass("badge-success");
+        //        } else {
+        //            $("#txtstatus").addClass("badge-secondary");
+        //        }
+        //        $("#txtstatus").text(rma.status);
+        //        if (rma.sumbit == "Submitted") {
+        //            $("#txtsub").addClass("badge-success");
+        //            $("#btnsubmitrma").prop("disabled", true);
+        //        } else {
+        //            $("#txtsub").addClass("badge-secondary");
+        //            $("#btnsubmitrma").prop("disabled", false);
+        //        }
+        //        $("#txtsub").text(rma.sumbit);
+
+        //        console.log("LINEAS DE RMA");
+        //        console.log(data.lines);
+
+        //        reloadLineas();
+
+
+        //        $("#btncodes").click(function () {
+        //            loadcodes();
+        //            $("#mcodes").modal("show");
+        //        });
+        //        $("#imgpn").click(function () {
+        //            LoadPartNumbers();
+        //            $("#mPN").modal("show");
+        //        });
+
+
+        //        //add row 
+        //        $("#btnAddRow").click(function () {
+
+        //            let invoice = $("#invoicee").val();
+        //            let seq = $("#seqnew").val();
+        //            let pn = $("#pnnew").val();
+        //            let loc = $("#slocationsnew option:selected").val();
+        //            let qty = $("#qtynew").val();
+        //            let price = $("#txtprice").val();
+        //            let cost = $("#txtcost").val();
+        //            let car = $("#carnew").is(":checked") ? true : false;
+        //            let rcode = $("#rcodenew").val();
+        //            let id = $("#rmaid").val();
+        //            var actionselected = $("#sactions option:selected").val();
+
+        //            let linea = {
+        //                Invoice: invoice,
+        //                Coustumer: pn,
+        //                Loc: loc,
+        //                Qty: qty,
+        //                Cost: price,
+        //                Seq: seq,
+        //                Action: actionselected,
+        //                Unit: cost,
+        //                Retur: rcode,
+        //                RmaId: id,
+        //                Car: car
+        //            };
+        //            var linedata = JSON.stringify(linea);
+
+        //            $.ajax({
+        //                url: "/Client/Rma/AddNewLine/?line=" + linedata,
+        //                type: "GET",
+        //                dataType: "json",
+        //                async: true,
+        //                cache: true,
+        //                success: function (data) {
+
+        //                    if (data == true) {
+        //                        $("#frmnewline").trigger("reset");
+        //                        reloadLineas();
+        //                    }
+        //                }
+        //            });
+
+        //        });
+        //        //delete row
+        //        $(document).on("click", "#btnDeleteRow", function () {
+        //            let id = $(this).data("id");
+
+
+        //            Swal.fire({
+        //                title: 'Are you sure to delete line #' + id + '?',
+        //                text: "You won't be able to revert this!",
+        //                icon: 'warning',
+        //                showCancelButton: true,
+        //                confirmButtonColor: '#3085d6',
+        //                cancelButtonColor: '#d33',
+        //                confirmButtonText: 'Yes, delete it!'
+        //            }).then((result) => {
+        //                if (result.isConfirmed) {
+        //                    $.ajax({
+        //                        url: "/Client/Rma/DeleteLinea/?id=" + id,
+        //                        type: "GET",
+        //                        dataType: "json",
+        //                        async: true,
+        //                        cache: true,
+        //                        success: function (data) {
+
+        //                            if (data == true) {
+        //                                reloadLineas();
+        //                                Swal.fire(
+        //                                    'Deleted!',
+        //                                    'Your line has been deleted.',
+        //                                    'success'
+        //                                );
+        //                            }
+        //                            else {
+        //                                Swal.fire({
+        //                                    icon: 'error',
+        //                                    title: 'Oops...',
+        //                                    text: 'Something went wrong!'
+        //                                })
+        //                            }
+        //                        }
+        //                    });
+
+        //                }
+        //            })
+
+
+        //        });
+
+        //        $(document).on("click", "#selectlinea", function () {
+        //            let id = $(this).data("id");
+        //            if ($(this).is(":checked")) {
+        //            }
+        //            else {
+        //            }
+        //            //alert("eliminar linea"+id);
+        //        });
+
+
+        //        $("#btnshowline").click(function () {
+        //            $("#rowadd").fadeToggle("fast");
+        //        });
+        //        $(document).on("click", "#bntabrirfact", function () {
+        //            //abrirfacturas();
+        //            openinvoices();
+        //            $("#minvoices").modal("show");
+        //        });
+        //        $(document).on("click", "#btnopenseq", function () {
+        //            LoadSeq($(".invoiceenew").val());
+        //            $("#mseq").modal("show");
+        //        });
+        //        $("#btncloseedit").click(function () {
+        //            $("#meditrma").modal("hide");
+        //        });
+        //        //aquii
+        //        $(document).on("click", "#btneditlinea", function () {
+
+        //            let id = $(this).data("id");
+        //            arrRmaId = [];
+        //            arrRmaId.push(id);
+        //            $("#slocations-" + id).prop("disabled", false);
+
+        //            $("#qty-" + id).prop("readonly", false);
+        //            $("#qty-" + id).focus();
+
+        //            //$("#rcode-" + id).prop("readonly", false);
+
+
+        //            $("#txtprice-" + id).prop("readonly", false);
+        //            $("#txtcost-" + id).prop("readonly", false);
+        //            $(".action-" + id).prop("disabled", false);
+
+        //            $("#car-" + id).prop("disabled", false);
+        //        });
+
+
+        //        $(document).on("click", ".btnsavelinea", function () {
+        //            let id = $(this).data("id");
+        //            let loc = $("#slocations-" + id).children("option:selected").val();
+        //            let qty = $("#qty-" + id).val();
+        //            let price = $("#txtprice-" + id).val();
+        //            let cost = $("#txtcost-" + id).val();
+        //            let code = $("#rcode-" + id).val();
+        //            let car_val = $("#car-" + id).val();
+        //            let actionn = $("#action option:selected").val();
+
+
+        //            $.ajax({
+        //                url: "/client/Rma/UpdateLinea?id=" + id + "&actionn=" + actionn + "&loc=" + loc + "&qty=" + qty + "&price=" + price + "&unitcost=" + cost + "&rcode=" + code + "&car=" + car_val,
+        //                type: "GET",
+        //                dataType: "json",
+        //                cache: true,
+        //                async: true,
+        //                success: function success(data) {
+        //                    if (data == true) {
+        //                        reloadLineas();
+        //                    }
+        //                }
+
+        //            });
+
+        //        });
+
+
+        //        reloadFilesEdit();
+
+        //        $("#btnnewfile").click(function () {
+        //            let file = $("#txtfile")[0].files[0];
+        //            let rma_no = $("#rmanumber").val();
+
+        //            const formData = new FormData();
+        //            formData.append("file", file);
+        //            formData.append("rma", rma_no)
+        //            $.ajax({
+        //                url: '/Client/rma/SaveFileRMA/',
+        //                type: 'POST',
+        //                dataType: "json",
+        //                contentType: false,
+        //                processData: false,
+        //                async: true,
+        //                data: formData,
+        //                success: function (data) {
+        //                    reloadFilesEdit();
+        //                    $("#txtfile").val("");
+
+        //                }
+        //            })
+
+
+        //        });
+
+
+        //        //open edit
+        //        $(document).on("click", "#btnopenfile_edit", function () {
+
+
+        //            let rma = $("#rmanumber").val();
+        //            let fname = $(this).text();
+
+
+        //            $(this).prop("href", "/Client/rma/OpenFileRMA?rmano=" + rma + "&filename=" + fname);
+
+        //            //$.ajax({
+        //            //    url: "/client/rma/OpenFileRMA/",
+        //            //    type: "GET",
+        //            //    data: { rmano: rma,filename:fname },
+        //            //    dataType: "json",
+        //            //    cache: true,
+        //            //    async: true,
+        //            //    success: function success(data) {
+        //            //        return data;
+        //            //    }  
+        //            //    });
+
+        //        });
+
+        //    }
+        //});
+
+        //$("#meditrma").modal("show");
     });
 }
+
+
+
 
 function reloadFilesEdit() {
 
@@ -3107,13 +3155,9 @@ function modal() {
         });
     }
 }
-
-function cargarDatatableCustumer() {
-
-    dataTable = $("#tblA").DataTable({
+function LoadCustomerTable() {
+    dataTable = $("#CustomerTable").DataTable({
         "autoWidth": false,
-
-
         "ajax": {
             "url": "/client/corrective/GetAllA",
             "type": "GET",
@@ -3122,24 +3166,103 @@ function cargarDatatableCustumer() {
         "columns": [{
             "data": "cus_no",
             "render": function render(data, type, row) {
-                //onclick=Mover5(" + "'" + data.trim() + "'" + ")
-                return "<a data-dismiss='modal' data-cus=" + row.cus_no + " >" + data.trim() + "</a>";
+                return `<a data-dismiss='modal' class='link-opacity-100-hover' onClick="SetCustomerModalResult(${row.cus_no})">${row.cus_no}</a>`;
             }
         },
         {
-            "data": "cus_name"
-        }],
+            data: "cus_name"
+        },
+        {
+            data: "curr_cd"
+        },
+        {
+            data: "rateExchange"
+        }
+        ],
 
         "language": {
             "emptyTable": "No records found"
         }
     });
-
-
-
-
-
 }
+function LoadInvoiceTable(customerId) {
+    currentCustomerId = customerId; 
+    if (!invoiceTable) {
+        invoiceTable = $("#InvoiceTable").DataTable({
+            "autoWidth": false,
+            "ajax": {
+                "url": "/client/corrective/GetAllI2/?filtro=" + customerId,
+                "type": "GET",
+                "dataType": "json"
+            },
+            "columns": [{
+                "data": "invNo",
+                "order": [[3, 'desc']],
+                "render": function render(data, type, row) {
+                    return `<a data-dismiss='modal' class='link-opacity-100-hover'>${row.invNo}</a>`;
+                }
+            },
+            {
+                data: "ordNo"
+            },
+            {
+                data: "ordType"
+            },
+            {
+                data: "ordDt",
+                render: function (data) {
+                    return data ? new Date(data).toLocaleDateString('en-US') : '';
+                }
+            },
+            {
+                data: "cusAltAdrCd"
+            },
+            {
+                data: "currTrxRt"
+            },
+            {
+                data: "currCd"
+            }],
+            "language": {
+                "emptyTable": "No records found"
+            }
+        });
+    } else {
+        invoiceTable.ajax.reload();
+    }
+}
+//function cargarDatatableCustumer() {
+
+//    dataTable = $("#tblA").DataTable({
+//        "autoWidth": false,
+
+
+//        "ajax": {
+//            "url": "/client/corrective/GetAllA",
+//            "type": "GET",
+//            "dataType": "json"
+//        },
+//        "columns": [{
+//            "data": "cus_no",
+//            "render": function render(data, type, row) {
+//                //onclick=Mover5(" + "'" + data.trim() + "'" + ")
+//                return "<a data-dismiss='modal' data-cus=" + row.cus_no + " >" + data.trim() + "</a>";
+//            }
+//        },
+//        {
+//            "data": "cus_name"
+//        }],
+
+//        "language": {
+//            "emptyTable": "No records found"
+//        }
+//    });
+
+
+
+
+
+//}
 function loadcodes() {
 
     $.ajax({

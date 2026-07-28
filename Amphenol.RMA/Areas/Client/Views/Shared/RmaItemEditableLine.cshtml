@@ -1,0 +1,56 @@
+﻿@model Amphenol.RMA.Models.csexsw_coustumer
+@{
+    var index = ViewData["Index"]?.ToString() ?? "__INDEX__";
+}
+<tr>
+    <td>
+        <span class="btn btn-sm btn-outline-danger btn-remove-rma-line" title="Remove Line"><i class="fa fa-trash"></i></span>
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control" type="text" readonly name="Data.ItemLines[@index].Invoice" value="@Model.Invoice" />
+            <span class="btn btn-sm btn-outline-secondary btn-search-invoice"><i class="fa fa-search"></i></span>
+        </div>
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control" type="text" readonly name="Data.ItemLines[@index].Seq" value="@Model.Seq" />
+            <span class="btn btn-sm btn-outline-secondary"><i class="fa fa-search"></i></span>
+        </div>
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control" type="text" readonly name="Data.ItemLines[@index].Coustumer" value="@Model.Coustumer" />
+            <span class="btn btn-sm btn-outline-secondary"><i class="fa fa-search"></i></span>
+        </div>
+    </td>
+    <td>
+        <input class="form-control disabled" type="text" name="Data.ItemLines[@index].Action" value="@Model.Action" />
+    </td>
+    <td>
+        <select class="form-control" name="Data.ItemLines[@index].Loc">
+            <option value="ARM" selected="@(Model.Loc == "ARM")">Arizona RMA</option>
+            <option value="MRM" selected="@(Model.Loc == "MRM")">Mesa RMA</option>
+            <option value="NRM" selected="@(Model.Loc == "NRM")">Nogales RMA</option>
+            <option value="ERM" selected="@(Model.Loc == "ERM")">Endicott RMA</option>
+        </select>
+    </td>
+    <td>
+        <input class="form-control" type="text" name="Data.ItemLines[@index].Qty" value="@Model.Qty" />
+    </td>
+    <td>
+        <input class="form-control" type="text" name="Data.ItemLines[@index].Unit" value="@Model.Unit" />
+    </td>
+    <td>
+        <input class="form-control" type="text" name="Data.ItemLines[@index].Cost" value="@Model.Cost" />
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control" type="text" readonly name="Data.ItemLines[@index].Retur" value="@Model.Retur" />
+            <span class="btn btn-sm btn-outline-secondary"><i class="fa fa-search"></i></span>
+        </div>
+    </td>
+    <td>
+        <input class='w-100 text-center mt-2 mr-0 text-center' type='checkbox' name="Data.ItemLines[@index].Car" value="@Model.Car" />
+    </td>
+</tr>

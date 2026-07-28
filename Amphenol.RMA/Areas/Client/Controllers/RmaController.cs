@@ -5,6 +5,8 @@ using Amphenol.RMA.Models.ModelsM10;
 using Amphenol.RMA.Models.ViewModels;
 using Amphenol.RMA.Services.Email;
 using Amphenol.RMA.Utilidades;
+using Amphenol.RMA.ViewModels;
+using AspNetCoreGeneratedDocument;
 using Hangfire;
 using Humanizer;
 using Microsoft.AspNetCore.Authorization;
@@ -2995,6 +2997,57 @@ namespace Amphenol.RMA.Controllers
             return Json(result > 0 ? true : false);
 
         }
+
+        [HttpGet]
+        public async Task<IActionResult> RmaModalAsync(int id, string mode)
+        {
+            var partialView = "RmaDetailsModalView";
+            if (id < 1 || string.IsNullOrWhiteSpace(mode))
+            {
+                return PartialView(partialView, new RmaModalViewModel());
+            }
+
+            var rmaDetails = _context2.CSEXSW_Rma
+                .AsNoTracking()
+                .FirstOrDefault(x => x.Id == id);
+
+            if (rmaDetails == null)
+            {
+                return PartialView(partialView, new RmaModalViewModel());
+            }
+
+
+            var viewModel = new RmaModalViewModel
+            {
+                Mode = mode,
+                Data = new Rma
+                {
+                    Details = rmaDetails,
+                    ItemLines = await _context2.csexsw_coustumer
+                        .AsNoTracking()
+                        .Where(x => x.RmaId == id)
+                        .OrderByDescending(x => x.Id)
+                        .ToListAsync(),
+
+                    Attachments = await _context2.CSEXSW_Attachmentrma
+                        .AsNoTracking()
+                        .Where(x => x.RmaId == id)
+                        .OrderByDescending(x => x.Id)
+                        .ToListAsync()
+                }
+            };
+
+
+            return PartialView(partialView, viewModel);
+        }
+        [HttpGet]
+        public IActionResult AddLineRow()
+        {
+            ViewData["Index"] = "__INDEX__";
+
+            return PartialView("RmaItemEditableLine", new csexsw_coustumer());
+        }
+
 
         #region LLAMADAS A LA API
         [HttpGet]

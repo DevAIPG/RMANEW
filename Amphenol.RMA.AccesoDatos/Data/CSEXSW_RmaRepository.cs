@@ -94,86 +94,155 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
         public List<CSEXSW_Rma_ViewModel> GetRMAListData()
         {
+
             try
             {
-                List<CSEXSW_Rma_ViewModel> result = new List<CSEXSW_Rma_ViewModel>();
+                List<CSEXSW_Rma_ViewModel> result = new();
 
-                string connectionString = _configuration.GetConnectionString("ConnectionM10").ToString();
+                string connectionString = _configuration.GetConnectionString("ConnectionM10");
+
                 using (SqlConnection cn = new SqlConnection(connectionString))
                 {
                     cn.Open();
-                    string query = @"Select 
-	                            Sum(IsNull(csexsw_coustumer.Qty,0)) As qty,
-	                            Count(Distinct csexsw_coustumer.Coustumer) As parts,
-	                            CSEXSW_Rma.Id,
-	                            CSEXSW_Rma.Rmarequest,
-	                            CSEXSW_Rma.Date,
-	                            CSEXSW_Rma.Customerpartno,
-	                            CSEXSW_Rma.Customerpo,
-	                            CSEXSW_Rma.Customercomplait,
-	                            CSEXSW_Rma.Description,
-	                            CSEXSW_Rma.Rmatypeofrequest,
-	                            CSEXSW_Rma.Totalrmavalues,
-	                            CSEXSW_Rma.Wherebuilt,
-	                            CSEXSW_Rma.Preparado,
-	                            CSEXSW_Rma.Sumbit,
-	                            CSEXSW_Rma.Status,
-	                            CSEXSW_Rma.turno,
-	                            CSEXSW_Rma.Approver,
-	                            CSEXSW_Rma.res_id,
-	                            CONVERT(VARCHAR(10), CAST(CSEXSW_Rma.date_approved AS DATETIME), 101) As formated_date_approved
-                                From CSEXSW_Rma With(NoLock)
-                                Left Join csexsw_coustumer With(NoLock) On CSEXSW_Rma.Id = csexsw_coustumer.RmaId
-                                Group By CSEXSW_Rma.Id,CSEXSW_Rma.Rmarequest,CSEXSW_Rma.Date,CSEXSW_Rma.Customerpartno,CSEXSW_Rma.Customerpo,CSEXSW_Rma.Customercomplait,CSEXSW_Rma.Description,CSEXSW_Rma.Rmatypeofrequest,
-                                CSEXSW_Rma.Totalrmavalues,CSEXSW_Rma.Wherebuilt,CSEXSW_Rma.Preparado,CSEXSW_Rma.Sumbit,CSEXSW_Rma.Status,CSEXSW_Rma.turno,CSEXSW_Rma.Approver,CSEXSW_Rma.res_id,CSEXSW_Rma.date_approved
-                                Order by CSEXSW_Rma.Date";
-                    SqlCommand cmd = new SqlCommand(query, cn);
 
-                    SqlDataReader rdr = cmd.ExecuteReader();
+                    string query = @"
+                    Select
+                        Sum(IsNull(csexsw_coustumer.Qty,0)) As qty,
+                        Count(Distinct csexsw_coustumer.Coustumer) As parts,
+                        CSEXSW_Rma.Id,
+                        CSEXSW_Rma.Rmarequest,
+                        CSEXSW_Rma.Date,
+                        CSEXSW_Rma.Customerpartno,
+                        CSEXSW_Rma.Customerpo,
+                        CSEXSW_Rma.Customercomplait,
+                        CSEXSW_Rma.Description,
+                        CSEXSW_Rma.Rmatypeofrequest,
+                        CSEXSW_Rma.Totalrmavalues,
+                        CSEXSW_Rma.Wherebuilt,
+                        CSEXSW_Rma.Preparado,
+                        CSEXSW_Rma.Sumbit,
+                        CSEXSW_Rma.Status,
+                        CSEXSW_Rma.turno,
+                        CSEXSW_Rma.Approver,
+                        CSEXSW_Rma.res_id,
+                        CONVERT(VARCHAR(10), CAST(CSEXSW_Rma.date_approved AS DATETIME), 101) As formated_date_approved
+                    From CSEXSW_Rma With(NoLock)
+                    Left Join csexsw_coustumer With(NoLock)
+                        On CSEXSW_Rma.Id = csexsw_coustumer.RmaId
+                    Group By
+                        CSEXSW_Rma.Id,
+                        CSEXSW_Rma.Rmarequest,
+                        CSEXSW_Rma.Date,
+                        CSEXSW_Rma.Customerpartno,
+                        CSEXSW_Rma.Customerpo,
+                        CSEXSW_Rma.Customercomplait,
+                        CSEXSW_Rma.Description,
+                        CSEXSW_Rma.Rmatypeofrequest,
+                        CSEXSW_Rma.Totalrmavalues,
+                        CSEXSW_Rma.Wherebuilt,
+                        CSEXSW_Rma.Preparado,
+                        CSEXSW_Rma.Sumbit,
+                        CSEXSW_Rma.Status,
+                        CSEXSW_Rma.turno,
+                        CSEXSW_Rma.Approver,
+                        CSEXSW_Rma.res_id,
+                        CSEXSW_Rma.date_approved
+                    Order By CSEXSW_Rma.Date";
+
+                    using SqlCommand cmd = new(query, cn);
+                    using SqlDataReader rdr = cmd.ExecuteReader();
 
                     while (rdr.Read())
                     {
-                        var rmaNumber = rdr["turno"].ToString();
-
-                        CSEXSW_Rma_ViewModel model = new CSEXSW_Rma_ViewModel
+                        result.Add(new CSEXSW_Rma_ViewModel
                         {
                             Id = Convert.ToInt32(rdr["Id"]),
                             qty = Convert.ToInt32(rdr["qty"]),
                             parts = Convert.ToInt32(rdr["parts"]),
-                            Rmarequest = rdr["Rmarequest"].ToString(),
-                            Date = rdr["Date"].ToString(),
-                            Customerpartno = rdr["Customerpartno"].ToString(),
-                            Customerpo = rdr["Customerpo"].ToString(),
-                            Customercomplait = rdr["Customercomplait"].ToString(),
-                            Description = rdr["Description"].ToString(),
-                            Rmatypeofrequest = rdr["Rmatypeofrequest"].ToString(),
-                            Totalrmavalues = Convert.ToDouble(rdr["Totalrmavalues"]),
-                            Wherebuilt = rdr["Wherebuilt"].ToString(),
-                            Preparado = rdr["Preparado"].ToString(),
-                            Sumbit = rdr["Sumbit"].ToString(),
-                            Status = rdr["Status"].ToString(),
-                            turno = rmaNumber,
-                            Approver = rdr["Approver"].ToString(),
-                            res_id = Convert.ToInt32(rdr["res_id"]),
-                            formated_date_approved = rdr["formated_date_approved"].ToString()
-                        };
+                            Rmarequest = rdr["Rmarequest"]?.ToString(),
+                            Date = rdr["Date"]?.ToString(),
+                            Customerpartno = rdr["Customerpartno"]?.ToString(),
+                            Customerpo = rdr["Customerpo"]?.ToString(),
+                            Customercomplait = rdr["Customercomplait"]?.ToString(),
+                            Description = rdr["Description"]?.ToString(),
+                            Rmatypeofrequest = rdr["Rmatypeofrequest"]?.ToString(),
+                            Totalrmavalues = rdr["Totalrmavalues"] == DBNull.Value
+                                ? 0
+                                : Convert.ToDouble(rdr["Totalrmavalues"]),
+                            Wherebuilt = rdr["Wherebuilt"]?.ToString(),
+                            Preparado = rdr["Preparado"]?.ToString(),
+                            Sumbit = rdr["Sumbit"]?.ToString(),
+                            Status = rdr["Status"]?.ToString(),
+                            turno = rdr["turno"]?.ToString()?.Trim(),
+                            Approver = rdr["Approver"]?.ToString(),
+                            res_id = rdr["res_id"] == DBNull.Value
+                                ? 0
+                                : Convert.ToInt32(rdr["res_id"]),
+                            formated_date_approved = rdr["formated_date_approved"]?.ToString()
+                        });
+                    }
+                }
 
-                        var receivedlines = _db2.OERDTFIL_SQL
-                            .AsNoTracking()
-                            .Where(o => o.rma_no.Trim() == rmaNumber.Trim());
+                if (!result.Any())
+                    return result;
 
+                var rmaNumbers = result
+                    .Where(x => !string.IsNullOrWhiteSpace(x.turno))
+                    .Select(x => x.turno)
+                    .Distinct()
+                    .ToList();
+
+                //-----------------------------------------
+                // Load all received lines ONE TIME
+                //-----------------------------------------
+                var receivedLinesLookup = _db2.OERDTFIL_SQL
+                    .AsNoTracking()
+                    .Where(x => rmaNumbers.Contains(x.rma_no.Trim()))
+                    .ToList()
+                    .GroupBy(x => x.rma_no.Trim())
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                //-----------------------------------------
+                // Load all orders ONE TIME
+                //-----------------------------------------
+                var orderLookup = _db2.OEORDHDR_SQL
+                    .AsNoTracking()
+                    .Where(x => rmaNumbers.Contains(x.RmaNo.Trim()))
+                    .Select(x => new
+                    {
+                        RmaNo = x.RmaNo.Trim(),
+                        x.OrdNo
+                    })
+                    .ToList()
+                    .GroupBy(x => x.RmaNo)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.First().OrdNo
+                    );
+
+                //-----------------------------------------
+                // Populate model properties
+                //-----------------------------------------
+                foreach (var model in result)
+                {
+                    if (string.IsNullOrWhiteSpace(model.turno))
+                        continue;
+
+                    if (receivedLinesLookup.TryGetValue(model.turno, out var lines))
+                    {
                         model.CanGenerateOrder =
-                            receivedlines.Any() &&
-                            receivedlines.All(o => o.RmaQtyRtnActual > 0) &&
+                            lines.Count > 0 &&
+                            lines.All(x => x.RmaQtyRtnActual > 0) &&
                             model.Status == "Approved";
+                    }
+                    else
+                    {
+                        model.CanGenerateOrder = false;
+                    }
 
-                        model.OrderNumber = _db2.OEORDHDR_SQL
-                        .AsNoTracking()
-                        .Where(o => o.RmaNo.Trim() == rmaNumber.Trim())
-                        .Select(o => o.OrdNo)
-                        .FirstOrDefault();
-
-                        result.Add(model);
+                    if (orderLookup.TryGetValue(model.turno, out var orderNo))
+                    {
+                        model.OrderNumber = orderNo;
                     }
                 }
 
@@ -181,7 +250,10 @@ namespace Amphenol.RMA.AccesoDatos.Data
             }
             catch (Exception ex)
             {
-                return null;
+                // log exception
+                //_logger.LogError(ex, "Error loading RMA list");
+
+                return [];
             }
         }
 
@@ -836,18 +908,18 @@ namespace Amphenol.RMA.AccesoDatos.Data
             if (rma.Totalrmavalues >= 20000)
             {
                 //2 aprobadores
-                if (rma.res_id_approver==gm)
+                if (rma.res_id_approver == gm)
                 {
                     var emp = _db.humres.Where(s => s.res_id == qd).FirstOrDefault().fullname;
-                    rma.res_id_approver =qd;
+                    rma.res_id_approver = qd;
                     rma.Approver = emp.Trim();
 
                 }
 
-            } 
+            }
 
             rma.Status = "Remark";
-            rma.Comment ="Remark: "+ commentrema;
+            rma.Comment = "Remark: " + commentrema;
 
             _db.SaveChanges();
 
@@ -1130,7 +1202,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
 
             var up = _db2.OERHDFIL_SQL.Where(s => s.Id == objDesdeDbt.Id).FirstOrDefault();
-       
+
             up.UserDefFld1 = "FOB SOURCE";
             up.UserDefFld3 = reason;
             _db2.Entry(up).State = EntityState.Modified;
@@ -1386,8 +1458,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     QM = empQM.fullname;
                 }
             }
-            if (objDesdeDbs.Wherebuilt== "Mesa")
-            {  
+            if (objDesdeDbs.Wherebuilt == "Mesa")
+            {
                 //QM Quality Manager NOG)
                 var QMM10 = _db.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
                 if (QMM10 != null)
@@ -1397,7 +1469,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 }
 
             }
-            if(objDesdeDbs.Wherebuilt == "Endicott")
+            if (objDesdeDbs.Wherebuilt == "Endicott")
             {
                 //Endicot
                 //QM Quality Manager END)
@@ -1442,7 +1514,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
 
             objDesdeDbs.Comment = objDesdeDbs.Comment + "<br />" + var + ":" + commentt;
-            string retorno=string.Empty;
+            string retorno = string.Empty;
 
             objDesdeDbs.date_approved = DateTime.Now;
 
@@ -1491,7 +1563,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 //           where c.ID == 1
                 //           select c.ctl_next_order_no).First();
 
-                if(oERMACTL_SQL != null)
+                if (oERMACTL_SQL != null)
                 {
                     nextrma = oERMACTL_SQL.ctl_next_order_no;
                 }
@@ -1549,7 +1621,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
                 objDesdeDbt.curr_trx_rt = 1;
                 objDesdeDbt.UserDefFld1 = "FOB SOURCE";
-               
+
 
 
                 var oehdrhst_sql = new OEHDRHST_SQL();
@@ -1582,9 +1654,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
                 if (oehdrhst_sqlcuantos == 0)
                 {
-                    objDesdeDbt.UserDefFld1 = "FOB SOURCE"; 
+                    objDesdeDbt.UserDefFld1 = "FOB SOURCE";
 
-                    arcusfil_sql = _db2.arcusfil_sql.Where(a => a.cus_no.Trim()  == objDesdeDb.Customer.Trim()).FirstOrDefault();
+                    arcusfil_sql = _db2.arcusfil_sql.Where(a => a.cus_no.Trim() == objDesdeDb.Customer.Trim()).FirstOrDefault();
 
                     moneda = arcusfil_sql.curr_cd;
                     objDesdeDbt.curr_cd = arcusfil_sql.curr_cd;
@@ -1643,7 +1715,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 else
                 {
 
-                    objDesdeDbt.UserDefFld1 ="FOB SOURCE";
+                    objDesdeDbt.UserDefFld1 = "FOB SOURCE";
                     objDesdeDbt.ar_terms_cd = oehdrhst_sql.ArTermsCd;
                     objDesdeDbt.tax_cd = oehdrhst_sql.TaxCd;
                     moneda = oehdrhst_sql.CurrCd;
@@ -1682,8 +1754,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
                     objDesdeDbt.ship_to_addr_3 = oehdrhst_sql.ShipToAddr3;
                     objDesdeDbt.ship_to_addr_4 = oehdrhst_sql.ShipToAddr4;
- 
-                 
+
+
 
 
                     objDesdeDbt.bill_to_addr_4 = oehdrhst_sql.BillToAddr4;
@@ -2247,13 +2319,13 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 objDesdeDbt.fax_no = objDesdeDb.Fax;
                 objDesdeDbt.phone_ext = objDesdeDb.Ext;
                 objDesdeDbt.contact_email = objDesdeDb.Email;
-                objDesdeDbt.user_def_fld_5 = "Normal                 "; 
+                objDesdeDbt.user_def_fld_5 = "Normal                 ";
                 objDesdeDbt.deter_rate_by = "O";
                 objDesdeDbt.form_no = 1;
                 objDesdeDbt.rma_no = numString;
-                objDesdeDbt.cus_no = cus.Trim().PadLeft(20);   
+                objDesdeDbt.cus_no = cus.Trim().PadLeft(20);
                 objDesdeDbt.slspsn_pct_comm = 100;
-           
+
                 objDesdeDbt.cus_ship_to = objDesdeDb.Ship_To;
                 objDesdeDbt.oe_po_no = po;
                 objDesdeDbt.rma_cmt = comment;
@@ -2480,7 +2552,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                             objDesdeDby.CommCalcType = objDesdeDbv.CalcCommTp;
                             objDesdeDby.tax_fg = objDesdeDbv.TaxFg;
                             objDesdeDby.OeSerLotCd = objDesdeDbv.SerLotFg;
-                            objDesdeDby.OeProdCat = objDesdeDbv.prod_cat; 
+                            objDesdeDby.OeProdCat = objDesdeDbv.prod_cat;
 
                             objDesdeDby.Extra10 = 0;
                             objDesdeDby.Extra11 = 0;
@@ -2521,7 +2593,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
                 }
                 int secreo = _db2.OERHDFIL_SQL.Where(a => a.rma_no == nextrma).Count();
-              
+
 
                 if (secreo > 0)
                 {
@@ -2541,8 +2613,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 }
 
 
-            } 
-             
+            }
+
             return retorno;
 
         }
