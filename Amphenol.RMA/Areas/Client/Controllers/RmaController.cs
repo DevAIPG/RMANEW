@@ -498,66 +498,66 @@ namespace Amphenol.RMA.Controllers
 
             var rma = _context2.CSEXSW_Rma.Where(S => S.Id == idsa).FirstOrDefault();
 
-            string QM = "";
-            humres empQM = null;
-            if (rma.Wherebuilt == "Nogales")
-            {
-                //QM Quality Manager NOG)
-                var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100030).FirstOrDefault();
-                if (QMM10 != null)
-                {
-                    empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                    QM = empQM.fullname;
-                }
-            }
+            //string QM = "";
+            //humres empQM = null;
+            //if (rma.Wherebuilt == "Nogales")
+            //{
+            //    //QM Quality Manager NOG)
+            //    var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100030).FirstOrDefault();
+            //    if (QMM10 != null)
+            //    {
+            //        empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
+            //        QM = empQM.fullname;
+            //    }
+            //}
 
-            if (rma.Wherebuilt == "Mesa")
-            {
-                //Mesa
-                //QM Quality Manager Mesa)
-                var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
-                if (QMM10 != null)
-                {
-                    empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                    QM = empQM.fullname;
-                }
-            }
+            //if (rma.Wherebuilt == "Mesa")
+            //{
+            //    //Mesa
+            //    //QM Quality Manager Mesa)
+            //    var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
+            //    if (QMM10 != null)
+            //    {
+            //        empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
+            //        QM = empQM.fullname;
+            //    }
+            //}
 
-            if (rma.Wherebuilt == "Endicott")
-            {
-                //Endicot
-                //QM Quality Manager END)
-                var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100039).FirstOrDefault();
-                if (QMM10 != null)
-                {
-                    empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                    QM = empQM.fullname;
-                }
-            }
+            //if (rma.Wherebuilt == "Endicott")
+            //{
+            //    //Endicot
+            //    //QM Quality Manager END)
+            //    var QMM10 = _context2.HRRoles.Where(s => s.RoleID == 100039).FirstOrDefault();
+            //    if (QMM10 != null)
+            //    {
+            //        empQM = _context2.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
+            //        QM = empQM.fullname;
+            //    }
+            //}
 
-            //QD (Quality Director)
-            var QDM10 = _context2.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
-            string QD = "";
-            humres empQD = null;
-            if (QDM10 != null)
-            {
-                empQD = _context2.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
-                QD = empQD.fullname;
-            }
+            ////QD (Quality Director)
+            //var QDM10 = _context2.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
+            //string QD = "";
+            //humres empQD = null;
+            //if (QDM10 != null)
+            //{
+            //    empQD = _context2.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
+            //    QD = empQD.fullname;
+            //}
 
-            //GM (General Manager)
-            var GMM10 = _context2.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
-            humres empGM = null;
-            string GM = "";
-            if (GMM10 != null)
-            {
-                empGM = _context2.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
-                GM = empGM.fullname;
-            }
+            ////GM (General Manager)
+            //var GMM10 = _context2.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
+            //humres empGM = null;
+            //string GM = "";
+            //if (GMM10 != null)
+            //{
+            //    empGM = _context2.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
+            //    GM = empGM.fullname;
+            //}
 
-            string mail1 = empQM.mail;
-            string mail2 = empQD.mail;
-            string mail3 = empGM.mail;
+            string mail1 = "";
+            string mail2 = "";
+            string mail3 = "";
             string mail4 = "";
             string mail5 = "";
             string mail6 = "";
@@ -928,35 +928,19 @@ namespace Amphenol.RMA.Controllers
 
             if (inicio == true)
             {
-
-
-
-
-                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
-
-
-
+                _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions);
                 _contenedorTrabajo.Save();
-
-
-
-
-
                 string rutaPrincipal = _hostingEnvironment.WebRootPath;
                 var archivos = HttpContext.Request.Form.Files;
                 if (archivos.Count() > 0)
                 {
                     if (!Directory.Exists(Path.Combine(rutaPrincipal, @"documents\documents\rma\")))
                     {
-
-
                         Directory.CreateDirectory(Path.Combine(rutaPrincipal, @"documents\documents\rma\"));
-
                     }
                     //Editamos imagen
                     for (int i = 0; i < archivos.Count(); i++)
                     {
-
                         string nombreArchivo = Path.GetFileName(archivos[i].FileName);
                         var subidas = Path.Combine(rutaPrincipal, @"documents\documents\rma\");
                         var extension = Path.GetExtension(archivos[i].FileName);
@@ -969,12 +953,6 @@ namespace Amphenol.RMA.Controllers
                             _contenedorTrabajo.csexsw_coustumer.archivos(archivodocumento, idRMA);
                             _contenedorTrabajo.Save();
                         }
-
-
-
-
-
-
                     }
                 }
                 return Json(new { data = "Primeras lineas" });
@@ -1283,9 +1261,9 @@ namespace Amphenol.RMA.Controllers
                         empGM = _context2.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
                         GM = empGM.fullname;
                     }
-                    string mail1 = empQM.mail;
-                    string mail2 = empQD.mail;
-                    string mail3 = empGM.mail;
+                    string mail1 = "";
+                    string mail2 = "";
+                    string mail3 = "";
                     string mail4 = "";
                     string mail5 = "";
                     string mail6 = "";
@@ -1307,13 +1285,9 @@ namespace Amphenol.RMA.Controllers
 
                             if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
                             {
-
                                 rma.CSEXSW_Rma.Approver = QD;
                                 _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
                                 _contenedorTrabajo.Save();
-
-
-
                             }
 
                             if (tipo_cambio >= 20000)
@@ -1322,7 +1296,6 @@ namespace Amphenol.RMA.Controllers
 
                                 _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
                                 _contenedorTrabajo.Save();
-
                             }
                         }
                         //actualizar res id de approver
@@ -1336,12 +1309,14 @@ namespace Amphenol.RMA.Controllers
 
                         if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
                         {
+                            //if (tip)
+                            //{
+
+                            //}
                             rma.CSEXSW_Rma.Approver = QD;
                             _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
                             _contenedorTrabajo.Save();
                         }
-
-
                     }
 
                     if (rma.CSEXSW_Rma.Wherebuilt == "ATZ" || rma.CSEXSW_Rma.Wherebuilt == "MAO")
@@ -1385,10 +1360,8 @@ namespace Amphenol.RMA.Controllers
             }
             if (finalizado != true)
             {
-
                 idRMA = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
                 return Json(new { data = "Lineas creadas" });
-
             }
             if (rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT & REPLACE")
             {
@@ -1518,9 +1491,9 @@ namespace Amphenol.RMA.Controllers
             {
                 int idRma = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
 
-                BackgroundJob.Schedule(() =>
-                    _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions), TimeSpan.FromSeconds(10)
-                );
+                //BackgroundJob.Schedule(() =>
+                _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions), TimeSpan.FromSeconds(10)
+                //);
 
                 return Json(new { data = "Lineas creadas" });
             }
