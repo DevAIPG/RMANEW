@@ -1492,7 +1492,8 @@ namespace Amphenol.RMA.Controllers
                 int idRma = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
 
                 //BackgroundJob.Schedule(() =>
-                _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions), TimeSpan.FromSeconds(10)
+                _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions);
+                //, TimeSpan.FromSeconds(10)
                 //);
 
                 return Json(new { data = "Lineas creadas" });
