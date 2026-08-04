@@ -296,33 +296,5 @@ function InitializeShipToTable(source) {
         }
     });
 }
-$(document).on("click", ".btn-add-rma-line", function () {
 
-    let index = $("#GeneratedRmaTable tbody tr").length;
 
-    $.get("/Client/Rma/AddLineRow", function (html) {
-
-        html = html.replace(/__INDEX__/g, index);
-
-        $("#GeneratedRmaTable tbody").append(html);
-    });
-});
-$(document).on("click", ".btn-remove-rma-line", function () {
-    $(this).closest("tr").remove();
-    reindexRows();
-});
-function reindexRows() {
-    $("#GeneratedRmaTable tbody tr").each(function (index) {
-        $(this).find("input, select").each(function () {
-            let name = $(this).attr("name");
-            if (name) {
-                name = name.replace(
-                    /Data\.ItemLines\[\d+\]/,
-                    `Data.ItemLines[${index}]`
-                );
-
-                $(this).attr("name", name);
-            }
-        });
-    });
-}

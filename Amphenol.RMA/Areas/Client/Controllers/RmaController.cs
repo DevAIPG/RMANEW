@@ -670,18 +670,7 @@ namespace Amphenol.RMA.Controllers
 
             }
 
-            var rmaViewModel = new RmaModalViewModel()
-            {
-                Data = new Rma
-                {
-                    Details = new CSEXSW_Rma()
-                    {
-                        Id = requestId,                        
-                    },
-                    ItemLines = [],
-                    Attachments = []
-                }
-            };
+            var rmaViewModel = new RmaViewModel(requestId);
 
             return View(rmaViewModel);
 
@@ -3070,7 +3059,7 @@ namespace Amphenol.RMA.Controllers
         {
             ViewData["Index"] = "__INDEX__";
 
-            return PartialView("RmaItemEditableLine", new csexsw_coustumer());
+            return PartialView("RmaItemEditableLine", new RmaLineViewModel());
         }
 
 
