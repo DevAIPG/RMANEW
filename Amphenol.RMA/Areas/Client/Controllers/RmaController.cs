@@ -660,31 +660,56 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult Create()
         {
-            var num = "1";
+            var requestId = 1;
             try
             {
-                int id = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-                num = "" + id;
+                requestId = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
             }
             catch (Exception)
             {
 
             }
-            ViewBag.folio = num;
-            csexsw_coustumerVM rma = new csexsw_coustumerVM()
-            {
-                CSEXSW_Rma = new Models.CSEXSW_Rma(),
 
+            var rmaViewModel = new RmaModalViewModel()
+            {
+                Data = new Rma
+                {
+                    Details = new CSEXSW_Rma()
+                    {
+                        Id = requestId,                        
+                    },
+                    ItemLines = [],
+                    Attachments = []
+                }
             };
 
+            return View(rmaViewModel);
+
+            //var num = "1";
+            //try
+            //{
+            //    int id = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
+            //    num = "" + id;
+            //}
+            //catch (Exception)
+            //{
+
+            //}
+            //ViewBag.folio = num;
+            //csexsw_coustumerVM rma = new csexsw_coustumerVM()
+            //{
+            //    CSEXSW_Rma = new Models.CSEXSW_Rma(),
+
+            //};
 
 
-            if (rma == null)
-            {
-                return NotFound();
-            }
 
-            return View(rma);
+            //if (rma == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //return View(rma);
 
 
         }
