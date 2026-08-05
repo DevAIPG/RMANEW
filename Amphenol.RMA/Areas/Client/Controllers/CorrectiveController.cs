@@ -129,10 +129,19 @@ namespace Amphenol.RMA.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetPricesByInvoice(int invoicenumber, string loc)
+        public IActionResult GetPricesByInvoice(string invoicenumber, string loc)
         {
+            var formmattedInvoice = invoicenumber.Trim().PadLeft(8, ' ');
+            var prices = _context2.OELINHST_SQL.Where(s => s.InvNo == formmattedInvoice)
+                .Select(r => new
+                {
+                    price = r.UnitPrice,
+                    std = r.UnitCost,
+                    pn = r.ItemNo,
+                    loc = r.Loc
+                }
+            );
 
-            var prices = _context2.OELINHST_SQL.Where(s => s.InvNo.Trim() == invoicenumber.ToString().Trim()).Select(r => new { price = r.UnitPrice, std = r.UnitCost, pn = r.ItemNo, loc = r.Loc });
             return Json(prices);
         }
 
@@ -144,7 +153,7 @@ namespace Amphenol.RMA.Controllers
                 return Json(new { data = Array.Empty<object>() });
             }
 
-            var formattedCustomerId = filtro.Trim().PadLeft(8, ' ');
+            var formattedCustomerId = filtro.Trim().PadLeft(20, ' ');
 
             var data = _context2.OEHDRHST_SQL
             .Where(x => x.CusNo == formattedCustomerId && !string.IsNullOrWhiteSpace(x.InvNo))

@@ -1,7 +1,6 @@
 var persona = "";
 var dataTable;
-let invoiceTable = null;
-let currentCustomerId = "";
+
 var arrlinea = [];
 var arrRmaId = [];
 var arrRCode = [];
@@ -831,7 +830,7 @@ function cargarDatatableRma() {
                         }
                     );
 
-                    LoadInvoiceTable(customerId.trim());
+                    //LoadInvoiceTable(customerId.trim());
                 }
             },
             error: function (xhr) {
