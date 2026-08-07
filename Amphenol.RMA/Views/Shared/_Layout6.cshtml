@@ -1,6 +1,6 @@
 ﻿@*RMA*@
 <!DOCTYPE html>
-<html lang="en"> 
+<html lang="en">
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE = 11" />
     <meta http-equiv="content-type" content="text/html;charset=utf-8" />
@@ -39,18 +39,26 @@
 
     <meta name="msapplication-TileColor" content="#005eb8">
     <meta name="theme-color" content="#ffffff">
+    <style>
+        .nav-item a,
+        .nav-item span {
+            color: #ffffff
+        }
+
+        .dropdown-itehover a, .nav-item:hover span {
+            color: black
+        }
+
+        .validation-summary-valid {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <header class="mb-0">
-
-        <nav  style="background-color:lightskyblue" class="navbar navbar-expand-lg  navbar-toggleable-lg     sticky-top ">
+        <nav style="background-color:lightskyblue" class="navbar navbar-expand-lg  navbar-toggleable-lg     sticky-top ">
             <div class="container">
-
-
                 <div class="navbar-toggler-container">
-
-
-
                     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                             aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
@@ -58,62 +66,29 @@
                 </div>
 
                 <div class="navbar-collapse  collapse d-lg-inline-flex flex-lg-row ">
-                  
-                    <ul  class= " navbar-nav navbar-nav-main">
-
+                    <ul class=" navbar-nav navbar-nav-main">
                         <li class=" nav-link  mr-2">
-
                             <p class="nav-item mb-0 text-black-50" style="font-weight:bolder; font-size:22px">Amphenol-RMA</p>
                         </li>
-                      
                         <li class="nav-link p-0 mr-1">
-
                             <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="Index">RMA Request</a>
                         </li>
-
-
                         <li class="nav-link p-0 mr-1" id="approversContainer">
-
-                       
                             <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="approvers">Approvers</a>
                         </li>
-
-                   
-
                         <li class="nav-link p-0 mr-1">
-
                             <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="Create">Create</a>
                         </li>
                         <li class="nav-link p-0">
-
                             <a class="nav-link" asp-area="Client" asp-controller="Rma" asp-action="Control">Approval Control</a>
                         </li>
-                       
-
-
-
-
                     </ul>
-
                 </div>
-
-
-
             </div>
         </nav>
-        <style>
-            .nav-item a,
-            .nav-item span {
-                color: #ffffff
-            }
-
-            .dropdown-itehover a, .nav-item:hover span {
-                color: black
-            }
-        </style>
     </header>
     <div class="container-fluid">
-        <main role="main" class="pb-3" >
+        <main role="main" class="p-3">
             @RenderBody()
         </main>
     </div>
@@ -149,7 +124,6 @@
 
 
 
-
     @* <script src="~/js/create_edit_rma.js?1"></script> *@
     <script>
 
@@ -164,10 +138,11 @@
                     $("#approversContainer").show();
                 } else {
                     $("#approversContainer").hide();
-				}
+                }
             }
         });
     </script>
+
     @RenderSection("Scripts", required: false)
 </body>
 </html>

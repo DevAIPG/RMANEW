@@ -182,8 +182,6 @@ $.ajax({
     dataType: "json",
     cache: true,
     success: function success(data) {
-        console.log(data.data);
-
         if (data.data == "admin") {
             $('.panel').show();
         } else {
@@ -207,7 +205,6 @@ $.ajax({
     cache: true,
     async: true,
     success: function success(data) {
-        console.log(data);
         persona = data.data;
     },
     error: function error(xhr, status, _error3) {
@@ -229,7 +226,6 @@ $.ajax({
     async: true,
     cache: true,
     success: function success(data) {
-        console.log(data);
         user = data.nombre;
     },
     error: function error(xhr, status, _error2) {

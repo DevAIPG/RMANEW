@@ -9,57 +9,63 @@
     <td>
         <div class="input-group">
             <input class="form-control bg-warning invoice-input" type="text" readonly asp-for="InvoiceNumber" id="Line_@(index)_InvoiceNumber"
-                   name="Line_@(index)_InvoiceNumber" />
+                   name="Lines[@(index)].InvoiceNumber" />
             <span class="btn btn-sm btn-outline-secondary btn-search-invoice"><i class="fa fa-search"></i></span>
         </div>
+        <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
     </td>
     <td>
         <div class="input-group">
             <input class="form-control bg-warning sequence-input" type="text" readonly asp-for="SequenceNumber" id="Line_@(index)_SequenceNumber"
-                   name="Line_@(index)_SequenceNumber" />
+                   name="Lines[@(index)].SequenceNumber" />
             <span class="btn btn-sm btn-outline-secondary btn-search-sequence"><i class="fa fa-search"></i></span>
         </div>
+        <span asp-validation-for="SequenceNumber" class="text-danger"></span>
     </td>
     <td>
         <div class="input-group">
             <input class="form-control bg-warning partnumber-input" type="text" readonly asp-for="PartNumber" id="Line_@(index)_PartNumber"
-                   name="Line_@(index)_PartNumber" />
+                   name="Lines[@(index)].PartNumber" />
             <span class="btn btn-sm btn-outline-secondary btn-search-partnumber"><i class="fa fa-search"></i></span>
         </div>
+        <span asp-validation-for="PartNumber" class="text-danger"></span>
     </td>
     <td>
         <select class="form-control action-select" asp-for="SelectedAction"
                 asp-items="@(new SelectList(Model.Actions, nameof(SelectableStringOption.SelectedValue), nameof(SelectableStringOption.DisplayValue)))"
-                id="Line_@(index)_SelectedAction" name="Line_@(index)_SelectedAction">
+                id="Line_@(index)_SelectedAction" name="Lines[@(index)].SelectedAction">
         </select>
     </td>
     <td>
         <select class="form-control location-select" asp-for="SelectedLocation"
                 asp-items="@(new SelectList(Model.Locations, nameof(SelectableStringOption.SelectedValue), nameof(SelectableStringOption.DisplayValue)))"
-                id="Line_@(index)_SelectedLocation" name="Line_@(index)_SelectedLocation">
+                id="Line_@(index)_SelectedLocation" name="Lines[@(index)].SelectedLocation">
         </select>
     </td>
     <td>
         <input class="form-control bg-warning quantity-input" type="number" asp-for="AuthorizedQuantity" id="Line_@(index)_AuthorizedQuantity"
-               name="Line_@(index)_AuthorizedQuantity" />
+               name="Lines[@(index)].AuthorizedQuantity" />
+        <span asp-validation-for="AuthorizedQuantity" class="text-danger"></span>
     </td>
     <td>
         <input class="form-control bg-warning price-input" type="number" asp-for="Price" id="Line_@(index)_Price"
-               name="Line_@(index)_Price" />
+               name="Lines[@(index)].Price" />
+        <span asp-validation-for="Price" class="text-danger"></span>
     </td>
     <td>
         <input class="form-control bg-warning unitcost-input" type="number" asp-for="UnitCost" id="Line_@(index)_UnitCost"
-               name="Line_@(index)_UnitCost" />
+               name="Lines[@(index)].UnitCost" />
+        <span asp-validation-for="UnitCost" class="text-danger"></span>
     </td>
     <td>
         <div class="input-group">
             <input class="form-control returncode-input" type="text" readonly asp-for="ReturnCode" id="Line_@(index)_ReturnCode"
-                   name="Line_@(index)_ReturnCode" />
-            <span class="btn btn-sm btn-outline-secondary"><i class="fa fa-search"></i></span>
+                   name="Lines[@(index)].ReturnCode" />
+            <span class="btn btn-sm btn-outline-secondary btn-search-returncode"><i class="fa fa-search"></i></span>
         </div>
     </td>
     <td>
-        <input class='w-100 text-center mt-2 mr-0 text-center generatecar-checkbox' type='checkbox' asp-for="GenerateCAR" id="Line_@(index)_GenerateCAR"
-               name="Line_@(index)_GenerateCARe" />
+        <input class='form-check-inline m-2 generatecar-checkbox' type='checkbox' asp-for="GenerateCAR" id="Line_@(index)_GenerateCAR"
+               name="Lines[@(index)].GenerateCARe" />
     </td>
 </tr>

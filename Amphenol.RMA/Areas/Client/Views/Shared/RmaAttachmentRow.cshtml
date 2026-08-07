@@ -1,0 +1,17 @@
+﻿@model Amphenol.RMA.ViewModels.RmaAttachmentViewModel
+<tr data-attachment-id="@Model.Id" data-existing="true">
+    <td>
+        <span class="btn btn-sm btn-outline-danger btn-remove-attachment" title="Remove Attachment">
+            <i class="fa fa-trash"></i>
+        </span>
+        <input type="hidden" asp-for="MarkedForDeletion" class="attachment-delete-flag" />
+    </td>
+    <td>
+        <a href="@Model.DownloadUrl" target="_blank">
+            @Model.FileName
+        </a>
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="FileName" />
+        <input type="hidden" asp-for="DownloadUrl" />
+    </td>
+</tr>

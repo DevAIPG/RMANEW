@@ -11,9 +11,7 @@ $.ajax({
     cache: true,
     async: true,
     success: function success(data) {
-        console.log(data);
         persona = data.data;
-        console.log(persona);
     },
     error: function error(xhr, status, _error4) {
         $().toastmessage('showToast', {
@@ -33,7 +31,6 @@ $.ajax({
     cache: true,
     async: true,
     success: function success(data) {
-        console.log(data);
         usuario = data.nombre;
         usuario_car = data.fname;
     },
@@ -319,7 +316,6 @@ function cargarDatatableRma() {
             cache: true,
 
             success: function (data) {
-                console.log("facturas");
                 $("#tblinvoices").DataTable({
                     destroy: true,
                     data: data,
@@ -1263,7 +1259,6 @@ function LoadSeq(fact) {
             $('body').loadingModal('destroy');
         },
         error: function error(xhr, status, _error17) {
-            console.log(xhr.responseText);
         },
     });
     $(document).on("click", "#linkseq2", function () {
@@ -1418,7 +1413,6 @@ function openinvoicesControl() {
         cache: true,
 
         success: function (data) {
-            console.log("facturas");
             $("#tblinvoices").DataTable({
                 destroy: true,
                 data: data,
@@ -1775,9 +1769,6 @@ function cargarDatatableRma2() {
                 $("#comments").val(rma.comment);
 
                 $("#daterma").val(rma.date);
-
-                console.log("LINEAS DE RMA");
-                console.log(data.lines);
 
                 reloadLineasControl();
 
@@ -2398,7 +2389,6 @@ function cargarDatatableDocumentControl() {
         "columns": [{
             "data": "version",
             "render": function render(data) {
-                console.log(data);
                 release = data;
                 return "" + data;
             },
@@ -2505,8 +2495,6 @@ function cargarDatatableDocumentControl() {
             datatype: "json",
             cache: true,
             success: function (data) {
-                console.log("files");
-                console.log(data);
                 var fname = "";
                 if (data.length > 0) {
                     $.each(data, function (i, b) {
@@ -2948,7 +2936,6 @@ function cargarDatatablestandar() {
 function cargarDatatableCar2() {
 
     var release = "";
-    console.log(usuario);
     var info;
     if (parseInt($("#txt_approver").val()) > 0) {
         info = {
@@ -3271,8 +3258,6 @@ function loadcodes() {
         async: true,
         cache: true,
         success: function (data) {
-            console.log("codes all");
-            console.log(data.data);
             $("#defectinput").html("");
             $("#defectinput").append("<option value='0'>-Select defect code-</option>");
             $.each(data.data, function (i, b) {
@@ -4302,7 +4287,6 @@ function DeleteComenta(id) {
                 dataType: "json",
                 cache: true,
                 success: function success(data) {
-                    console.log(data);
                     if (data.success) {
                         toastr.success(data.message);
                         dataTable.ajax.reload();
@@ -4353,7 +4337,6 @@ function Delete(url) {
             });
 
         } else {
-            console.log("ABORT")
             toastr.success("ABORT");
         }
 
@@ -4366,7 +4349,6 @@ function Archivo(url) {
         url: url,
         success: function success(data) {
             finestraSecundaria(data.ruta);
-            console.log(data.ruta);
         }
     });
 }
@@ -4409,7 +4391,6 @@ function LoadPartNumbers() {
             //$('body').loadingModal('destroy');
         },
         error: function error(xhr, status, _error17) {
-            console.log(xhr.responseText);
         },
     });
 
@@ -4571,7 +4552,6 @@ function Deletedocument(url) {
             });
 
         } else {
-            console.log("ABORT")
             toastr.success("ABORT");
         }
 
@@ -4606,7 +4586,6 @@ function Deletedocumentregargar(url) {
             });
 
         } else {
-            console.log("ABORT")
             toastr.success("ABORT");
         }
 
@@ -4648,7 +4627,6 @@ $("#btnupdaterma").click(function () {
 
 function UpdateRMA(id, where, desc, phone, ext, fax, totalrma, po, contact, type, email, comments, reason) {
 
-    console.log("type rma : " + type);
     $.ajax({
         url: "/Client/rma/UpdateRMA?id=" + id + "&where=" + where + "&desc=" + desc + "&phone=" + phone + "&ext=" + ext + "&fax=" + fax + "&totalrma=" + totalrma + "&po=" + po + "&contact=" + contact + "&type=" + type + "&email=" + email + "&comments=" + comments + "&reason=" + reason,
         type: "GET",

@@ -702,6 +702,368 @@ namespace Amphenol.RMA.Controllers
 
 
         }
+        [HttpPost]
+        public IActionResult Create(RmaViewModel vm)
+        {
+            if (!vm.Lines.Any())
+            {
+                ModelState.AddModelError(nameof(vm.Lines), "At least one line is required.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var requestId = 1;
+                try
+                {
+                    requestId = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
+                }
+                catch (Exception)
+                {
+
+                }
+
+                vm.RequestId = requestId;
+                vm.InitializeLookups();
+                foreach (var line in vm.Lines)
+                {
+                    line.InitializeLookups();
+                }
+                return View(vm);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+        //[HttpPost]
+        //public IActionResult Create(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client,
+        //                            string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext,
+        //                            string fax, string contactemail, string companyemail, string comment, bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq,
+        //                            string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string rmareason, string[] actions)
+        //{
+
+        //    string num = string.Empty;
+        //    try
+        //    {
+        //        num = $"8{_contenedorTrabajo.CSEXSW_Rma.Releaserma():D4}";
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine(string.Concat(ex, " Error generating RMA number"));
+        //    }
+
+        //    var rma = BuildRmaModel(id, num, client, rmatypeofrequest, description, customerpo, shipto, contact, phone, ext, fax, contactemail, companyemail, comment, rmadata,
+        //                            rmareason, rmawherebuilt, total);
+
+        //    if (!inicio)
+        //    {
+        //        int idRma = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
+
+        //        BackgroundJob.Schedule(() =>
+        //            _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions), TimeSpan.FromSeconds(10)
+        //        );
+
+        //        return Json(new { data = "Lineas creadas" });
+        //    }
+
+
+        //    if (!ModelState.IsValid) return Json(new { data = "Model Invalid" });
+
+        //    double rmaTotal = GetRmaTotal(total, client);
+
+        //    ProcessRma(rma, rmaTotal, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc, inicio, actions);
+
+        //    return Json(new { data = "Terminado" });
+        //}
+
+
+        [HttpGet]
+        public async Task<IActionResult> ViewAttachment(int id)
+        {
+            var attachment = await _context2.CSEXSW_Attachmentrma.FirstAsync(x => x.Id == id);
+
+            if (attachment == null)
+                return NotFound();
+
+            //var fileBytes = await System.IO.File.ReadAllBytesAsync(attachment.);
+
+            //return File(
+            //    fileBytes,
+            //    attachment.ContentType,
+            //    attachment.FileName);
+
+            return NotFound();
+        }
+
+        private double GetRmaTotal(double total, string client)
+        {
+            var customer = _context.arcusfil_sql
+                .FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
+
+            if (customer == null)
+                return total;
+
+            if (customer.curr_cd != "CNY")
+                return total;
+
+            var rate = _context.Rate
+                .OrderByDescending(x => x.DateL)
+                .FirstOrDefault(x => x.SourceCurrency == "USD");
+
+            if (rate == null)
+                return total;
+
+            return total / Convert.ToDouble(rate.RateExchange);
+        }
+
+        private csexsw_coustumerVM BuildRmaModel(int id, string rmaNumber, string client, string requestType, string description, string customerPo, string shipTo, string contact,
+                                                 string phone, string ext, string fax, string contactEmail, string companyEmail, string comment, string rmaDate, string reason,
+                                                 string whereBuilt, double total)
+        {
+            var customerItem = _context.oecusitm_sql.FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
+
+            string customerPart = customerItem?.cus_item_no?.Trim() ?? "";
+
+            string usuario = User.Identity.Name.Split('\\')[1];
+
+            string resId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario);
+
+            string fullname = _context2.humres.First(x => x.res_id == int.Parse(resId)).fullname;
+
+            return new csexsw_coustumerVM
+            {
+                CSEXSW_Rma = new CSEXSW_Rma
+                {
+                    Id = id,
+                    Rmarequest = rmaNumber,
+                    Customer = client,
+                    Customerpartno = customerPart,
+                    Customerpo = customerPo,
+                    Description = description,
+                    Contact = contact,
+                    Email = contactEmail,
+                    Phone = phone,
+                    Ext = ext,
+                    Fax = fax,
+                    Company = companyEmail,
+                    Customercomplait = comment,
+                    Wherebuilt = whereBuilt,
+                    Ship_To = shipTo,
+                    reason = reason,
+                    Status = "Pending",
+                    Sumbit = "Submitted",
+                    Preparado = fullname,
+                    res_id = int.Parse(getResId()),
+                    Date = rmaDate,
+                    Rmatypeofrequest = requestType,
+                    Totalrmavalues = total
+                }
+            };
+        }
+
+        private void ProcessRma(csexsw_coustumerVM rma, double rmaTotal, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, string[] code, decimal[] unit,
+                                string[] checkcar, string[] loc, bool inicio, string[] actions)
+        {
+
+            var qualityManager = GetQualityManager(rma.CSEXSW_Rma.Wherebuilt);
+            var qualityDirector = GetEmployeeByRole(100031);
+            var generalManager = GetEmployeeByRole(100032);
+            var customerServiceManager = _customerServiceManager;
+
+
+            var approvalFlow = new RmaApprovalFlow();
+
+            static Approver CreateApprover(dynamic employee) => new()
+            {
+                Id = employee.res_id,
+                Email = employee.mail,
+                Name = employee.fullname
+            };
+
+            if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
+            {
+                if (rmaTotal < 5000 && !unit.Any(x => x >= 500))
+                {
+                    approvalFlow.Approver = new Approver
+                    {
+                        Id = -4,
+                        Name = "System"
+                    };
+
+                    approvalFlow.NotifyEmails =
+                    [
+                        qualityDirector.mail,
+                        generalManager.mail,
+                        customerServiceManager.Email
+                    ];
+
+                    rma.CSEXSW_Rma.Status = "auto-approve";
+                }
+                else
+                {
+                    approvalFlow.Approver = CreateApprover(qualityDirector);
+
+                    approvalFlow.NotifyEmails =
+                    [
+                        qualityManager.mail,
+                        generalManager.mail,
+                        customerServiceManager.Email
+                    ];
+                }
+            }
+            else
+            {
+                switch (rmaTotal)
+                {
+                    case > 0 and < 5000:
+                        approvalFlow.Approver = CreateApprover(qualityManager);
+
+                        approvalFlow.NotifyEmails =
+                        [
+                            qualityDirector.mail,
+                            generalManager.mail,
+                            customerServiceManager.Email
+                        ];
+                        break;
+
+                    case >= 5000 and < 20000:
+                        approvalFlow.Approver = CreateApprover(qualityDirector);
+
+                        approvalFlow.NotifyEmails =
+                        [
+                            qualityManager.mail,
+                            generalManager.mail,
+                            customerServiceManager.Email
+                        ];
+                        break;
+
+                    default:
+                        approvalFlow.Approver = CreateApprover(qualityDirector);
+
+                        approvalFlow.FinalApprover = CreateApprover(generalManager);
+
+                        approvalFlow.NotifyEmails =
+                        [
+                            qualityManager.mail,
+                            customerServiceManager.Email
+                        ];
+                        break;
+                }
+            }
+
+            rma.CSEXSW_Rma.Approver = approvalFlow.Approver.Name;
+            rma.CSEXSW_Rma.res_id_approver = approvalFlow.Approver.Id;
+
+
+            SaveRma(rma, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc, inicio, actions, approvalFlow);
+        }
+
+        private void SaveRma(csexsw_coustumerVM rma, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, string[] code, decimal[] unit, string[] checkcar,
+                             string[] loc, bool inicio, string[] actions, RmaApprovalFlow approvalFlow)
+        {
+            _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
+            _contenedorTrabajo.Save();
+
+            int idRma = _contenedorTrabajo.CSEXSW_Rma.intRMA();
+
+            //BackgroundJob.Enqueue(() =>
+            _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions);
+            //);
+
+            SaveAttachments(idRma, rma.CSEXSW_Rma.Rmarequest);
+
+            BackgroundJob.Enqueue(() => SendRmaCreationNotification(idRma, approvalFlow));
+
+            if (rma.CSEXSW_Rma.Status == "auto-approve")
+            {
+                Aprobar("RMA auto-approved", idRma, true);
+            }
+        }
+
+        private void SaveAttachments(int rmaId, string rmaNumber)
+        {
+            var files = HttpContext.Request.Form.Files;
+
+            if (!files.Any()) return;
+
+            string directory = Path.Combine(rootEC, "documents", "RMA", rmaNumber, "Attachments");
+
+            Directory.CreateDirectory(directory);
+
+            foreach (var file in files)
+            {
+                string fileName = Path.GetFileName(file.FileName);
+
+                using var stream = new FileStream(Path.Combine(directory, fileName), FileMode.Create);
+
+                file.CopyTo(stream);
+
+                _contenedorTrabajo.csexsw_coustumer.archivos(fileName, rmaId);
+            }
+
+            _contenedorTrabajo.Save();
+        }
+
+        private humres GetEmployeeByRole(int roleId)
+        {
+            var role = _context2.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
+
+            if (role == null) return null;
+
+            return _context2.humres.FirstOrDefault(x => x.res_id == role.EmpID);
+        }
+
+        private humres GetQualityManager(string site)
+        {
+            var roles = new Dictionary<string, int>
+            {
+                { "Nogales", 100030 },
+                { "Mesa", 100062 },
+                { "Endicott", 100039 }
+            };
+
+            return roles.TryGetValue(site, out int roleId) ? GetEmployeeByRole(roleId) : null;
+        }
+        public async Task SendRmaCreationNotification(int rmaId, RmaApprovalFlow approvalFlow)
+        {
+
+            var rma = _context2.CSEXSW_Rma.FirstOrDefault(x => x.Id == rmaId);
+
+            var lines = _context2.csexsw_coustumer.Where(x => x.RmaId == rmaId).OrderBy(x => x.rma_seq_no).ToList();
+
+
+            var subject = $"RMA request {rma.Rmarequest.Trim()} generated";
+            var overviewTemplate = await System.IO.File.ReadAllTextAsync(Path.Combine(_hostingEnvironment.ContentRootPath, "Services", "Email", "Templates", "RmaOverview.html"));
+            var lineTemplate = await System.IO.File.ReadAllTextAsync(Path.Combine(_hostingEnvironment.ContentRootPath, "Services", "Email", "Templates", "RmaDetailLine.html"));
+
+            overviewTemplate = overviewTemplate.Replace("{Instructions}", "");
+            overviewTemplate = overviewTemplate.Replace("{RmaRequestId}", rma.Rmarequest.Trim());
+            overviewTemplate = overviewTemplate.Replace("{RequestDate}", rma.Date);
+            overviewTemplate = overviewTemplate.Replace("{CustomerNumber}", rma.Customer);
+            overviewTemplate = overviewTemplate.Replace("{CustomerName}", rma.cus_name);
+            overviewTemplate = overviewTemplate.Replace("{WhereBuilt}", rma.Wherebuilt);
+            overviewTemplate = overviewTemplate.Replace("{RequestType}", rma.Rmatypeofrequest);
+            overviewTemplate = overviewTemplate.Replace("{Reason}", rma.reason);
+            overviewTemplate = overviewTemplate.Replace("{Comments}", rma.Customercomplait);
+            overviewTemplate = overviewTemplate.Replace("{Total}", rma.Totalrmavalues.ToString("C", CultureInfo.GetCultureInfo("en-US")));
+
+
+            var lineSection = string.Empty;
+            foreach (var line in lines)
+            {
+                var newLine = lineTemplate;
+                newLine = newLine.Replace("{PartNumber}", line.Coustumer);
+                newLine = newLine.Replace("{Qty}", line.Qty.ToString());
+                newLine = newLine.Replace("{Price}", line.Unit.ToString("C", CultureInfo.GetCultureInfo("en-US")));
+                newLine = newLine.Replace("{LineTotal}", (line.Qty * line.Unit).ToString("C", CultureInfo.GetCultureInfo("en-US")));
+
+                lineSection += newLine;
+            }
+
+            overviewTemplate = overviewTemplate.Replace("{RmaLines}", DateTime.Today.Year.ToString());
+            overviewTemplate = overviewTemplate.Replace("{Year}", DateTime.Today.Year.ToString());
+
+            await _emailService.SendEmail(subject, overviewTemplate, [approvalFlow.Approver.Email], approvalFlow.NotifyEmails);
+        }
+
 
         [HttpGet]
         public IActionResult Edit(int id)
@@ -1510,317 +1872,7 @@ namespace Amphenol.RMA.Controllers
             return Json(inserted);
         }
 
-        [HttpPost]
-        public IActionResult Create(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client,
-                                    string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext,
-                                    string fax, string contactemail, string companyemail, string comment, bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq,
-                                    string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string rmareason, string[] actions)
-        {
 
-            string num = string.Empty;
-            try
-            {
-                num = $"8{_contenedorTrabajo.CSEXSW_Rma.Releaserma():D4}";
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(string.Concat(ex, " Error generating RMA number"));
-            }
-
-            var rma = BuildRmaModel(id, num, client, rmatypeofrequest, description, customerpo, shipto, contact, phone, ext, fax, contactemail, companyemail, comment, rmadata,
-                                    rmareason, rmawherebuilt, total);
-
-            if (!inicio)
-            {
-                int idRma = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-
-                BackgroundJob.Schedule(() =>
-                    _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions), TimeSpan.FromSeconds(10)
-                );
-
-                return Json(new { data = "Lineas creadas" });
-            }
-
-
-            if (!ModelState.IsValid) return Json(new { data = "Model Invalid" });
-
-            double rmaTotal = GetRmaTotal(total, client);
-
-            ProcessRma(rma, rmaTotal, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc, inicio, actions);
-
-            return Json(new { data = "Terminado" });
-        }
-
-        private double GetRmaTotal(double total, string client)
-        {
-            var customer = _context.arcusfil_sql
-                .FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
-
-            if (customer == null)
-                return total;
-
-            if (customer.curr_cd != "CNY")
-                return total;
-
-            var rate = _context.Rate
-                .OrderByDescending(x => x.DateL)
-                .FirstOrDefault(x => x.SourceCurrency == "USD");
-
-            if (rate == null)
-                return total;
-
-            return total / Convert.ToDouble(rate.RateExchange);
-        }
-
-        private csexsw_coustumerVM BuildRmaModel(int id, string rmaNumber, string client, string requestType, string description, string customerPo, string shipTo, string contact,
-                                                 string phone, string ext, string fax, string contactEmail, string companyEmail, string comment, string rmaDate, string reason,
-                                                 string whereBuilt, double total)
-        {
-            var customerItem = _context.oecusitm_sql.FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
-
-            string customerPart = customerItem?.cus_item_no?.Trim() ?? "";
-
-            string usuario = User.Identity.Name.Split('\\')[1];
-
-            string resId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario);
-
-            string fullname = _context2.humres.First(x => x.res_id == int.Parse(resId)).fullname;
-
-            return new csexsw_coustumerVM
-            {
-                CSEXSW_Rma = new CSEXSW_Rma
-                {
-                    Id = id,
-                    Rmarequest = rmaNumber,
-                    Customer = client,
-                    Customerpartno = customerPart,
-                    Customerpo = customerPo,
-                    Description = description,
-                    Contact = contact,
-                    Email = contactEmail,
-                    Phone = phone,
-                    Ext = ext,
-                    Fax = fax,
-                    Company = companyEmail,
-                    Customercomplait = comment,
-                    Wherebuilt = whereBuilt,
-                    Ship_To = shipTo,
-                    reason = reason,
-                    Status = "Pending",
-                    Sumbit = "Submitted",
-                    Preparado = fullname,
-                    res_id = int.Parse(getResId()),
-                    Date = rmaDate,
-                    Rmatypeofrequest = requestType,
-                    Totalrmavalues = total
-                }
-            };
-        }
-
-        private void ProcessRma(csexsw_coustumerVM rma, double rmaTotal, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, string[] code, decimal[] unit,
-                                string[] checkcar, string[] loc, bool inicio, string[] actions)
-        {
-
-            var qualityManager = GetQualityManager(rma.CSEXSW_Rma.Wherebuilt);
-            var qualityDirector = GetEmployeeByRole(100031);
-            var generalManager = GetEmployeeByRole(100032);
-            var customerServiceManager = _customerServiceManager;
-
-
-            var approvalFlow = new RmaApprovalFlow();
-
-            static Approver CreateApprover(dynamic employee) => new()
-            {
-                Id = employee.res_id,
-                Email = employee.mail,
-                Name = employee.fullname
-            };
-
-            if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
-            {
-                if (rmaTotal < 5000 && !unit.Any(x => x >= 500))
-                {
-                    approvalFlow.Approver = new Approver
-                    {
-                        Id = -4,
-                        Name = "System"
-                    };
-
-                    approvalFlow.NotifyEmails =
-                    [
-                        qualityDirector.mail,
-                        generalManager.mail,
-                        customerServiceManager.Email
-                    ];
-
-                    rma.CSEXSW_Rma.Status = "auto-approve";
-                }
-                else
-                {
-                    approvalFlow.Approver = CreateApprover(qualityDirector);
-
-                    approvalFlow.NotifyEmails =
-                    [
-                        qualityManager.mail,
-                        generalManager.mail,
-                        customerServiceManager.Email
-                    ];
-                }
-            }
-            else
-            {
-                switch (rmaTotal)
-                {
-                    case > 0 and < 5000:
-                        approvalFlow.Approver = CreateApprover(qualityManager);
-
-                        approvalFlow.NotifyEmails =
-                        [
-                            qualityDirector.mail,
-                            generalManager.mail,
-                            customerServiceManager.Email
-                        ];
-                        break;
-
-                    case >= 5000 and < 20000:
-                        approvalFlow.Approver = CreateApprover(qualityDirector);
-
-                        approvalFlow.NotifyEmails =
-                        [
-                            qualityManager.mail,
-                            generalManager.mail,
-                            customerServiceManager.Email
-                        ];
-                        break;
-
-                    default:
-                        approvalFlow.Approver = CreateApprover(qualityDirector);
-
-                        approvalFlow.FinalApprover = CreateApprover(generalManager);
-
-                        approvalFlow.NotifyEmails =
-                        [
-                            qualityManager.mail,
-                            customerServiceManager.Email
-                        ];
-                        break;
-                }
-            }
-
-            rma.CSEXSW_Rma.Approver = approvalFlow.Approver.Name;
-            rma.CSEXSW_Rma.res_id_approver = approvalFlow.Approver.Id;
-
-
-            SaveRma(rma, acttion, invoice, seq, qty, coustumer, code, unit, checkcar, loc, inicio, actions, approvalFlow);
-        }
-
-        private void SaveRma(csexsw_coustumerVM rma, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, string[] code, decimal[] unit, string[] checkcar,
-                             string[] loc, bool inicio, string[] actions, RmaApprovalFlow approvalFlow)
-        {
-            _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
-            _contenedorTrabajo.Save();
-
-            int idRma = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-            //BackgroundJob.Enqueue(() =>
-            _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRma, code, unit, checkcar, loc, inicio, actions);
-            //);
-
-            SaveAttachments(idRma, rma.CSEXSW_Rma.Rmarequest);
-
-            BackgroundJob.Enqueue(() => SendRmaCreationNotification(idRma, approvalFlow));
-
-            if (rma.CSEXSW_Rma.Status == "auto-approve")
-            {
-                Aprobar("RMA auto-approved", idRma, true);
-            }
-        }
-
-        private void SaveAttachments(int rmaId, string rmaNumber)
-        {
-            var files = HttpContext.Request.Form.Files;
-
-            if (!files.Any()) return;
-
-            string directory = Path.Combine(rootEC, "documents", "RMA", rmaNumber, "Attachments");
-
-            Directory.CreateDirectory(directory);
-
-            foreach (var file in files)
-            {
-                string fileName = Path.GetFileName(file.FileName);
-
-                using var stream = new FileStream(Path.Combine(directory, fileName), FileMode.Create);
-
-                file.CopyTo(stream);
-
-                _contenedorTrabajo.csexsw_coustumer.archivos(fileName, rmaId);
-            }
-
-            _contenedorTrabajo.Save();
-        }
-
-        private humres GetEmployeeByRole(int roleId)
-        {
-            var role = _context2.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
-
-            if (role == null) return null;
-
-            return _context2.humres.FirstOrDefault(x => x.res_id == role.EmpID);
-        }
-
-        private humres GetQualityManager(string site)
-        {
-            var roles = new Dictionary<string, int>
-            {
-                { "Nogales", 100030 },
-                { "Mesa", 100062 },
-                { "Endicott", 100039 }
-            };
-
-            return roles.TryGetValue(site, out int roleId) ? GetEmployeeByRole(roleId) : null;
-        }
-        public async Task SendRmaCreationNotification(int rmaId, RmaApprovalFlow approvalFlow)
-        {
-
-            var rma = _context2.CSEXSW_Rma.FirstOrDefault(x => x.Id == rmaId);
-
-            var lines = _context2.csexsw_coustumer.Where(x => x.RmaId == rmaId).OrderBy(x => x.rma_seq_no).ToList();
-
-
-            var subject = $"RMA request {rma.Rmarequest.Trim()} generated";
-            var overviewTemplate = await System.IO.File.ReadAllTextAsync(Path.Combine(_hostingEnvironment.ContentRootPath, "Services", "Email", "Templates", "RmaOverview.html"));
-            var lineTemplate = await System.IO.File.ReadAllTextAsync(Path.Combine(_hostingEnvironment.ContentRootPath, "Services", "Email", "Templates", "RmaDetailLine.html"));
-
-            overviewTemplate = overviewTemplate.Replace("{Instructions}", "");
-            overviewTemplate = overviewTemplate.Replace("{RmaRequestId}", rma.Rmarequest.Trim());
-            overviewTemplate = overviewTemplate.Replace("{RequestDate}", rma.Date);
-            overviewTemplate = overviewTemplate.Replace("{CustomerNumber}", rma.Customer);
-            overviewTemplate = overviewTemplate.Replace("{CustomerName}", rma.cus_name);
-            overviewTemplate = overviewTemplate.Replace("{WhereBuilt}", rma.Wherebuilt);
-            overviewTemplate = overviewTemplate.Replace("{RequestType}", rma.Rmatypeofrequest);
-            overviewTemplate = overviewTemplate.Replace("{Reason}", rma.reason);
-            overviewTemplate = overviewTemplate.Replace("{Comments}", rma.Customercomplait);
-            overviewTemplate = overviewTemplate.Replace("{Total}", rma.Totalrmavalues.ToString("C", CultureInfo.GetCultureInfo("en-US")));
-
-
-            var lineSection = string.Empty;
-            foreach (var line in lines)
-            {
-                var newLine = lineTemplate;
-                newLine = newLine.Replace("{PartNumber}", line.Coustumer);
-                newLine = newLine.Replace("{Qty}", line.Qty.ToString());
-                newLine = newLine.Replace("{Price}", line.Unit.ToString("C", CultureInfo.GetCultureInfo("en-US")));
-                newLine = newLine.Replace("{LineTotal}", (line.Qty * line.Unit).ToString("C", CultureInfo.GetCultureInfo("en-US")));
-
-                lineSection += newLine;
-            }
-
-            overviewTemplate = overviewTemplate.Replace("{RmaLines}", DateTime.Today.Year.ToString());
-            overviewTemplate = overviewTemplate.Replace("{Year}", DateTime.Today.Year.ToString());
-
-            await _emailService.SendEmail(subject, overviewTemplate, [approvalFlow.Approver.Email], approvalFlow.NotifyEmails);
-        }
 
         [HttpPost]
 

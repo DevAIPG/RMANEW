@@ -3,14 +3,22 @@ let invoiceTable = null;
 let sequenceTable = null;
 let selectedLineRow = null;
 let invoices = [];
+const attachmentStore = new DataTransfer();
 
 $(document).ready(function () {
     LoadCustomerTable();
     LoadPartNumberTable();
+    LoadReturnCodeTable();
+
+    if ($("#inputCustomer").val()) {
+        LoadCustomerDetails($("#inputCustomer").val(), true);
+    }
+
+    UpdateVisibility();
 });
 $(document).on("click", ".btn-add-rma-line", function () {
 
-    let index = $("#LineTable tbody tr").length;
+    let index = $("#LineTable tbody tr").length-1;
 
     $.get("/Client/Rma/AddLineRow", function (html) {
 
@@ -39,6 +47,251 @@ $(document).on("click", ".btn-remove-rma-line", function () {
     `);
     }
 });
+$(document).on("input", "#inputCustomer", function () {
+    const customerId = $(this).val();
+
+    if (!customerId || customerId.trim() === "") {
+        $("#inputCustomer").removeClass("is-valid").addClass("is-invalid");
+
+        ClearContactInfomration();
+        $(".customer-info").addClass("d-none");
+
+        return;
+    }
+
+    SearchCustomer(customerId);
+});
+$(document).on('click', '.shipto-select', function () {
+    const row = $("#ShipToTable")
+        .DataTable()
+        .row($(this).closest('tr'))
+        .data();
+    SetShipToModalResult(row);
+});
+$(document).on('input', '#inputShipTo', function () {
+    const shiptTo = $(this).val();
+
+    if (!shiptTo || shiptTo.trim() === "") {
+        ClearContactInfomration();
+        UpdateVisibility();
+        return;
+    }
+
+    $(this).valid();
+
+    UpdateVisibility();
+});
+$(document).on('click', '.btn-search-invoice', function () {
+    selectedLineRow = $(this).closest('tr');
+    $("#InvoiceModal").modal("show");
+});
+$(document).on('input', '.invoice-input', function () {
+    selectedLineRow = $(this).closest('tr');
+    if (!selectedLineRow) {
+        return;
+    }
+    var invoiceInput = selectedLineRow.find('.invoice-input');
+    var selectedInvoice = invoiceInput.val();
+
+    if (!selectedInvoice || selectedInvoice.trim() == '') {
+        invoiceInput.addClass('bg-warning');
+    } else {
+        invoiceInput.removeClass('bg-warning');
+    }
+    LoadSequenceTable(selectedInvoice);
+});
+$(document).on('click', '.btn-search-sequence', function () {
+    selectedLineRow = $(this).closest('tr');
+    var invoice = selectedLineRow.find('.invoice-input').val();
+    if (!invoice || invoice.trim() == '') {
+        return;
+    }
+    LoadSequenceTable(invoice);
+    $("#SequenceModal").modal("show");
+});
+$(document).on('input', '.sequence-input', function () {
+    selectedLineRow = $(this).closest('tr');
+    var sequenceInput = selectedLineRow.find('.sequence-input');
+    var selectedSequence = sequenceInput.val();
+
+    if (!selectedSequence || selectedSequence.trim() == '') {
+        sequenceInput.addClass('bg-warning');
+    } else {
+        sequenceInput.removeClass('bg-warning');
+    }
+});
+$(document).on('click', '.btn-search-partnumber', function () {
+    selectedLineRow = $(this).closest('tr');
+    var invoice = selectedLineRow.find('.invoice-input').val();
+    var sequence = selectedLineRow.find('.sequence-input').val();
+    if ((!invoice || invoice.trim() == '') || (!sequence || sequence.trim() == '')) {
+        return;
+    }
+    $("#PartNumberModal").modal("show");
+});
+$(document).on('input', '.partnumber-input', function () {
+    selectedLineRow = $(this).closest('tr');
+    var partnumberInput = selectedLineRow.find('.partnumber-input');
+
+    var partnumber = partnumberInput.val().trim();
+
+    $(this).valid();
+
+    if (partnumber === '') {
+        partnumberInput.addClass('bg-warning');
+    } else {
+        partnumberInput.removeClass('bg-warning');
+    }
+
+});
+$(document).on('input', '.quantity-input', function () {
+    selectedLineRow = $(this).closest('tr');
+    var quantityInput = selectedLineRow.find('.quantity-input');
+    var quantity = quantityInput.val().trim();
+
+    if (quantity === '' || parseInt(quantity) === 0) {
+        quantityInput.addClass('bg-warning');
+        return;
+    }
+
+    $(this).valid();
+
+    quantityInput.removeClass('bg-warning');
+    CalculateTotalRmaValue();
+});
+$(document).on('input', '.price-input, .unitcost-input', function () {
+    selectedLineRow = $(this).closest('tr');
+
+    var unitPriceInput = selectedLineRow.find('.price-input');
+    var unitCostInput = selectedLineRow.find('.unitcost-input');
+
+    var unitPrice = parseFloat(unitPriceInput.val());
+    var unitCost = parseFloat(unitCostInput.val());
+
+    if (isNaN(unitPrice) || isNaN(unitCost)) {
+        return;
+    }
+
+    var unitPrice = parseFloat(unitPriceInput.val()).toFixed(2);
+    var unitCost = parseFloat(unitCostInput.val());
+
+    if (unitPrice > unitCost) {
+        unitPriceInput.removeClass("bg-warning");
+        unitCostInput.removeClass("bg-warning");
+        CalculateTotalRmaValue();
+    }
+    else {
+        unitPriceInput.addClass("bg-warning")
+
+        Swal.fire({
+            title: 'Price must be higher than unit cost. Do you want to continue?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No'
+        });
+    }
+});
+$(document).on('click', '.btn-search-returncode', function () {
+    selectedLineRow = $(this).closest('tr');
+    $("#ReturnCodeModal").modal("show");
+});
+$(document).on('click', '.btn-add-rma-attachment', function () {
+    console.log("Clicked")
+    $('#attachmentInput').trigger('click');
+});
+$(document).on('click', '.btn-remove-attachment', function () {
+
+    const row = $(this).closest('tr');
+
+    const isExisting = row.data('existing') === true || row.data('existing') === 'true';
+    if (isExisting) {
+        row.hide();
+        row.find('.attachment-delete-flag').val('true');
+    } else {
+        const fileName = row.find('a').text().trim();
+
+        const newStore = new DataTransfer();
+
+        for (const file of attachmentStore.files) {
+            if (file.name !== fileName) {
+                newStore.items.add(file);
+            }
+        }
+
+        attachmentStore.items.clear();
+
+        for (const file of newStore.files) {
+            attachmentStore.items.add(file);
+        }
+
+        document.getElementById('attachmentInput').files = attachmentStore.files;
+
+        row.remove();
+    }
+
+    const visibleRows = $('#AttachmentTable tbody tr:visible').length;
+
+    if (visibleRows === 0) {
+        $("#AttachmentTable tbody").append(`
+        <tr id="emptyAttachmentRow">
+            <td colspan="2" class="text-center text-muted py-4">
+                <div class="d-flex justify-content-center align-items-center">
+                    <h5 class="font-weight-bold mb-0 mr-3">Add attachments</h5>
+                    <button type="button" class="btn btn-sm btn-primary action-btn btn-add-rma-attachment">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `);
+    }
+});
+$(document).on('change', '#attachmentInput', function () {
+    const files = this.files;
+
+    if (!files.length) {
+        return;
+    }
+
+
+    $('#emptyAttachmentRow').remove();
+
+    for (const file of files) {
+        if (!files.length) {
+            return;
+        }
+
+        $('#emptyAttachmentRow').remove();
+
+        attachmentStore.items.add(file);
+
+        const fileIndex = attachmentStore.items.length - 1;
+        const url = URL.createObjectURL(file);
+        $('#AttachmentTable tbody').append(`
+            <tr data-file-index="${fileIndex}">
+                <td>
+                    <span class="btn btn-sm btn-outline-danger btn-remove-attachment" title="Remove Attachment">
+                        <i class="fa fa-trash"></i>
+                    </span>
+                </td>
+                <td>
+                    <a href="${url}" target="_blank">
+                       ${file.name}
+                    </a>
+                </td>
+            </tr>
+        `);
+    }
+
+    this.files = attachmentStore.files;
+})
+$(document).on('input', '#inputContact,#inputCustomerPo, #inputPhone, #inputContactEmail, #textareaComplaint', function () {
+    $(this).valid();
+})
+
 function reindexRows() {
     $("#GeneratedRmaTable tbody tr").each(function (index) {
         $(this).find("input, select").each(function () {
@@ -88,31 +341,14 @@ function SetCustomerModalResult(selectedCustomerNumber) {
     $("#inputCustomer").val(currentCustomerId);
     $("#CustomerModal").modal("hide");
 }
-$(document).on("input", "#inputCustomer", function () {
-    const customerId = $(this).val();
-
-    if (!customerId || customerId.trim() === "") {
-        $("#inputCustomer").removeClass("is-valid").addClass("is-invalid");
-
-        ClearContactInfomration();
-        $(".customer-info").addClass("d-none");
-
-        return;
-    }
-
-    SearchCustomer(customerId);
-});
 function SearchCustomer(clientId) {
 
     if (!clientId || clientId.trim() === "") {
 
         $("#inputCustomer").removeClass("is-valid").addClass("is-invalid");
 
-        $(".shipto-section").addClass("d-none");
-
         ClearContactInfomration();
-
-        $(".customer-info").addClass("d-none");
+        updateVisibility();
 
         return;
     }
@@ -150,10 +386,9 @@ function SearchCustomer(clientId) {
             else {
 
                 $("#inputCustomer").removeClass("is-valid").addClass("is-invalid");
-                $(".shipto-section").addClass("d-none");
 
                 ClearContactInfomration();
-                $(".customer-info").addClass("d-none");
+                UpdateVisibility();
             }
             $.get(
                 "/client/corrective/GetAllSt/?client=" + clientId,
@@ -165,14 +400,12 @@ function SearchCustomer(clientId) {
     });
 }
 function LoadCustomerDetails(customerID, preserveValues = false) {
-
     $.ajax({
         url: "/client/corrective/GetAllSt/?client=" + customerID,
         type: "GET",
         dataType: "json",
         cache: true,
         async: true,
-
         success: function (data) {
             $("#inputCustomer").removeClass("is-invalid").addClass("is-valid");
 
@@ -189,19 +422,16 @@ function LoadCustomerDetails(customerID, preserveValues = false) {
                 $("#inputPhone").val(row.phone_no);
                 $("#inputExtension").val(row.phone_ext);
                 $("#inputFax").val(row.fax_no);
-                $(".customer-info").removeClass("d-none");
                 $("#inputShipTo").trigger("input");
+                UpdateVisibility();
             }
             else {
-
                 if (!preserveValues) {
                     ClearContactInfomration();
-                    $(".customer-info").addClass("d-none");
-                    $(".line-section").addClass("d-none");
+                    UpdateVisibility();
                 }
             }
         },
-
         error: function (xhr) {
 
             $("#inputCustomer").removeClass("is-valid").addClass("is-invalid");
@@ -272,26 +502,6 @@ function LoadShipToTable(source) {
         }
     });
 }
-$(document).on('click', '.shipto-select', function () {
-    const row = $("#ShipToTable")
-        .DataTable()
-        .row($(this).closest('tr'))
-        .data();
-    SetShipToModalResult(row);
-});
-$(document).on('input', '#inputShipTo', function () {
-    const shiptTo = $(this).val();
-
-    if (!shiptTo || shiptTo.trim() === "") {
-        ClearContactInfomration();
-        $(".customer-info").addClass("d-none");
-        $(".line-section").addClass("d-none");
-        return;
-    }
-
-    $(".customer-info").removeClass("d-none");
-    $(".line-section").removeClass("d-none");
-});
 function SetShipToModalResult(data) {
     var table = $("#ShipToTable").DataTable();
     table.search('').draw();
@@ -305,7 +515,7 @@ function SetShipToModalResult(data) {
 
     $("#inputShipTo").trigger("focus");
     $("#inputShipTo").trigger("input");
-
+    UpdateVisibility();
     $("#ShipToModal").modal("hide");
 }
 function LoadInvoiceTable() {
@@ -361,25 +571,6 @@ function LoadInvoiceTable() {
         }
     });
 }
-$(document).on('click', '.btn-search-invoice', function () {
-    selectedLineRow = $(this).closest('tr');
-    $("#InvoiceModal").modal("show");
-});
-$(document).on('input', '.invoice-input', function () {
-    selectedLineRow = $(this).closest('tr');
-    if (!selectedLineRow) {
-        return;
-    }
-    var invoiceInput = selectedLineRow.find('.invoice-input');
-    var selectedInvoice = invoiceInput.val();
-
-    if (!selectedInvoice || selectedInvoice.trim() == '') {
-        invoiceInput.addClass('bg-warning');
-    } else {
-        invoiceInput.removeClass('bg-warning');
-    }
-    LoadSequenceTable(selectedInvoice);
-});
 function SetInvoiceModalResult(invoice) {
     var table = $("#InvoiceTable").DataTable();
     table.search('').draw();
@@ -436,15 +627,6 @@ function LoadSequenceTable(invoice) {
         }
     });
 }
-$(document).on('click', '.btn-search-sequence', function () {
-    selectedLineRow = $(this).closest('tr');
-    var invoice = selectedLineRow.find('.invoice-input').val();
-    if (!invoice || invoice.trim() == '') {
-        return;
-    }
-    LoadSequenceTable(invoice);
-    $("#SequenceModal").modal("show");
-});
 function SetSequenceModalResult(sequenceNumber) {
     var table = $("#SequenceTable").DataTable();
     table.search('').draw();
@@ -458,19 +640,7 @@ function SetSequenceModalResult(sequenceNumber) {
     SetValuesBasedOnInvoice(invoice);
     $("#SequenceModal").modal("hide");
 }
-$(document).on('input', '.sequence-input', function () {
-    selectedLineRow = $(this).closest('tr');
-    var sequenceInput = selectedLineRow.find('.sequence-input');
-    var selectedSequence = sequenceInput.val();
-
-    if (!selectedSequence || selectedSequence.trim() == '') {
-        sequenceInput.addClass('bg-warning');
-    } else {
-        sequenceInput.removeClass('bg-warning');
-    }
-});
 function SetValuesBasedOnInvoice(invoice) {
-    console.log(invoice)
     if (!invoice || invoice.trim() == '') {
         return;
     }
@@ -485,7 +655,6 @@ function SetValuesBasedOnInvoice(invoice) {
         async: true,
         cache: true,
         success: function (data) {
-            console.log(data);
             if (data[0] !== undefined) {
 
                 //$("#msgloc" + linea).fadeOut();
@@ -544,15 +713,6 @@ function LoadPartNumberTable() {
         }
     });
 }
-$(document).on('click', '.btn-search-partnumber', function () {
-    selectedLineRow = $(this).closest('tr');
-    var invoice = selectedLineRow.find('.invoice-input').val();
-    var sequence = selectedLineRow.find('.sequence-input').val();
-    if ((!invoice || invoice.trim() == '') || (!sequence || sequence.trim() == '')) {
-        return;
-    }
-    $("#PartNumberModal").modal("show");
-});
 function SetPartNumberModalResult(partnumber) {
     var table = $("#PartNumberTable").DataTable();
     table.search('').draw();
@@ -565,67 +725,6 @@ function SetPartNumberModalResult(partnumber) {
 
     $("#PartNumberModal").modal("hide");
 }
-$(document).on('input', '.partnumber-input', function () {
-    selectedLineRow = $(this).closest('tr');
-    var partnumberInput = selectedLineRow.find('.partnumber-input');
-
-    var partnumber = partnumberInput.val().trim();
-
-    if (partnumber === '') {
-        partnumberInput.addClass('bg-warning');
-    } else {
-        partnumberInput.removeClass('bg-warning');
-    }
-
-});
-$(document).on('input', '.quantity-input', function () {
-    selectedLineRow = $(this).closest('tr');
-    var quantityInput = selectedLineRow.find('.quantity-input');
-    var quantity = quantityInput.val().trim();
-
-    if (quantity === '' || parseInt(quantity) === 0) {
-        quantityInput.addClass('bg-warning');
-        return;
-    }
-
-    quantityInput.removeClass('bg-warning');
-    CalculateTotalRmaValue();
-});
-$(document).on('input', '.price-input, .unitcost-input', function () {
-    selectedLineRow = $(this).closest('tr');
-
-    var unitPriceInput = selectedLineRow.find('.price-input');
-    var unitCostInput = selectedLineRow.find('.unitcost-input');
-
-    var unitPrice = parseFloat(unitPriceInput.val());
-    var unitCost = parseFloat(unitCostInput.val());
-
-    if (isNaN(unitPrice) || isNaN(unitCost)) {
-        return;
-    }
-
-    var unitPrice = parseFloat(unitPriceInput.val()).toFixed(2);
-    var unitCost = parseFloat(unitCostInput.val());
-
-    if (unitPrice > unitCost) {
-        unitPriceInput.removeClass("bg-warning");
-        unitCostInput.removeClass("bg-warning");
-        CalculateTotalRmaValue();
-    }
-    else {
-        unitPriceInput.addClass("bg-warning")
-
-        Swal.fire({
-            title: 'Price must be higher than unit cost. Do you want to continue?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#95a5a6',
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'No'
-        });
-    }
-});
 function CalculateTotalRmaValue() {
     var total = 0;
 
@@ -639,5 +738,57 @@ function CalculateTotalRmaValue() {
     $('.totalrmavalue-label').text(total.toFixed(2));
 }
 function LoadReturnCodeTable() {
+    $("#ReturnCodeTable").DataTable({
+        destroy: true,
+        deferRender: true,
+        "autoWidth": false,
+        "ajax": {
+            "url": "/client/corrective/GetAllS",
+            "type": "GET",
+            "dataType": "json"
+        },
+        "columns": [{
+            "data": "sy_code",
+            "render": function render(data, type, row) {
+                //return "<a class='btn-link' onClick='SetReturnCodeModalResult('')' id='btnreject" + linea + "' data-id=" + data.trim() + " data-desc=" + row.code_desc + ">" + data + "</a>";
+                return `<a class='link-opacity-100-hover' onClick="SetReturnCodeModalResult('${data}')">${data}</a>`;
+            }
+        }, {
+            "data": "code_desc"
+        }],
+        "language": {
+            "emptyTable": "No records found"
+        }
+    });
+}
+function SetReturnCodeModalResult(returnCode) {
+    var table = $("#ReturnCodeTable").DataTable();
+    table.search('').draw();
 
+    if (!selectedLineRow) {
+        return;
+    }
+
+    selectedLineRow.find('.returncode-input').val(returnCode);
+
+    $("#ReturnCodeModal").modal("hide");
+}
+function UpdateVisibility() {
+    const customerId = $("#inputCustomer").val()?.trim();
+    const shipTo = $("#inputShipTo").val()?.trim();
+
+    const hasCustomer = customerId && customerId.length > 0;
+    const hasShipTo = shipTo && shipTo.length > 0;
+
+    $(".shipto-section")
+        .toggleClass("d-none", !hasCustomer);
+
+    $(".customer-info")
+        .toggleClass("d-none", !(hasCustomer && hasShipTo));
+
+    $(".line-section")
+        .toggleClass("d-none", !(hasCustomer && hasShipTo));
+
+    $(".attachment-section")
+        .toggleClass("d-none", !(hasCustomer && hasShipTo));
 }

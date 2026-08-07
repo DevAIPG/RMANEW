@@ -451,8 +451,6 @@
                 type: 'GET',
                 data: { id: id },
                 success: function (response) {
-                    console.log('Success:', response);
-
                     var data = {
                         rmaNo: response.rmaNo,
                         orderDate: response.orderDate,
@@ -466,8 +464,6 @@
                         contentType: 'application/json',
                         data: JSON.stringify(data),
                         success: function (response) {
-                            console.log('Order creation success:', response);
-
                             $('#NewOrderModal .modal-title').text("Order Created");
                             $('#NewOrderModal .modal-body').html(response.message);
                             $('#NewOrderModal').modal('show');
@@ -546,8 +542,6 @@
                     var k = data.data[0].wherebuilt;
                     $("#k option[value='" + k + "']").attr("selected", true);
 
-                    console.log(data);
-
                 },
                 error: function (xhr, status, error) { $().toastmessage('showToast', { text: 'Error con ean ' + xhr.responseText, sticky: true, type: 'error' }); }
             });
@@ -570,7 +564,6 @@
 
                 success: function (data) {
                     var pdf = "";
-                    console.log(data);
                     $("#tblStandar").children("tbody").empty();
 
                     for (i = 0; i < data.data.length; i++) {
