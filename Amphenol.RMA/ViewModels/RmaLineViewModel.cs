@@ -6,6 +6,8 @@ namespace Amphenol.RMA.ViewModels
 {
     public class RmaLineViewModel : IValidatableObject
     {
+        public int Id { get; set; }
+
         [Required]
         public int RmaRequestId { get; set; }
         [Required]

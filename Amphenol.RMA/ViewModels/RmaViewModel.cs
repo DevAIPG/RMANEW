@@ -1,5 +1,7 @@
-﻿using Amphenol.RMA.Models;
+﻿using Amphenol.RMA.Enumerations;
+using Amphenol.RMA.Models;
 using DocumentFormat.OpenXml.Office2010.ExcelAc;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -19,11 +21,11 @@ namespace Amphenol.RMA.ViewModels
         public List<string> BuildLocations { get; } = [];
         [Required]
         public string SelectedBuildLocation { get; set; }
-        public decimal TotalValue { get; set; } = 0m;
+        public decimal TotalValue => Lines?.Sum(x => x.AuthorizedQuantity * x.Price) ?? 0m;
         public List<string> RequestTypes { get; } = [];
         [Required]
         public string SelectedRequestType { get; set; }
-        public List<SelectableStringOption> Reasons { get; } = [];
+        public List<string> Reasons { get; } = [];
         [Required]
         public string SelectedReason { get; set; }
         public string Description { get; set; }
@@ -39,6 +41,7 @@ namespace Amphenol.RMA.ViewModels
         [Required]
         public string Contact { get; set; }
         [Required]
+        [Phone]
         public string PhoneNumber { get; set; }
         public string ExtensionNumber { get; set; }
         public string Fax { get; set; }
@@ -49,22 +52,33 @@ namespace Amphenol.RMA.ViewModels
         public string CompanyEmail { get; set; }
         [Required]
         public string ShipTo { get; set; }
-
+        public RmaSubmitStatus SubmitStatus { get; set; }
+        public RmaRequestStatus RequestStatus { get; set; }
+        public bool CanSubmit => SubmitStatus == RmaSubmitStatus.NotSubmitted;
+        public bool CanResubmit => SubmitStatus == RmaSubmitStatus.Submitted && (
+            RequestStatus == RmaRequestStatus.Remark || RequestStatus == RmaRequestStatus.Rejected);
 
         //RMA lines
         public List<RmaLineViewModel> Lines { get; set; } = [];
 
 
         //RMA Attatchments
-        public List<RmaAttachmentViewModel> Attatchments { get; set; } = [];
+        public List<RmaAttachmentViewModel> Attachments { get; set; } = [];
         public List<IFormFile> UploadedFiles { get; set; } = [];
+
+
+
+        public string ReturnUrl { get; set; }
+        public string ReturnPageTitle { get; set; } = "RMA Requests";
+
         public RmaViewModel()
         {
             InitializeLookups();
         }
         public RmaViewModel(int? requestId = null)
         {
-            RequestId = requestId is not null ? (int)requestId : 0;
+            RequestId = int.Parse($"8{(requestId ?? 0):0000}");
+
             InitializeLookups();
         }
         public void InitializeLookups()
@@ -88,17 +102,17 @@ namespace Amphenol.RMA.ViewModels
             Reasons.Clear();
             Reasons.AddRange(
             [
-                new SelectableStringOption{ DisplayValue = "Billing Error", SelectedValue = "1" },
-                new SelectableStringOption{ DisplayValue = "Buyback", SelectedValue = "2" },
-                new SelectableStringOption{ DisplayValue = "Price Adjustment", SelectedValue = "3" },
-                new SelectableStringOption{ DisplayValue = "Price Protection", SelectedValue = "4" },
-                new SelectableStringOption{ DisplayValue = "Quality Issues - NG", SelectedValue = "5" },
-                new SelectableStringOption{ DisplayValue = "Quality Issues - END", SelectedValue = "6" },
-                new SelectableStringOption{ DisplayValue = "Shipping Error", SelectedValue = "7" },
-                new SelectableStringOption{ DisplayValue = "Contractual Return/Stock", SelectedValue = "8" },
-                new SelectableStringOption{ DisplayValue = "Ship and Debits", SelectedValue = "9" },
-                new SelectableStringOption{ DisplayValue = "Scrap Allowance", SelectedValue = "10" },
-                new SelectableStringOption{ DisplayValue = "Marcomco-op", SelectedValue = "11" },
+                "Billing Error",
+                "Buyback",
+                "Price Adjustment",
+                "Price Protection",
+                "Quality Issues - NG",
+                "Quality Issues - END",
+                "Shipping Error",
+                "Contractual Return/Stock",
+                "Ship and Debits",
+                "Scrap Allowance",
+                "Marcomco-op",
             ]);
         }
     }

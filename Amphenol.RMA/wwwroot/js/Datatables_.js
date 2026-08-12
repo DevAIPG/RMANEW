@@ -44,6 +44,7 @@ $.ajax({
 });
 //RMA
 function cargarDatatableRma() {
+    const returnUrl = window.location.pathname + window.location.search;
     $.ajax({
         url: "/Client/rma/GetAllrma",
         type: "GET",
@@ -72,8 +73,8 @@ function cargarDatatableRma() {
                                      </a>`;
                             if (row.status != "Approved" && parseInt(row.res_id) == username) {
                                 const editButton = `
-                                    <a class="btn btn-light btn-sm action-btn d-flex align-items-center justify-content-center" id="btneditlines"
-                                              data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit RMA">
+                                    <a class="btn btn-light btn-sm action-btn d-flex align-items-center justify-content-center"
+                                       href="/Client/Rma/Edit?requestId=${row.id}&returnUrl=${encodeURIComponent(returnUrl)}" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit RMA">
                                         <i class="fa fa-pen"></i>
                                     </a>`;
                                 if (row.status == "Rejected") {
@@ -1613,7 +1614,7 @@ function reloadLineasControl() {
 
 //control rma
 function cargarDatatableRma2() {
-
+    const returnUrl = window.location.pathname + window.location.search;
     dataTable = $("#tblCar").DataTable({
         "order": [[2, "desc"]],
         "fixedColumns": {
@@ -1632,12 +1633,14 @@ function cargarDatatableRma2() {
                 "width": "70px",
                 "data": "id",
                 "render": function render(data, type, row) {
+                    const editButton = `
+                                    <a class="btn btn-light btn-sm action-btn d-flex align-items-center justify-content-center"
+                                       href="/Client/Rma/Edit?requestId=${row.id}&returnUrl=${encodeURIComponent(returnUrl)}" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit RMA">
+                                        <i class="fa fa-pen"></i>
+                                    </a>`;
                     return `
                         <div class="d-flex gap-1">
-                              <a href="#" class="btn btn-sm btn-light action-btn d-flex align-items-center gap-1" data-id="${row.id}" id="btneditlinescontrol" 
-                                data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="right" title="Edit RMA Request">
-                                <i class="fas fa-edit"></i>
-                              </a>
+                            ${editButton}
                             <div class="dropdown">
                               <button class="btn btn-light action-btn d-flex" type="button" id="moreOptions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <i class="fa fa-ellipsis-v"></i>

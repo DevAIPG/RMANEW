@@ -1688,20 +1688,20 @@ function botonrechazo(event) {
     }
 }
 
-function botonaprobar(event) {
-    var botonaprobar = document.getElementById("botonaprobar");
-    botonaprobar.disabled = false;
-    $(".cargar").hide();
-    var formulario = document.getElementById("frmaprobar");
+//function botonaprobar(event) {
+//    var botonaprobar = document.getElementById("botonaprobar");
+//    botonaprobar.disabled = false;
+//    $(".cargar").hide();
+//    var formulario = document.getElementById("frmaprobar");
 
-    if (enviando == false) {
-        enviando = true;
-        formulario.submit();
-        $(".gif").show();
-    } else {
-        console.log("The form is already being sent");
-    }
-}
+//    if (enviando == false) {
+//        enviando = true;
+//        formulario.submit();
+//        $(".gif").show();
+//    } else {
+//        console.log("The form is already being sent");
+//    }
+//}
 
 if ($("#select").val() == "DISTY SCRAP ALLOWANCE") {
     $(".ocultar500").hide();

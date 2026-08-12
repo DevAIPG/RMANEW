@@ -8,7 +8,7 @@
     </td>
     <td>
         <div class="input-group">
-            <input class="form-control bg-warning invoice-input" type="text" readonly asp-for="InvoiceNumber" id="Line_@(index)_InvoiceNumber"
+            <input class="form-control  invoice-input" type="text" readonly asp-for="InvoiceNumber" id="Line_@(index)_InvoiceNumber"
                    name="Lines[@(index)].InvoiceNumber" />
             <span class="btn btn-sm btn-outline-secondary btn-search-invoice"><i class="fa fa-search"></i></span>
         </div>
@@ -16,7 +16,7 @@
     </td>
     <td>
         <div class="input-group">
-            <input class="form-control bg-warning sequence-input" type="text" readonly asp-for="SequenceNumber" id="Line_@(index)_SequenceNumber"
+            <input class="form-control  sequence-input" type="text" readonly asp-for="SequenceNumber" id="Line_@(index)_SequenceNumber"
                    name="Lines[@(index)].SequenceNumber" />
             <span class="btn btn-sm btn-outline-secondary btn-search-sequence"><i class="fa fa-search"></i></span>
         </div>
@@ -24,7 +24,7 @@
     </td>
     <td>
         <div class="input-group">
-            <input class="form-control bg-warning partnumber-input" type="text" readonly asp-for="PartNumber" id="Line_@(index)_PartNumber"
+            <input class="form-control  partnumber-input" type="text" readonly asp-for="PartNumber" id="Line_@(index)_PartNumber"
                    name="Lines[@(index)].PartNumber" />
             <span class="btn btn-sm btn-outline-secondary btn-search-partnumber"><i class="fa fa-search"></i></span>
         </div>
@@ -43,17 +43,17 @@
         </select>
     </td>
     <td>
-        <input class="form-control bg-warning quantity-input" type="number" asp-for="AuthorizedQuantity" id="Line_@(index)_AuthorizedQuantity"
+        <input class="form-control  quantity-input" type="number" asp-for="AuthorizedQuantity" id="Line_@(index)_AuthorizedQuantity"
                name="Lines[@(index)].AuthorizedQuantity" />
         <span asp-validation-for="AuthorizedQuantity" class="text-danger"></span>
     </td>
     <td>
-        <input class="form-control bg-warning price-input" type="number" asp-for="Price" id="Line_@(index)_Price"
+        <input class="form-control  price-input" type="number" asp-for="Price" id="Line_@(index)_Price"
                name="Lines[@(index)].Price" />
         <span asp-validation-for="Price" class="text-danger"></span>
     </td>
     <td>
-        <input class="form-control bg-warning unitcost-input" type="number" asp-for="UnitCost" id="Line_@(index)_UnitCost"
+        <input class="form-control  unitcost-input" type="number" asp-for="UnitCost" id="Line_@(index)_UnitCost"
                name="Lines[@(index)].UnitCost" />
         <span asp-validation-for="UnitCost" class="text-danger"></span>
     </td>

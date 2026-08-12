@@ -6,73 +6,80 @@
 <link href="~/css/jquery.loadingModal.min.css" rel="stylesheet" />
 <div asp-validation-summary="All" class="alert alert-danger"></div>
 <div class="card">
-    <form method="post" enctype="multipart/form-data">
-        <div class="card-header">
-            <div class="row p-3">
+    <form id="newRmaForm" method="post" enctype="multipart/form-data">
+        <div class="card-header m-3 bg-white">
+            <div class="card-title">
                 <div class="col-12">
                     <h5 class="font-weight-bold">New RMA Request</h5>
+                    
+                    <small class="text-muted">
+                        
+                        <span class="text-danger">*</span> Required fields
+                        
+                    </small>
                 </div>
             </div>
         </div>
         <div class="card-body">
+            @Html.HiddenFor(x => x.RequestId)
+            @Html.HiddenFor(x => x.SubmitStatus)
+            @Html.HiddenFor(x => x.RequestStatus)
             <!-- Request Information -->
-            <div class="row p-3">
+            <div class="row m-3">
                 <div class="col-12 mb-3">
-                    <h5 class="font-weight-bold">RMA Information</h5>
+                    <h5 class="font-weight-bold">1- RMA Information</h5>
                 </div>
                 <div class="col-6">
                     <div class="mb-2 row">
-                        <label class="col-3 col-form-label font-weight-bold">Request #:</label>
-                        <label class="col-9 form-control disabled" style="background-color:#e9ecef">@Model.RequestId</label>
-                        @Html.HiddenFor(x => x.RequestId)
+                        <label class="col-4 col-form-label font-weight-bold">Request Number:</label>
+                        <label class="col-8 form-control disabled" style="background-color:#e9ecef">@Model.RequestId</label>
                     </div>
                     <div class="mb-2 row">
-                        <label class="col-3 col-form-label font-weight-bold">Build Location:</label>
-                        <select class="col-9 form-select form-control" asp-for="SelectedBuildLocation" id="selectWherebuilt"
+                        <label class="col-4 col-form-label font-weight-bold">Build Location<span class="ml-2 text-danger">*</span></label>
+                        <select class="col-8 form-select form-control" asp-for="SelectedBuildLocation" id="selectWherebuilt"
                                 asp-items="@(new SelectList(Model.BuildLocations))">
                         </select>
                     </div>
                     <div class="mb-2 row">
-                        <label class="col-3 col-form-label font-weight-bold">Request Type:</label>
-                        <select class="col-9 form-select form-control" asp-for="SelectedRequestType" id="selectRequestType"
+                        <label class="col-4 col-form-label font-weight-bold">Request Type <span class="ml-2 text-danger">*</span></label>
+                        <select class="col-8 form-select form-control" asp-for="SelectedRequestType" id="selectRequestType"
                                 asp-items="@(new SelectList(Model.RequestTypes))">
                         </select>
                     </div>
                     <div class="mb-2 row">
-                        <div class="col-3 col-form-label font-weight-bold">Description:</div>
-                        <input class="col-9  form-control" asp-for="Description" id="inputDescription" maxlength="29" />
+                        <div class="col-4 col-form-label font-weight-bold">Customer Complaint<span class="ml-2 text-danger">*</span></div>
+                        <textarea class="col-8 form-control  complaint-textarea" rows="4" asp-for="Complaint" id="textareaComplaint"></textarea>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="mb-2 row">
-                        <label class="col-3 col-form-label font-weight-bold">Date:</label>
-                        <label class="col-9 form-control disabled" style="background-color:#e9ecef">@Model.Date.ToString("MM/dd/yyyy")</label>
+                        <label class="col-4 col-form-label font-weight-bold">Date:</label>
+                        <label class="col-8 form-control disabled" style="background-color:#e9ecef">@Model.Date.ToString("MM/dd/yyyy")</label>
                     </div>
                     <div class="mb-2 row">
-                        <label class="col-3 col-form-label font-weight-bold">Total Value:</label>
-                        <label class="col-9 form-control totalrmavalue-label disabled" style="background-color:#e9ecef">@Model.TotalValue</label>
-                    </div>
-                    <div class="mb-2 row">
-                        <label class="col-3 col-form-label font-weight-bold">Reason:</label>
-                        <select class="col-9 form-select form-control" asp-for="SelectedReason" id="selectReason"
-                                asp-items="@(new SelectList(Model.Reasons, nameof(SelectableStringOption.SelectedValue), nameof(SelectableStringOption.DisplayValue)))">
+                        <label class="col-4 col-form-label font-weight-bold">RMA Reason<span class="ml-2 text-danger">*</span></label>
+                        <select class="col-8 form-select form-control" asp-for="SelectedReason" id="selectReason"
+                                asp-items="@(new SelectList(Model.Reasons))">
                         </select>
                     </div>
+                    <div class="mb-2 row">
+                        <div class="col-4 col-form-label font-weight-bold">Issue Description:</div>
+                        <input class="col-8 form-control" asp-for="Description" id="inputDescription" maxlength="29" />
+                    </div>
                 </div>
-                <div class="col-12">
-                    <hr>
+                <div class="border-top mt-4 pt-4">
                 </div>
             </div>
             <!-- Customer Information -->
-            <div class="row p-3">
+            <div class="row m-3">
                 <div class="col-12 mb-3">
-                    <h5 class="font-weight-bold">Customer Information</h5>
+                    <h5 class="font-weight-bold">2- Customer Information</h5>
                 </div>
                 <div class="col-6">
                     <div class="mb-2 row">
-                        <label class="col-3 col-form-label font-weight-bold" for="inputCustomer">Customer:</label>
-                        <div class="col-9 input-group">
-                            <input class="form-control" placeholder="Enter or search for a customer id" asp-for="CustomerId" id="inputCustomer" required list="customerOptions" autocomplete="off" />
+                        <label class="col-4 col-form-label font-weight-bold" for="inputCustomer">Customer Number<span class="ml-2 text-danger">*</span></label>
+                        <div class="col-8 input-group">
+                            <input tabindex="1" class="form-control  customer-input" placeholder="Enter or search for a customer id" asp-for="CustomerId" id="inputCustomer" list="customerOptions" autocomplete="off" />
                             <span class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#CustomerModal"><i class="fa fa-search"></i></span>
                         </div>
                         <datalist id="customerOptions">
@@ -82,88 +89,82 @@
                         </div>
                     </div>
                     <div class="mb-2 row customer-info d-none">
-                        <label class="col-3 col-form-label font-weight-bold">Contact:</label>
-                        <div class="col-9 input-group">
-                            <input class="form-control" asp-for="Contact" id="inputContact" />
+                        <label class="col-4 col-form-label font-weight-bold">Contact<span class="ml-2 text-danger">*</span></label>
+                        <div class="col-8 input-group">
+                            <input class="form-control  contact-input" asp-for="Contact" id="inputContact" />
                             <span asp-validation-for="Contact" class="col-12 text-danger"></span>
                         </div>
 
                     </div>
                     <div class="mb-2 row customer-info d-none">
-                        <label class="col-3 col-form-label font-weight-bold">
-                            Phone:
+                        <label class="col-4 col-form-label font-weight-bold">
+                            Phone<span class="ml-2 text-danger">*</span>
                         </label>
-                        <div class="col-9">
+                        <div class="col-8">
                             <div class="row">
                                 <div class="col-6">
-                                    <input class="form-control" asp-for="PhoneNumber" id="inputPhone" />
+                                    <input class="form-control  phone-input" type="tel" asp-for="PhoneNumber" id="inputPhone" />
                                 </div>
                                 <label class="col-2 col-form-label font-weight-bold">
                                     Ext:
                                 </label>
                                 <div class="col-4">
-                                    <input class="form-control" asp-for="ExtensionNumber" id="inputExtension" />
+                                    <input class="form-control" asp-for="ExtensionNumber" type="tel" id="inputExtension" />
                                 </div>
                                 <span asp-validation-for="PhoneNumber" class="col-12 text-danger"></span>
                             </div>
                         </div>
                     </div>
                     <div class="mb-2 row customer-info d-none">
-                        <label class="col-3 col-form-label font-weight-bold">Email:</label>
-                        <div class="col-9 input-group">
-                            <input class="form-control" asp-for="ContactEmail" id="inputContactEmail" />
+                        <label class="col-4 col-form-label font-weight-bold">Email<span class="ml-2 text-danger">*</span></label>
+                        <div class="col-8 input-group">
+                            <input class="form-control  contactEmail-input" asp-for="ContactEmail" id="inputContactEmail" />
                             <span asp-validation-for="ContactEmail" class="col-12 text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="mb-2 row customer-info d-none">
-                        <label class="col-3 col-form-label font-weight-bold">Complaint:</label>
-                        <div class="col-9 input-group">
-                            <textarea class="form-control" asp-for="Complaint" id="textareaComplaint"></textarea>
-                            <span asp-validation-for="Complaint" class="col-12 text-danger"></span>
                         </div>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="mb-2 row shipto-section d-none">
-                        <label class="col-3 col-form-label font-weight-bold">Ship To:</label>
-                        <div class="col-9 input-group">
-                            <input class="form-control disabled" readonly asp-for="ShipTo" id="inputShipTo" required autocomplete="off" />
+                        <label class="col-4 col-form-label font-weight-bold">Ship To<span class="ml-2 text-danger">*</span></label>
+                        <div class="col-8 input-group">
+                            <input tabindex="2" class="form-control  shipto-input disabled" readonly asp-for="ShipTo" id="inputShipTo" autocomplete="off" />
                             <span class="btn btn-sm btn-outline-secondary" onclick="OpenShipToModal()"><i class="fa fa-search"></i></span>
                             <span asp-validation-for="ShipTo" class="col-12 text-danger"></span>
                         </div>
                     </div>
                     <div class="mb-2 row customer-info d-none">
-                        <label class="col-3 col-form-label font-weight-bold">Cust. PO #:</label>
-                        <div class="col-9 input-group">
-                            <input class="form-control" asp-for="PoNumber" id="inputCustomerPo" />
+                        <label class="col-4 col-form-label font-weight-bold">PO Number<span class="ml-2 text-danger">*</span></label>
+                        <div class="col-8 input-group">
+                            <input class="form-control  po-input" asp-for="PoNumber" id="inputCustomerPo" />
                             <span asp-validation-for="PoNumber" class="col-12 text-danger"></span>
                         </div>
 
                     </div>
                     <div class="mb-2 row customer-info d-none">
-                        <label class="col-3 col-form-label font-weight-bold">Fax:</label>
-                        <div class="col-9 input-group">
+                        <label class="col-4 col-form-label font-weight-bold">Fax:</label>
+                        <div class="col-8 input-group">
                             <input class="form-control" asp-for="Fax" id="inputFax" />
                         </div>
                     </div>
                     <div class="mb-2 row customer-info d-none">
-                        <label class="col-3 col-form-label font-weight-bold">Company Email:</label>
-                        <div class="col-9 input-group">
+                        <label class="col-4 col-form-label font-weight-bold">Company Email:</label>
+                        <div class="col-8 input-group">
                             <input class="form-control disabled" readonly asp-for="CompanyEmail" id="inputCompanyEmail" />
                         </div>
                     </div>
                 </div>
-                <div class="col-12 mt-3 mb-3">
-                    <hr>
+                <div class="border-top mt-4 pt-4">
+
                 </div>
             </div>
             <!-- Line Information -->
-            <div class="row line-section p-3 d-none">
+            <div class="row line-section m-3 d-none">
                 <div class="col-12 mb-3">
-                    <h5 class="font-weight-bold mr-3">Lines</h5>
+                    <h5 class="font-weight-bold mr-3">3- Lines</h5>
                     <span class="btn btn-sm btn-primary action-btn float-right btn-add-rma-line"><i class="fa fa-plus"></i></span>
                 </div>
-                <div class="col-12">
+
+                <div class="col-12 mb-2">
                     <div class="table-responsive">
                         <table id="LineTable" class="table table-striped table-bordered text-center align-middle" style="table-layout:fixed;">
                             <colgroup>
@@ -219,14 +220,20 @@
                         </table>
                     </div>
                 </div>
+                <div class="col-12 mt-3">
+                    <div class="alert alert-light border mb-0 text-right">
+                        <strong>Total RMA Value:</strong>
+                        $<span class="totalrmavalue-label">@Model.TotalValue</span>
+                    </div>
+                </div>
                 <div class="col-12 mt-3 mb-3">
                     <hr>
                 </div>
             </div>
             <!-- Attachment Information -->
-            <div class="row attachment-section p-3 d-none">
+            <div class="row attachment-section m-3 d-none">
                 <div class="col-12 mb-3">
-                    <h5 class="font-weight-bold">Attachments</h5>
+                    <h5 class="font-weight-bold">4- Attachments</h5>
                     <span class="btn btn-sm btn-primary action-btn float-right btn-add-rma-attachment"><i class="fa fa-plus"></i></span>
                 </div>
                 <div class="col-12">
@@ -244,11 +251,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @if (Model.Attatchments != null && Model.Attatchments.Any())
+                                @if (Model.Attachments != null && Model.Attachments.Any())
                                 {
-                                    @for (int i = 0; i < Model.Attatchments.Count; i++)
+                                    @for (int i = 0; i < Model.Attachments.Count; i++)
                                     {
-                                        @await Html.PartialAsync("RmaAttachmentRow", Model.Attatchments[i], new ViewDataDictionary(ViewData) { ["Index"] = i })
+                                        @await Html.PartialAsync("RmaAttachmentRow", Model.Attachments[i], new ViewDataDictionary(ViewData) { ["Index"] = i })
                                     }
                                 }
                                 else
@@ -270,339 +277,22 @@
                 </div>
             </div>
         </div>
-        <div class="card-footer text-right">
+        <div class="card-footer m-3 bg-white text-right">
             <button type="button" class="btn btn-secondary mr-5">
                 Cancel
             </button>
 
-            <button type="button" class="btn btn-outline-primary mr-3">
+            <button type="submit" name="submitAction" value="save" class="btn btn-outline-primary mr-3">
                 Save & Exit
             </button>
 
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" name="submitAction" value="submit" class="btn btn-primary">
                 Submit RMA
             </button>
         </div>
     </form>
 </div>
 
-
-
-@* <br />
-<div class="gif">
-    <img src="~/tenor.gif" alt="">
-</div>
-<div class="cargar" ng-controller="Rma">
-
-
-    <br />
-    <br />
-
-    <form id="crearma" name="formulario" method="post" enctype="multipart/form-data" autocomplete="off">
-        <input type="hidden" id="proceso" value="create" />
-        <input type="hidden" id="folio" value="@ViewBag.folio" />
-        <input type="hidden" id="clientesmodelo" value="@Model.CSEXSW_Rma.Customer" />
-        <input type="hidden" id="preparado" value="@Model.CSEXSW_Rma.Preparado" />
-        <div class="row px-2 mx-2 card" style="    border-top: 8px deepskyblue solid;">
-
-            <div class="card-body">
-
-
-                <input asp-for="CSEXSW_Rma.Id" type="hidden" id="id" />
-                <div class="row mb-3">
-                    <div class="col">
-                        <h2 style="font-family:Arial" class="font-weight-bolder text-primary">New RMA Request</h2>
-                    </div>
-
-                </div>
-
-                <div class="form-group row">
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Rmarequest"></label>
-                        <input class="form-control" asp-for="CSEXSW_Rma.Rmarequest" readonly="readonly" placeholder="Enter value here" class="" id="foliorma" />
-                    </div>
-                    <input type="hidden" asp-for="CSEXSW_Rma.Status" id="rmastatus" />
-                    <input type="hidden" asp-for="CSEXSW_Rma.Approver" id="rmaapprover" />
-                    <input type="hidden" asp-for="CSEXSW_Rma.Sumbit" id="rmasumbit" />
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Date"></label>
-                        <input class="form-control" asp-for="CSEXSW_Rma.Date" value="@DateTime.Today.ToString("MM/dd/yyyy ")" readonly="readonly" style="background: #efef7b;" id="rmadata" />
-                    </div>
-                </div>
-                <div class="form-group row">
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Wherebuilt"></label>
-                        <select class="form-control" id="validar1" asp-for="CSEXSW_Rma.Wherebuilt">
-
-                            <option value="0">Select an option</option>
-                            <option value="Nogales">Nogales</option>
-                            <option value="Endicott">Endicott</option>
-                            <option value="Mesa">Mesa</option>
-                        </select><br />
-                        <span class="spam1 text-danger">Mandatory: Where built</span>
-                    </div>
-
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Totalrmavalues"></label>
-                        <input class="form-control" type="number" class="validar" style="background: #efef7b;" id="total" step="any" placeholder="0" min="0" asp-for="CSEXSW_Rma.Totalrmavalues" readonly="readonly" />
-                    </div>
-
-                </div>
-                <div class="form-group row">
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Customer"></label>
-                        <div class="d-flex ">
-
-
-                            <input class="form-control" style="margin-right:10px ; " asp-for="CSEXSW_Rma.Customer" id="client" placeholder="Enter value here" ng-model="clientobservado" ng-keyup="buscarclient()" onkeyup="javascript:this.value=this.value.toUpperCase();" />
-                            <a style="align-content:center " data-toggle='modal' data-target='#tblAm'>
-                                <img src="~/buscar.png" />
-                            </a>
-                        </div>
-                        <br />
-                        <span class="spam4 text-danger">Client not exit</span>
-
-                        <span class="spam3 text-danger">Mandatory: Customer</span>
-                    </div>
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Rmatypeofrequest"></label>
-                        <select class="form-control" id="select" asp-for="CSEXSW_Rma.Rmatypeofrequest">
-                            <option value="0">Select an option</option>
-                            <option value="VALUE ADD RMA">VALUE ADD RMA</option>                  
-                            <option value="CREDIT ONLY">CREDIT ONLY</option>
-                            <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
-                        </select><br />
-                        <span class="spam2 text-danger">Mandatory: RMA type of Request</span>
-                    </div>
-
-
-                </div>
-                <div class="form-group row">
-
-
-                    <div class="col">
-
-                        <label>RMA Reason</label>
-
-                        <select class="form-control" id="sreason" asp-for="CSEXSW_Rma.reason">
-                            <option value="0">Select an option</option>
-                            <option value="1">Billing Error</option>
-                            <option value="2">Buyback</option>
-                            <option value="3">Price Adjustment</option>
-                            <option value="4">Price Protection</option>
-                            <option value="5">Quality Issues - NG </option>
-                            <option value="6">Quality Issues - END</option>
-                            <option value="7">Shipping Error</option>
-                            <option value="8">Contractual Return/Stock</option>
-                            <option value="9">Ship and Debits</option>
-                            <option value="10">Scrap Allowance</option>
-                            <option value="11">Marcomco-op</option>
-                        </select> <br />
-                        <span class="spam2 text-danger">Mandatory: RMA Reason</span>
-
-                    </div>
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Customercomplait" style="display:none;"></label>
-                        <input class="form-control" asp-for="CSEXSW_Rma.Customercomplait" style="display:none;" id="customercomplait" />
-                    </div>
-
-
-                </div>
-
-
-
-                <div class="form-group row">
-
-
-                    <div class="ocultar500 col">
-                        <label asp-for="CSEXSW_Rma.RMA500"></label>
-                        <select class="form-control" asp-for="CSEXSW_Rma.RMA500" id="rma500">
-                            <option value="">Select an option</option>
-                            <option value="Yes">Yes</option>
-                            <option value="No">No</option>
-                        </select>
-                    </div>
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Customerpo"></label>
-                        <input class="form-control" id="customerpo" asp-for="CSEXSW_Rma.Customerpo" placeholder="Enter value here" />
-                    </div>
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Description"></label>
-                        <input class="form-control" asp-for="CSEXSW_Rma.Description" id="description" maxlength="29" />
-                    </div>
-
-                </div>
-
-                <div class="form-group row">
-
-
-                    <div class="col " ng-if="cliente == true">
-                        <label asp-for="CSEXSW_Rma.Ship_To"></label>
-
-                        <div class="d-flex">
-                            <input class="form-control  " style="margin-right:10px" asp-for="CSEXSW_Rma.Ship_To" ng-blur="ship()" id="ship" readonly="readonly" />
-                            <a data-toggle='modal' style="align-content:center" data-target='#mtblSt'><img src="~/buscar.png" /></a>
-                        </div>
-                        <br />  <span class="spam5 text-danger">Mandatory: Ship_To</span>
-                    </div>
-
-                    <div class="col ship">
-                        <label>Contact</label>
-                        <input class="form-control" type="text" id="contact" asp-for="CSEXSW_Rma.Contact" />
-
-                    </div>
-                </div>
-                <div class="ship form-group row">
-
-                    <div class=" col">
-                        <label>Import RMA Lines</label>
-                        <input class="form-control" type="file" name="archivos2" id="subidaArchivo2" style="margin-bottom:5px" />
-
-
-                        <button type="button" ng-click="importexcel()" class="btn btn-primary">Import</button>
-                    </div>
-
-                    <div class="col">
-                        <label>Phone</label>
-                        <input class="form-control" type="text" id="phone" asp-for="CSEXSW_Rma.Phone" />
-
-
-                    </div>
-                    <div class="col">
-                        <label>
-                            Ext.
-                        </label>
-                        <input class="form-control" type="text" id="ext" asp-for="CSEXSW_Rma.Ext" />
-
-
-                    </div>
-                </div>
-
-
-
-
-
-                <div class="ship form-group row">
-
-
-                    <div class="col">
-                        <label>Fax</label>
-                        <input class="form-control" type="text" id="fax" asp-for="CSEXSW_Rma.Fax" />
-
-                    </div>
-
-                    <div class="col">
-                        <label>Contact E-mail</label>
-                        <input class="form-control" type="text" id="contactemail" asp-for="CSEXSW_Rma.Email" />
-                        <span asp-validation-for="CSEXSW_Rma.Email" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="ship form-group row">
-
-
-
-                    <div class="col">
-                        <label>Company E-mail</label>
-                        <input class="form-control" type="text" id="companyemail" background: #efef7b;" readonly="readonly" asp-for="CSEXSW_Rma.Company" />
-
-                    </div>
-
-                    <div class="col">
-                        <a ng-if="cliente == true && count != 0 && clientelineas == true" class="btn btn-primary" data-toggle='modal' data-target='#tblIm2' style="color: white;" ng-click="moverA(1)">
-                            Invoice History Price
-                        </a>
-                    </div>
-
-                </div>
-                <div class="form-group row">
-
-                    <div class="col">
-                        <label asp-for="CSEXSW_Rma.Comment"></label>
-                        <textarea class="form-control" asp-for="CSEXSW_Rma.Customercomplait" rows="50" id="comment" class="form-control" style="height:100px; width:100%; resize:none; overflow-y:scroll;"></textarea>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-
-
-        <partial  name="SharedRma/_Modalstabla" />
-
-        <table class="m-3" id="tblStandar" ng-if="cliente == true">
-            <thead>
-                <tr>
-
-                    <th>Attachments</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <tr>
-                    <form>
-
-                        <div class="form-group">
-
-                    <td align="center"><input type="file" class="form-control" name="archivos" id="subidaArchivo" multiple /></td>
-</div>
-                    </form>
-                 </tr>
-
-
-           </tbody>
-
-
-       </table>
-
-
-
-
-
-
-    </form>
-
-
-<div class="col-10 offset-0 mt-4">
-    <div class="form-group row">
-        <div class="col ">
-            <div class="row d-flex ">
-                <div class="col-1">
-                    <button type="submit" onclick="Cargar()" class="btn-primary btn form-control ">Save</button>
-                    &nbsp;
-                </div>
-                <div class="col-1">
-                    <button type="submit" id="creer" onclick="Cargar2()" class=" btn-primary btn form-control" style="display: none;">Submit</button>
-                    &nbsp;
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="spinner-border m-5" style="display:none;" role="status" id="loading">
-    <span class="sr-only">Loading...</span>
-</div>
-
-
-<div id="wrapper">
-    <section>
-        <div class="data-container"></div>
-        <div id="demo"></div>
-    </section>
-</div>
-<partial name="_ModalsRma" />
-</div> *@
 <partial name="_RmaRequestModals" />
 @section Scripts {
     <script src="~/js/jquery.loadingModal.min.js"></script>

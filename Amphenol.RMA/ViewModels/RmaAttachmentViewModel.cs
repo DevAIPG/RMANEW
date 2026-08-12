@@ -8,9 +8,7 @@ namespace Amphenol.RMA.ViewModels
 
         public string FileName { get; set; }
 
-        public string StorageFileName { get; set; }
-
-        public string DownloadUrl { get; set; }
+        public string FilePath { get; set; }
 
         public bool MarkedForDeletion { get; set; }
     }

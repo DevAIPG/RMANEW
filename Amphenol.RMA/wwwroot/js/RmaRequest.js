@@ -6,19 +6,11 @@ let invoices = [];
 const attachmentStore = new DataTransfer();
 
 $(document).ready(function () {
-    LoadCustomerTable();
-    LoadPartNumberTable();
-    LoadReturnCodeTable();
-
-    if ($("#inputCustomer").val()) {
-        LoadCustomerDetails($("#inputCustomer").val(), true);
-    }
-
-    UpdateVisibility();
+    InitializeForm();
 });
 $(document).on("click", ".btn-add-rma-line", function () {
 
-    let index = $("#LineTable tbody tr").length-1;
+    let index = $("#LineTable tbody tr").length - 1;
 
     $.get("/Client/Rma/AddLineRow", function (html) {
 
@@ -77,7 +69,7 @@ $(document).on('input', '#inputShipTo', function () {
         return;
     }
 
-    $(this).valid();
+    /*    $(this).valid();*/
 
     UpdateVisibility();
 });
@@ -94,9 +86,9 @@ $(document).on('input', '.invoice-input', function () {
     var selectedInvoice = invoiceInput.val();
 
     if (!selectedInvoice || selectedInvoice.trim() == '') {
-        invoiceInput.addClass('bg-warning');
+        invoiceInput.addClass('border-danger');
     } else {
-        invoiceInput.removeClass('bg-warning');
+        invoiceInput.removeClass('border-danger');
     }
     LoadSequenceTable(selectedInvoice);
 });
@@ -115,9 +107,9 @@ $(document).on('input', '.sequence-input', function () {
     var selectedSequence = sequenceInput.val();
 
     if (!selectedSequence || selectedSequence.trim() == '') {
-        sequenceInput.addClass('bg-warning');
+        sequenceInput.addClass('border-danger');
     } else {
-        sequenceInput.removeClass('bg-warning');
+        sequenceInput.removeClass('border-danger');
     }
 });
 $(document).on('click', '.btn-search-partnumber', function () {
@@ -138,9 +130,9 @@ $(document).on('input', '.partnumber-input', function () {
     $(this).valid();
 
     if (partnumber === '') {
-        partnumberInput.addClass('bg-warning');
+        partnumberInput.addClass('border-danger');
     } else {
-        partnumberInput.removeClass('bg-warning');
+        partnumberInput.removeClass('border-danger');
     }
 
 });
@@ -150,13 +142,13 @@ $(document).on('input', '.quantity-input', function () {
     var quantity = quantityInput.val().trim();
 
     if (quantity === '' || parseInt(quantity) === 0) {
-        quantityInput.addClass('bg-warning');
+        quantityInput.addClass('border-danger');
         return;
     }
 
     $(this).valid();
 
-    quantityInput.removeClass('bg-warning');
+    quantityInput.removeClass('border-danger');
     CalculateTotalRmaValue();
 });
 $(document).on('input', '.price-input, .unitcost-input', function () {
@@ -176,12 +168,12 @@ $(document).on('input', '.price-input, .unitcost-input', function () {
     var unitCost = parseFloat(unitCostInput.val());
 
     if (unitPrice > unitCost) {
-        unitPriceInput.removeClass("bg-warning");
-        unitCostInput.removeClass("bg-warning");
+        unitPriceInput.removeClass("border-danger");
+        unitCostInput.removeClass("border-danger");
         CalculateTotalRmaValue();
     }
     else {
-        unitPriceInput.addClass("bg-warning")
+        unitPriceInput.addClass("border-danger")
 
         Swal.fire({
             title: 'Price must be higher than unit cost. Do you want to continue?',
@@ -288,9 +280,56 @@ $(document).on('change', '#attachmentInput', function () {
 
     this.files = attachmentStore.files;
 })
-$(document).on('input', '#inputContact,#inputCustomerPo, #inputPhone, #inputContactEmail, #textareaComplaint', function () {
-    $(this).valid();
-})
+$(document).on(
+    "input change",
+    ".customer-input, .contact-input, .phone-input, .contactEmail-input, .complaint-textarea, .shipto-input, .po-input, .invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input, .returncode-input",
+    function () {
+
+        const value = ($(this).val() || "").toString().trim();
+
+        if (value.length > 0) {
+            $(this).removeClass("border-danger");
+        } else {
+            $(this).addClass("border-danger");
+        }
+    }
+);
+$(document).on("focus", ".quantity-input, .price-input, .unitcost-input",
+    function () {
+        $(this).trigger("select");
+    }
+);
+$(document).on("submit", "#newRmaForm", function () {
+    if ($(this).find(".border-danger").length > 0) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Required information is missing',
+            text: 'Please complete all highlighted fields before submitting the RMA.',
+            icon: 'warning',
+            showCancelButton: false,
+            confirmButtonColor: '#0d6efd',
+            confirmButtonText: 'OK',
+        });
+    }
+}); 
+
+
+function InitializeForm() {
+    attachmentStore.items.clear();
+    LoadCustomerTable();
+    LoadPartNumberTable();
+    LoadReturnCodeTable();
+
+    if ($("#inputCustomer").val()) {
+
+        $("#inputCustomer").removeClass("is-invalid").addClass("is-valid");
+
+        LoadCustomerDetails($("#inputCustomer").val(), true);
+        LoadInvoiceTable();
+    }
+
+    UpdateVisibility();
+}
 
 function reindexRows() {
     $("#GeneratedRmaTable tbody tr").each(function (index) {
@@ -338,7 +377,7 @@ function SetCustomerModalResult(selectedCustomerNumber) {
     var table = $("#CustomerTable").DataTable();
     table.search('').draw();
     currentCustomerId = selectedCustomerNumber;
-    $("#inputCustomer").val(currentCustomerId);
+    $("#inputCustomer").val(currentCustomerId).trigger("input");
     $("#CustomerModal").modal("hide");
 }
 function SearchCustomer(clientId) {
@@ -348,7 +387,7 @@ function SearchCustomer(clientId) {
         $("#inputCustomer").removeClass("is-valid").addClass("is-invalid");
 
         ClearContactInfomration();
-        updateVisibility();
+        UpdateVisibility();
 
         return;
     }
@@ -400,6 +439,7 @@ function SearchCustomer(clientId) {
     });
 }
 function LoadCustomerDetails(customerID, preserveValues = false) {
+    currentCustomerId = customerID;
     $.ajax({
         url: "/client/corrective/GetAllSt/?client=" + customerID,
         type: "GET",
@@ -415,13 +455,13 @@ function LoadCustomerDetails(customerID, preserveValues = false) {
 
                 const row = data[0];
 
-                $("#inputContact").val(row.contact_1);
-                $("#inputShipTo").val(row.cus_alt_adr_cd);
-                $("#inputContactEmail").val(row.email_address);
-                $("#inputCompanyEmail").val(row.cmp_e_mail);
-                $("#inputPhone").val(row.phone_no);
-                $("#inputExtension").val(row.phone_ext);
-                $("#inputFax").val(row.fax_no);
+                $("#inputContact").val(row.contact_1).trigger("input");
+                $("#inputShipTo").val(row.cus_alt_adr_cd).trigger("input");
+                $("#inputContactEmail").val(row.email_address).trigger("input");
+                $("#inputCompanyEmail").val(row.cmp_e_mail).trigger("input");
+                $("#inputPhone").val(row.phone_no).trigger("input");
+                $("#inputExtension").val(row.phone_ext).trigger("input");
+                $("#inputFax").val(row.fax_no).trigger("input");
                 $("#inputShipTo").trigger("input");
                 UpdateVisibility();
             }
@@ -452,6 +492,8 @@ function ClearContactInfomration() {
     $("#inputCompanyEmail").val("");
     $("#inputPhone").val("");
     $("#inputExtension").val("");
+
+    UpdateVisibility();
 }
 function OpenShipToModal() {
     const customerId = $("#inputCustomer").val();
@@ -505,16 +547,14 @@ function LoadShipToTable(source) {
 function SetShipToModalResult(data) {
     var table = $("#ShipToTable").DataTable();
     table.search('').draw();
-    $("#inputContact").val(data.contact_1);
-    $("#inputShipTo").val(data.cus_alt_adr_cd);
-    $("#inputContactEmail").val(data.email_address);
-    $("#inputCompanyEmail").val(data.cmp_e_mail);
-    $("#inputPhone").val(data.phone_no);
-    $("#inputExtension").val(data.phone_ext);
-    $("#inputFax").val(data.fax_no);
+    $("#inputContact").val(data.contact_1).trigger("input");
+    $("#inputShipTo").val(data.cus_alt_adr_cd).trigger("focus").trigger("input");
+    $("#inputContactEmail").val(data.email_address).trigger("input");
+    $("#inputCompanyEmail").val(data.cmp_e_mail).trigger("input");
+    $("#inputPhone").val(data.phone_no).trigger("input");
+    $("#inputExtension").val(data.phone_ext).trigger("input");
+    $("#inputFax").val(data.fax_no).trigger("input");
 
-    $("#inputShipTo").trigger("focus");
-    $("#inputShipTo").trigger("input");
     UpdateVisibility();
     $("#ShipToModal").modal("hide");
 }
@@ -774,21 +814,15 @@ function SetReturnCodeModalResult(returnCode) {
     $("#ReturnCodeModal").modal("hide");
 }
 function UpdateVisibility() {
-    const customerId = $("#inputCustomer").val()?.trim();
-    const shipTo = $("#inputShipTo").val()?.trim();
+    const hasCustomer = $("#inputCustomer").val()?.trim().length > 0 && $("#inputCustomer").hasClass("is-valid");;
 
-    const hasCustomer = customerId && customerId.length > 0;
-    const hasShipTo = shipTo && shipTo.length > 0;
+    const hasShipTo = $("#inputShipTo").val()?.trim().length > 0;
 
-    $(".shipto-section")
-        .toggleClass("d-none", !hasCustomer);
+    $(".shipto-section").toggleClass("d-none", !hasCustomer);
 
-    $(".customer-info")
-        .toggleClass("d-none", !(hasCustomer && hasShipTo));
+    $(".customer-info").toggleClass("d-none", !(hasCustomer && hasShipTo));
 
-    $(".line-section")
-        .toggleClass("d-none", !(hasCustomer && hasShipTo));
+    $(".line-section").toggleClass("d-none", !(hasCustomer && hasShipTo));
 
-    $(".attachment-section")
-        .toggleClass("d-none", !(hasCustomer && hasShipTo));
+    $(".attachment-section").toggleClass("d-none", !(hasCustomer && hasShipTo));
 }

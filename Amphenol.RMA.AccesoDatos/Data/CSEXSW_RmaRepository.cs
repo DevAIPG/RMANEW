@@ -1,6 +1,7 @@
 ﻿using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Models;
 using Amphenol.RMA.Models.ModelsM10;
+using DocumentFormat.OpenXml.InkML;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -1440,83 +1441,24 @@ namespace Amphenol.RMA.AccesoDatos.Data
             //BackgroundJob.Enqueue(() => SendMailAsync5(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
 
         }
-        public string Updateaprobar(int idsa, string commentt, string var, string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp)
+        public string Updateaprobar(int idsa, string commentt, string userId)
         {
             var nextrma = "";
-            var objDesdeDbs = _db.CSEXSW_Rma.FirstOrDefault(s => s.Id == idsa);
+            var rma = _db.CSEXSW_Rma.FirstOrDefault(s => s.Id == idsa);
 
+            var qualityManager = GetQualityManager(rma.Wherebuilt);
+            var qualityDirector = GetEmployeeByRole(100031);
+            var generalManager = GetEmployeeByRole(100032);
 
-            string QM = "";
-            humres empQM = null;
-            if (objDesdeDbs.Wherebuilt == "Nogales")
-            {
-                //QM Quality Manager NOG)
-                var QMM10 = _db.HRRoles.Where(s => s.RoleID == 100030).FirstOrDefault();
-                if (QMM10 != null)
-                {
-                    empQM = _db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                    QM = empQM.fullname;
-                }
-            }
-            if (objDesdeDbs.Wherebuilt == "Mesa")
-            {
-                //QM Quality Manager NOG)
-                var QMM10 = _db.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
-                if (QMM10 != null)
-                {
-                    empQM = _db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                    QM = empQM.fullname;
-                }
+            var currentDate = DateTime.Now;
 
-            }
-            if (objDesdeDbs.Wherebuilt == "Endicott")
-            {
-                //Endicot
-                //QM Quality Manager END)
-                var QMM10 = _db.HRRoles.Where(s => s.RoleID == 100039).FirstOrDefault();
-                if (QMM10 != null)
-                {
-                    empQM = _db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                    QM = empQM.fullname;
-                }
-            }
+            string newComment = $"({currentDate:MM/dd/yyyy hh:mm:ss tt}) {rma.Approver}: {commentt}";
 
+            rma.Comment = string.IsNullOrWhiteSpace(rma.Comment) ? newComment : $"{rma.Comment}{Environment.NewLine}{newComment}";
 
-
-            //QD (Quality Director)
-            var QDM10 = _db.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
-            string QD = "";
-            humres empQD = null;
-            int residQD = 0;
-            if (QDM10 != null)
-            {
-                empQD = _db.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
-                QD = empQD.fullname;
-                residQD = empQD.res_id;
-            }
-            //GM (General Manager)
-            var GMM10 = _db.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
-            humres empGM = null;
-            string GM = "";
-            int residGM = 0;
-            if (GMM10 != null)
-            {
-                empGM = _db.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
-                GM = empGM.fullname;
-                residGM = empGM.res_id;
-            }
-            //string QM = _db.CSEXSW_Approver.Where(a => a.Rango == "QM").Select(a => a.Approver).FirstOrDefault();
-            //string QD = _db.CSEXSW_Approver.Where(a => a.Rango == "QD").Select(a => a.Approver).FirstOrDefault();
-            //string GM = _db.CSEXSW_Approver.Where(a => a.Rango == "GM").Select(a => a.Approver).FirstOrDefault();
-            //string Dee = _db.CSEXSW_Approver.Where(a => a.Rango == "Dee").Select(a => a.Approver).FirstOrDefault();
-            //string Controller = _db.CSEXSW_Approver.Where(a => a.Rango == "Controller").Select(a => a.Approver).FirstOrDefault();
-            //string CSM = _db.CSEXSW_Approver.Where(a => a.Rango == "CSM").Select(a => a.Approver).FirstOrDefault();
-
-
-            objDesdeDbs.Comment = objDesdeDbs.Comment + "<br />" + var + ":" + commentt;
             string retorno = string.Empty;
 
-            objDesdeDbs.date_approved = DateTime.Now;
+            rma.date_approved = currentDate;
 
             _db.SaveChanges();
             int id = idsa;
@@ -1531,7 +1473,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
             var arcusfil_sql = new arcusfil_sql();
 
             double tipo_cambio = total;
-            arcusfil_sql = _db2.arcusfil_sql.Where(a => a.cus_no.Trim() == objDesdeDbs.Customer.Trim()).FirstOrDefault();
+            arcusfil_sql = _db2.arcusfil_sql.Where(a => a.cus_no.Trim() == rma.Customer.Trim()).FirstOrDefault();
 
             var moneda = arcusfil_sql.curr_cd;
 
@@ -1598,7 +1540,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 var objDesdeDbt = new OERHDFIL_SQL();
 
 
-                objDesdeDbt.UserDefFld3 = objDesdeDbs.reason;
+                objDesdeDbt.UserDefFld3 = rma.reason;
 
 
                 var AccountTypeCode = "";
@@ -1696,7 +1638,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     objDesdeDbt.bill_to_name = AraltadrSql.CusName;
                     objDesdeDbt.bill_to_country = AraltadrSql.Country;
                     objDesdeDbt.ship_to_name = AraltadrSql.CusName;
-                    objDesdeDbt.UserDefFld3 = objDesdeDbs.reason;
+                    objDesdeDbt.UserDefFld3 = rma.reason;
 
                     var imctlfil_sql = new ImctlfilSql();
                     imctlfil_sql = _db2.ImctlfilSql.FirstOrDefault();
@@ -1721,7 +1663,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     moneda = oehdrhst_sql.CurrCd;
                     objDesdeDbt.curr_cd = oehdrhst_sql.CurrCd;
                     objDesdeDbt.ship_to_country = oehdrhst_sql.ShipToCountry;
-                    objDesdeDbt.UserDefFld3 = objDesdeDbs.reason;
+                    objDesdeDbt.UserDefFld3 = rma.reason;
 
 
 
@@ -1787,7 +1729,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 objDesdeDbt.fax_no = objDesdeDb.Fax;
                 objDesdeDbt.phone_ext = objDesdeDb.Ext;
 
-                objDesdeDbt.UserDefFld3 = objDesdeDbs.reason;
+                objDesdeDbt.UserDefFld3 = rma.reason;
 
                 objDesdeDbt.contact_email = objDesdeDb.Email;
                 objDesdeDbt.user_def_fld_5 = "Normal                        ";
@@ -2074,7 +2016,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 }
                 else
                 {
-                    BackgroundJob.Enqueue(() => falloRMA(nextrma, objDesdeDbs.Id, objDesdeDbs.reason));
+                    BackgroundJob.Enqueue(() => falloRMA(nextrma, rma.Id, rma.reason));
 
                     //BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
 
@@ -2606,7 +2548,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 }
                 else
                 {
-                    BackgroundJob.Enqueue(() => falloRMA(nextrma, objDesdeDbs.Id, objDesdeDbs.reason));
+                    BackgroundJob.Enqueue(() => falloRMA(nextrma, rma.Id, rma.reason));
 
                     //BackgroundJob.Enqueue(() => SendMailAsync3(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
 
@@ -2731,6 +2673,33 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             _db.SaveChanges();
 
+        }
+
+        private Approver GetEmployeeByRole(int roleId)
+        {
+            var role = _db.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
+
+            if (role == null) return null;
+
+            var employee = _db.humres.FirstOrDefault(x => x.res_id == role.EmpID);
+            return new Approver
+            {
+                Id = employee.res_id,
+                Name = employee.fullname,
+                Email = employee.mail
+            };
+        }
+
+        private Approver GetQualityManager(string site)
+        {
+            var roles = new Dictionary<string, int>
+            {
+                { "Nogales", 100030 },
+                { "Mesa", 100062 },
+                { "Endicott", 100039 }
+            };
+
+            return roles.TryGetValue(site, out int roleId) ? GetEmployeeByRole(roleId) : null;
         }
     }
 }
