@@ -472,7 +472,6 @@ namespace Amphenol.RMA.Controllers
         public IActionResult resubmitrechazo(int id)
         {
             var rma = _context2.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
-            rma.Comment = "";
             rma.Status = RmaRequestStatus.Pending.ToDisplayString();
             _context2.Entry(rma).State = EntityState.Modified;
             _context2.SaveChanges();
@@ -504,7 +503,7 @@ namespace Amphenol.RMA.Controllers
             string usuario = valores[1];
 
             string userId = isAutoApproved ? _autoApprover.Id.ToString() : _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-  
+
             //OERHDFIL_SQL
             string retorno = _contenedorTrabajo.CSEXSW_Rma.Updateaprobar(idsa, commentt, userId);
 
@@ -737,7 +736,10 @@ namespace Amphenol.RMA.Controllers
                 if (rma.Totalrmavalues < 5000 && !vm.HasLineOverThreshold)
                 {
                     rma.SetApprover(_autoApprover);
-                    rma.ChangeRequestStatus(RmaRequestStatus.AutoApprove);
+                    if (!string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rma.ChangeRequestStatus(RmaRequestStatus.AutoApprove);
+                    }
                 }
                 else
                 {
@@ -950,6 +952,7 @@ namespace Amphenol.RMA.Controllers
                          FileName = x.Documento,
                          FilePath = Path.Combine(directory, x.Documento)
                      }).ToListAsync(),
+                Comments = rma.Comment,
                 CompanyEmail = rma.Company,
                 Complaint = rma.Customercomplait,
                 Contact = rma.Contact,
@@ -1064,7 +1067,11 @@ namespace Amphenol.RMA.Controllers
                 if (rma.Totalrmavalues < 5000 && !vm.HasLineOverThreshold)
                 {
                     rma.SetApprover(_autoApprover);
-                    rma.ChangeRequestStatus(RmaRequestStatus.AutoApprove);
+
+                    if (!string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rma.ChangeRequestStatus(RmaRequestStatus.AutoApprove);
+                    }
                 }
                 else
                 {

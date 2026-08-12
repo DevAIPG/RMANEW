@@ -58,6 +58,8 @@ namespace Amphenol.RMA.ViewModels
         public bool CanResubmit => SubmitStatus == RmaSubmitStatus.Submitted && (
             RequestStatus == RmaRequestStatus.Remark || RequestStatus == RmaRequestStatus.Rejected);
 
+        public string Comments { get; set; }
+
         //RMA lines
         public List<RmaLineViewModel> Lines { get; set; } = [];
 
