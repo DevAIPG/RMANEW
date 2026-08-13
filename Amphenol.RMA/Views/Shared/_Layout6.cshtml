@@ -30,6 +30,8 @@
     <link rel="stylesheet" href="~/css/all.min.css" />
     <link rel="stylesheet" href="~/css/normalize.css" />
     <link rel="stylesheet" href="~/css/datepicker.css" />
+
+
     <link rel="apple-touch-icon" sizes="180x180" href="~/apple-touch-icon.png">
 
     <link rel="icon" type="image/png" sizes="16x16" href="~/favicon-16x16.png">
@@ -51,6 +53,40 @@
 
         .validation-summary-valid {
             display: none;
+        }
+
+        .dt-layout-start {
+            display: flex !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+        }
+
+            .dt-layout-start .dt-length {
+                display: flex !important;
+                align-items: center !important;
+                flex: 0 0 auto !important;
+                width: auto !important;
+                white-space: nowrap !important;
+            }
+
+                .dt-layout-start .dt-length select {
+                    width: 65px !important;
+                    min-width: 65px !important;
+                    flex: 0 0 65px !important;
+                    margin-right: 5px;
+                }
+
+            .dt-layout-start .dt-buttons {
+                flex: 0 0 auto !important;
+                white-space: nowrap !important;
+            }
+
+        .dt-layout-row + .dt-layout-row {
+            /* bottom controls */
+        }
+
+        table.dataTable {
+            margin-top: 15px !important;
         }
     </style>
     @await RenderSectionAsync("Head", required: false)
@@ -115,8 +151,17 @@
     <script src="~/js/angular.route.js?1"></script>
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.js?1"></script>
     <script src="~/js/Datatables_.js?1"></script>
-
-
+    <!--Datatable export options-->
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.2.4/css/buttons.bootstrap4.min.css">
+    <script src="https://cdn.datatables.net/2.3.2/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.2.4/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.2.4/js/buttons.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.2.4/js/buttons.html5.min.js"></script>
+    <!--Datatable export options-->
     <script src="~/js/ui-bootstrap-tpls-2.5.0.min.js?1"></script>
     <script src="~/js/angular-ui-utils.min.js?1"></script>
     <script src="~/js/angular-datatables.js?1"></script>

@@ -60,6 +60,46 @@ function cargarDatatableRma() {
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
                 "order": [[1, "desc"]],
+                layout: {
+                    topStart: [
+                        'pageLength',
+
+                    ],
+                    topEnd: [
+                        'buttons',
+                        'search'
+                    ],
+                    bottomEnd: 'paging'
+                },
+
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="fa fa-file-excel"></i> Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: 'RMA Requests',
+                        exportOptions: {
+                            columns: ':not(:first-child)'
+                        }
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="fa fa-file-pdf"></i> PDF',
+                        className: 'btn btn-danger btn-sm',
+                        title: 'RMA Requests',
+                        orientation: 'landscape',
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':not(:first-child)'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [20, 20, 20, 20];
+                            doc.defaultStyle.fontSize = 7;
+                            doc.styles.tableHeader.fontSize = 8;
+                        }
+                    }
+                ],
+
                 data: data.data,
                 columns: [
                     {
@@ -82,7 +122,7 @@ function cargarDatatableRma() {
                                         <div class="d-flex gap-1">
                                             ${editButton}
                                             ${complaintButton}
-                                            <a class="btn btn-primary btn-sm  d-flex align-items-center justify-content-center" id="btnresubmit"
+                                            <a class="btn btn-primary btn-sm action-btn d-flex align-items-center justify-content-center" id="btnresubmit"
                                                       data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title=" Re-submit RMA" >
                                                 <i class="fa fa-redo"></i>
                                             </a>
@@ -91,14 +131,14 @@ function cargarDatatableRma() {
                                 else {
                                     if (row.status == "Remark") {
                                         return `
-                                            <div class="d-flex gap-1">
-                                             ${editButton}
-                                             ${complaintButton}
-                                            <a class="btn btn-primary btn-sm d-flex align-items-center justify-content-center gap-1" 
-                                               id="btndone" data-id="${row.id}">
-                                              <i class="fa fa-retweet"></i> Done
+                                        <div class="d-flex gap-1">
+                                            ${editButton}
+                                            ${complaintButton}
+                                            <a class="btn btn-primary btn-sm action-btn d-flex align-items-center justify-content-center" id="btnresubmit"
+                                                      data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title=" Re-submit RMA" >
+                                                <i class="fa fa-redo"></i>
                                             </a>
-                                          </div>`;
+                                        </div>`;
                                     }
 
                                     return `
@@ -1630,7 +1670,7 @@ function cargarDatatableRma2() {
         },
         "columns": [
             {
-                "width": "70px",
+                "width": "105px",
                 "data": "id",
                 "render": function render(data, type, row) {
                     const editButton = `
@@ -1641,28 +1681,12 @@ function cargarDatatableRma2() {
                     return `
                         <div class="d-flex gap-1">
                             ${editButton}
-                            <div class="dropdown">
-                              <button class="btn btn-light action-btn d-flex" type="button" id="moreOptions" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <i class="fa fa-ellipsis-v"></i>
-                              </button>
-                              <div class="dropdown-menu" aria-labelledby="moreOptions">
-                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" onclick="lineas(${data})" data-toggle="modal" data-target="#lineas">
-                                       <span><i class="fa fa-list me-2"></i>View RMA Lines</span>
-                                    </a>
-                                    <a class="btn btn-light btn-sm action-btn d-flex dropdown-item" data-toggle="modal" data-target="#Customer_complaint" onclick="Customer_complaint('${row.customercomplait}')">
-                                        <span><i class="fa fa-comments me-2"></i>Customer Complaint</span>
-                                    </a>
-                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" data-toggle="modal" data-target="#Comments" onclick="Comments(${data})">
-                                       <span><i class="fa fa-info-circle me-2"></i>Aditional Information</span>
-                                    </a>
-                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" data-toggle="modal" data-target="#Remark" onclick="Remark(${data})">
-                                       <span><i class="fa fa-sticky-note me-2"></i>Remarks</span>
-                                    </a>
-                                    <a href="#" class="btn btn-sm btn-light action-btn d-flex dropdown-item" data-toggle="modal" data-target="#documents" onclick="Abrir(${data})">
-                                       <span><i class="fa fa-paperclip me-2"></i>Attachments</span>
-                                    </a>
-                              </div>
-                            </div>
+                            <a href="#" class="btn btn-sm btn-light action-btn d-flex" id="btnviewlines" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="View RMA">
+                                <span> <i class="fa fa-eye"></i></span>
+                            </a>
+                            <a href="#" class="btn btn-sm btn-light action-btn d-flex btn-add-remark" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="Add Remark">
+                                <span><i class="fa fa-sticky-note"></i></span>
+                            </a>
                          </div>`;
                 }
             },
@@ -1902,9 +1926,8 @@ function cargarDatatableRma2() {
                     LoadSeq($(".invoiceenew").val());
                     $("#mseq").modal("show");
                 });
-                $("#btncloseedit").click(function () {
-                    $("#meditrma").modal("hide");
-                });
+
+
                 $(document).on("click", "#btneditlinea", function () {
 
                     let id = $(this).data("id");
@@ -3175,7 +3198,7 @@ function LoadCustomerTable() {
     });
 }
 function LoadInvoiceTable(customerId) {
-    currentCustomerId = customerId; 
+    currentCustomerId = customerId;
     if (!invoiceTable) {
         invoiceTable = $("#InvoiceTable").DataTable({
             "autoWidth": false,
@@ -4660,3 +4683,15 @@ function Pass(data) {
     $("#idsa").val(data);
 
 }
+$(document).on("click", ".btn-dismiss-modal", function () {
+    $("#meditrma").modal("hide");
+});
+
+$(document).on("click", ".btn-add-remark", function () {
+    const requestId = $(this).data('id');
+
+    $('#idrema').val(requestId);
+    $('#commentrema').val('');
+
+    $("#RemarkModal").modal("show");
+});

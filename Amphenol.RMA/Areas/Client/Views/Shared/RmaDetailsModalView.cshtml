@@ -1,5 +1,6 @@
-﻿@model Amphenol.RMA.ViewModels.RmaModalViewModel
+﻿@model Amphenol.RMA.ViewModels.RmaViewModel
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
+@using Amphenol.RMA.Models.Enumerations
 
 @{
     <style>
@@ -19,15 +20,13 @@
             display: none;
         }
     </style>
-    var isViewMode = string.Equals(Model.Mode, "View", StringComparison.OrdinalIgnoreCase);
+    var modalTitle = "RMA Request";
 
-    var modalTitle = isViewMode ? "RMA Request" : "Edit RMA Request";
-
-    var submitBadgeClass = Model.Data.Details.Sumbit == "Not Submitted"
+    var submitBadgeClass = Model.SubmitStatus.ToDisplayString() == "Not Submitted"
         ? "badge-secondary"
         : "badge-success";
 
-    var statusBadgeClass = Model.Data.Details.Status switch
+    var statusBadgeClass = Model.RequestStatus.ToDisplayString() switch
     {
         "Approved" => "badge-success",
         "Rejected" => "badge-danger",
@@ -44,111 +43,105 @@
 
     <div class="d-flex">
         @* <button type="button" class="btn btn-primary btn-sm mr-2" id="btnsubmitrma"><i class="fa fa-arrow-right"></i> Submit</button> *@
-        <button type="button" data-dismiss="modal" onclick="DismissRmaModal();" class="btn btn-sm btn-danger float-right m-0"><i class="fa fa-times"></i> </button>
+        <button type="button" data-bs-dismiss="modal" class="btn btn-sm btn-danger btn-dismiss-modal float-right m-0"><i class="fa fa-times"></i> </button>
     </div>
 </div>
 <div class="modal-body">
-    <input type="hidden" name="name" value="" readonly id="rmaid" />
-    <input type="hidden" name="name" value="" readonly id="rmastatus" />
-    <input type="hidden" name="name" value="" readonly id="rmasubmit" />
-    <input type="hidden" name="name" value="" readonly id="rma500" />
-    @if (isViewMode)
-    {
+
+    <div class="row">
+        <div class="d-flex align-items-center mb-3">
+            <span class="font-weight-bold mr-2">Status:</span>
+
+            <span class="badge @submitBadgeClass mr-2">
+                @Model.SubmitStatus.ToDisplayString()
+            </span>
+
+            <span class="badge @statusBadgeClass">
+                @Model.RequestStatus.ToDisplayString()
+            </span>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Comments))
+        {
+            <div class="alert alert-secondary" role="alert">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="alert-heading mb-0 font-weight-bold">Comments</h5>
+                    <button class="btn btn-sm btn-outline-secondary comments-toggle"
+                            type="button"
+                            data-toggle="collapse"
+                            data-target="#commentsCollapse"
+                            aria-expanded="true"
+                            aria-controls="commentsCollapse">
+                        <!-- Shown when expanded -->
+                        <i class="fa fa-chevron-up icon-expanded"></i>
+                        <!-- Shown when collapsed -->
+                        <i class="fa fa-chevron-down icon-collapsed"></i>
+                    </button>
+                </div>
+                <div class="collapse show mt-2" id="commentsCollapse">
+                    <div style="white-space: pre-line;">@Model.Comments</div>
+                </div>
+            </div>
+        }
         <div class="row">
-            <div class="d-flex align-items-center mb-3">
-                <span class="font-weight-bold mr-2">Status:</span>
+            <!-- Request Information -->
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-4">Request #:</dt>
+                    <dd class="col-8">@Model.RequestId</dd>
 
-                <span class="badge @submitBadgeClass mr-2">
-                    @Model.Data.Details.Sumbit
-                </span>
+                    <dt class="col-4">Build Location:</dt>
+                    <dd class="col-8">@Model.SelectedBuildLocation</dd>
 
-                <span class="badge @statusBadgeClass">
-                    @Model.Data.Details.Status
-                </span>
+                    <dt class="col-4">Request Type:</dt>
+                    <dd class="col-8">@Model.SelectedRequestType</dd>
+                </dl>
             </div>
-            @if (!string.IsNullOrEmpty(Model.Data.Details.Comment))
-            {
-                <div class="alert alert-secondary" role="alert">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="alert-heading mb-0 font-weight-bold">Comments</h5>
-                        <button class="btn btn-sm btn-outline-secondary comments-toggle"
-                                type="button"
-                                data-toggle="collapse"
-                                data-target="#commentsCollapse"
-                                aria-expanded="true"
-                                aria-controls="commentsCollapse">
-                            <!-- Shown when expanded -->
-                            <i class="fa fa-chevron-up icon-expanded"></i>
-                            <!-- Shown when collapsed -->
-                            <i class="fa fa-chevron-down icon-collapsed"></i>
-                        </button>
-                    </div>
-                    <div class="collapse show mt-2" id="commentsCollapse">
-                        <hr />
-                        <div style="white-space: pre-line;">@Model.Data.Details.Comment</div>
-                    </div>
-                </div>
-            }
-            <div class="row">
-                <!-- Request Information -->
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-4">Request #:</dt>
-                        <dd class="col-8">@Model.Data.Details.Rmarequest</dd>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-4">Date:</dt>
+                    <dd class="col-8">@Model.Date</dd>
 
-                        <dt class="col-4">Build Location:</dt>
-                        <dd class="col-8">@Model.Data.Details.Wherebuilt</dd>
+                    <dt class="col-4">Total Value:</dt>
+                    <dd class="col-8">
+                        $@Model.TotalValue.ToString("F4")
+                    </dd>
 
-                        <dt class="col-4">Request Type:</dt>
-                        <dd class="col-8">@Model.Data.Details.Rmatypeofrequest</dd>
-                    </dl>
-                </div>
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-4">Date:</dt>
-                        <dd class="col-8">@Model.Data.Details.Date</dd>
-
-                        <dt class="col-4">Total Value:</dt>
-                        <dd class="col-8">
-                            $@Model.Data.Details.Totalrmavalues.ToString("F4")
-                        </dd>
-
-                        <dt class="col-4">Reason:</dt>
-                        <dd class="col-8">@Model.Data.Details.reason</dd>
-                    </dl>
-                </div>
-                <div class="col-12 mb-4">
-                    <div class="fw-bold mb-1">Description</div>
-                    <div class="border rounded p-3 bg-light">
-                        @(string.IsNullOrWhiteSpace(Model.Data.Details.Description) ? "--" : Model.Data.Details.Description.Trim())
-                    </div>
+                    <dt class="col-4">Reason:</dt>
+                    <dd class="col-8">@Model.SelectedReason</dd>
+                </dl>
+            </div>
+            <div class="col-12 mb-4">
+                <div class="fw-bold mb-1">Description</div>
+                <div class="border rounded p-3 bg-light">
+                    @(string.IsNullOrWhiteSpace(Model.Description) ? "--" : Model.Description.Trim())
                 </div>
             </div>
-            <hr />
-            <div class="row">
-                <!-- Customer Information -->
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-4">Customer:</dt>
-                        <dd class="col-8">
-                            @(string.IsNullOrWhiteSpace(Model.Data.Details.Customer) ? "--" : Model.Data.Details.Customer)
-                        </dd>
-                        <dt class="col-4">Contact:</dt>
-                        <dd class="col-8">
-                            @(string.IsNullOrWhiteSpace(Model.Data.Details.Contact) ? "--" : Model.Data.Details.Contact)
-                        </dd>
-                        <dt class="col-4">Phone:</dt>
-                        <dd class="col-8">
-                            @(string.IsNullOrWhiteSpace(Model.Data.Details.Phone) ? "--" : Model.Data.Details.Phone)
-                            @if (!string.IsNullOrWhiteSpace(Model.Data.Details.Ext))
-                            {
-                                <span class="ms-3">  <strong>Ext:</strong> @Model.Data.Details.Ext</span>
-                            }
+        </div>
+        <hr />
+        <div class="row">
+            <!-- Customer Information -->
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-4">Customer:</dt>
+                    <dd class="col-8">
+                        @(string.IsNullOrWhiteSpace(Model.CustomerId) ? "--" : Model.CustomerId)
+                    </dd>
+                    <dt class="col-4">Contact:</dt>
+                    <dd class="col-8">
+                        @(string.IsNullOrWhiteSpace(Model.Contact) ? "--" : Model.Contact)
+                    </dd>
+                    <dt class="col-4">Phone:</dt>
+                    <dd class="col-8">
+                        @(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "--" : Model.PhoneNumber)
+                        @if (!string.IsNullOrWhiteSpace(Model.ExtensionNumber))
+                        {
+                            <span class="ms-3">  <strong>Ext:</strong> @Model.ExtensionNumber</span>
+                        }
                     </dd>
 
                     <dt class="col-4">Email:</dt>
                     <dd class="col-8">
-                        @(string.IsNullOrWhiteSpace(Model.Data.Details.Email) ? "--" : Model.Data.Details.Email)
+                        @(string.IsNullOrWhiteSpace(Model.ContactEmail) ? "--" : Model.ContactEmail)
                     </dd>
                 </dl>
             </div>
@@ -157,20 +150,20 @@
                 <dl class="row">
                     <dt class="col-4">Cust. PO #:</dt>
                     <dd class="col-8">
-                        @(string.IsNullOrWhiteSpace(Model.Data.Details.Customerpo) ? "--" : Model.Data.Details.Customerpo)
+                        @(string.IsNullOrWhiteSpace(Model.PoNumber) ? "--" : Model.PoNumber)
                     </dd>
                     <dt class="col-4">Ship To:</dt>
                     <dd class="col-8">
-                        @(string.IsNullOrWhiteSpace(Model.Data.Details.Ship_To) ? "--" : Model.Data.Details.Ship_To)
+                        @(string.IsNullOrWhiteSpace(Model.ShipTo) ? "--" : Model.ShipTo)
                     </dd>
 
                     <dt class="col-4">Fax:</dt>
                     <dd class="col-8">
-                        @(string.IsNullOrWhiteSpace(Model.Data.Details.Fax) ? "--" : Model.Data.Details.Fax)
+                        @(string.IsNullOrWhiteSpace(Model.Fax) ? "--" : Model.Fax)
                     </dd>
                     <dt class="col-4">Co. Email:</dt>
                     <dd class="col-8">
-                        @(string.IsNullOrWhiteSpace(Model.Data.Details.Company) ? "--" : Model.Data.Details.Company)
+                        @(string.IsNullOrWhiteSpace(Model.CompanyEmail) ? "--" : Model.CompanyEmail)
                     </dd>
                 </dl>
             </div>
@@ -180,283 +173,115 @@
             <div class="col-12 mb-4">
                 <div class="fw-bold mb-1">Complaint</div>
                 <div class="border rounded p-3 bg-light">
-                    @(string.IsNullOrWhiteSpace(Model.Data.Details.Customercomplait)
-                                        ? "--"
-                                        : Model.Data.Details.Customercomplait.Trim())
+                    @(string.IsNullOrWhiteSpace(Model.Complaint) ? "--" : Model.Complaint.Trim())
                 </div>
             </div>
+        </div>
+        <div class="row mb-3">
+            <dl class="row">
+                <dt class="col-4">Lines</dt>
+            </dl>
+            <div class="table-responsive">
+                <table id="GeneratedRmaTable" class="table table-striped table-bordered text-center align-middle over">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Sequence #</th>
+                            <th>Part Number</th>
+                            <th>Action</th>
+                            <th>Loc</th>
+                            <th>Authorized Qty</th>
+                            <th>Price</th>
+                            <th>Unit Cost</th>
+                            <th>Return Code</th>
+                            <th>CAR Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in Model.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    @line.InvoiceNumber
+                                </td>
+                                <td>
+                                    @line.SequenceNumber
+                                </td>
+                                <td>
+                                    @line.PartNumber
+                                </td>
+                                <td>
+                                    @line.SelectedAction
+                                </td>
+                                <td>
+                                    @line.SelectedLocation
+                                </td>
+                                <td>
+                                    @line.AuthorizedQuantity
+                                </td>
+                                <td>
+                                    @line.Price.ToString("F4")
+                                </td>
+                                <td>
+                                    @line.UnitCost.ToString("F4")
+                                </td>
+                                <td>
+                                    @line.ReturnCode
+                                </td>
+                                <td>
+                                    @if (@line.GenerateCAR)
+                                    {
+                                        <i class="fas fa-file-alt text-success" data-bs-toggle="tooltip" data-bs-placement="right" title="CAR Generated"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-file-alt text-muted" data-bs-toggle="tooltip" data-bs-placement="right" title="CAR Not Generated"></i>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
 
             </div>
+        </div>
+        <div class="row mb-3">
+            <dl class="row">
+                <dt class="col-4">Attachments</dt>
+            </dl>
 
-            @*     <form action="/" method="post" id="frmheader">
-        <div class="row mb-2">
-            <div class="col-2">
-                <label class="control-label font-weight-bold float-left">Reason</label>
-            </div>
-            <div class="col-10">
-                <select id="sreason" class="form-control form-control-sm w-25">
-                    <option value="0">Select an option</option>
-                    <option value="Billing Error">Billing Error</option>
-                    <option value="Buyback">Buyback</option>
-                    <option value="Price Adjustment">Price Adjustment</option>
-                    <option value="Price Protection">Price Protection</option>
-                    <option value="Quantity Issues - NG">Quantity Issues - NG </option>
-                    <option value="Quantity Issues - END">Quantity Issues - END</option>
-                    <option value="Shipping Errors">Shipping Errors</option>
-                    <option value="Stock Rotations">Stock Rotations</option>
-                    <option value="Ship and Debits">Ship and Debits</option>
-                    <option value="Scrap Allowance">Scrap Allowance</option>
-                </select>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-2">
-                <label class="control-label font-weight-bold ">RMA Request</label>
-            </div>
-            <div class="col-4">
-                <input type="text" id="rmanumber" readonly class="form-control form-control-sm" />
-            </div>
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Date</label>
-            </div>
-            <div class="col-4">
-                <div class="row">
-                    <div class="col-6">
-                        <input type="text" id="daterma" readonly class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-6 d-flex">
-                        <h6><span class="badge badge-info" id="txtstatus"></span></h6>
-                        <h6><span class="badge ml-2" id="txtsub"></span></h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row p-0 mt-2">
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Where built</label>
-            </div>
-            <div class="col-4">
-                <select id="whereb" class="form-control form-control-sm">
-                </select>
-            </div>
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Total RMA Values</label>
-            </div>
-            <div class="col-4">
-                <input type="text" id="totalrma" class="form-control form-control-sm" />
-            </div>
-        </div>
-        <div class="row p-0 mt-2">
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Description</label>
-            </div>
-            <div class="col-4">
-                <input type="text" id="desc" class="form-control form-control-sm" />
-            </div>
-            <div class="col-6">
-                <div class="row">
-                    <div class="col-2">
-                        <label class="control-label font-weight-bold">Customer</label>
-                    </div>
-                    <div class="col-4">
-                        <input type="text" id="client" class="form-control form-control-sm" readonly />
-                    </div>
-                    <div class="col-2">
-                        <label class="control-label font-weight-bold">PO #</label>
-                    </div>
-                    <div class="col-4">
-                        <input type="text" id="po" class="form-control form-control-sm" />
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row p-0 mt-2">
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Ship_To</label>
-            </div>
-            <div class="col-4">
-                <input type="text" id="shipto" class="form-control form-control-sm" />
-            </div>
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Contact</label>
-            </div>
-            <div class="col-4">
-                <input type="text" id="contactrma" class="form-control form-control-sm" />
-            </div>
-        </div>
-        <div class="row p-0 mt-2">
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Phone</label>
-            </div>
-            <div class="col-4">
-                <div class="row">
-                    <div class="col-6">
-                        <input type="number" id="phone" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-6">
-                        <input type="text" id="ext" class="form-control form-control-sm" />
-                    </div>
-                </div>
-            </div>
-            <div class="col-6">
-                <div class="row">
-                    <div class="col-6">
-                        <label class="control-label font-weight-bold float-left">
-                            RMA Type Of Request:
-                        </label>
-                    </div>
-                    <div class="col-6">
-                        <select id="selectrmatype" class="form-control form-control-sm">
-                            <option value="0">Select an option</option>
-                            <option value="VALUE ADD RMA">VALUE ADD RMA</option>
-                            <option value="CREDIT ONLY">CREDIT ONLY</option>
-                            <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row p-0 mt-2">
-            <div class="col-2">
-                <label class="control-label font-weight-bold">Fax</label>
-            </div>
-            <div class="col-2">
-                <input type="text" id="fax" class="form-control form-control-sm" />
-            </div>
-            <div class="col-1">
-                <label class="control-label font-weight-bold">Contact-Email</label>
-            </div>
-            <div class="col-3">
-                <input type="email" id="email" class="form-control form-control-sm" />
-            </div>
-            <div class="col-1">
-                <label class="control-label font-weight-bold">Company-Email</label>
-            </div>
-            <div class="col-3">
-                <input type="email" id="emailc" readonly class="form-control form-control-sm h6" />
-            </div>
-        </div>
-        <div class="row p-0 mt-2">
-            <div class="col-12">
-                <textarea id="comments" class="form-control form-control-sm">
-							</textarea>
-            </div>
-        </div>
-        <button type="button" class="btn btn-sm btn-primary float-right m-2" id="btnupdaterma"><i class="fa fa-save"></i>  Save changes</button>
-    </form> *@
-
-            <div class="row mb-3">
-                <dl class="row">
-                    <dt class="col-4">Lines</dt>
-                </dl>
+            @if (Model.Attachments != null && Model.Attachments.Any())
+            {
                 <div class="table-responsive">
-                    <table id="GeneratedRmaTable" class="table table-striped table-bordered text-center align-middle over">
+                    <table id="GeneratedRmaTable" class="table table-striped table-bordered text-center align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>Invoice #</th>
-                                <th>Sequence #</th>
-                                <th>Part Number</th>
-                                <th>Action</th>
-                                <th>Loc</th>
-                                <th>Authorized Qty</th>
-                                <th>Price</th>
-                                <th>Unit Cost</th>
-                                <th>Return Code</th>
-                                <th>CAR Created</th>
+                                <th>Filename</th>
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var line in Model.Data.ItemLines)
+                            @foreach (var file in Model.Attachments)
                             {
                                 <tr>
                                     <td>
-                                        @line.Invoice
-                                    </td>
-                                    <td>
-                                        @line.Seq
-                                    </td>
-                                    <td>
-                                        @line.Coustumer
-                                    </td>
-                                    <td>
-                                        @line.Action
-                                    </td>
-                                    <td>
-                                        @line.Loc
-                                    </td>
-                                    <td>
-                                        @line.Qty
-                                    </td>
-                                    <td>
-                                        @line.Unit.ToString("F4")
-                                    </td>
-                                    <td>
-                                        @line.Cost.ToString("F4")
-                                    </td>
-                                    <td>
-                                        @line.Retur
-                                    </td>
-                                    <td>
-                                        @if (@line.Car)
-                                        {
-                                            <i class="fas fa-file-alt text-success" title="CAR Generated"></i>
-                                        }
-                                        else
-                                        {
-                                            <i class="fas fa-file-alt text-muted" title="CAR Not Generated"></i>
-                                        }
+                                        <a asp-action="DownloadAttachment" asp-route-id="@file.Id" target="_blank">
+                                            @file.FileName
+                                        </a>
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
-
                 </div>
-            </div>
-            <div class="row mb-3">
-                <dl class="row">
-                    <dt class="col-4">Attachments</dt>
-                </dl>
-
-                @if (Model.Data.Attachments != null && Model.Data.Attachments.Any())
-                {
-                    <div class="table-responsive">
-                        <table id="GeneratedRmaTable" class="table table-striped table-bordered text-center align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="d-none">ID</th>
-                                    <th>Filename</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var file in Model.Data.Attachments)
-                                {
-                                    <tr>
-                                        <td class="d-none">@file.Id</td>
-                                        <td>@file.Documento</td>
-                                        <td>
-                                            <span class="btn btn-light btn-sm action-btn"
-                                                  data-bs-toggle="tooltip"
-                                                  title="View File">
-                                                <i class="fa fa-eye"></i>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-light">
-                        No attachments available.
-                    </div>
-                }
-            </div>
-            @*         <h1 class="text-primary mt-2">Add New Line <button class="btn btn-sm btn-secondary " id="btnshowline"> <i class="fa fa-plus"></i></button></h1>
+            }
+            else
+            {
+                <div class="alert alert-light">
+                    No attachments available.
+                </div>
+            }
+        </div>
+        @*         <h1 class="text-primary mt-2">Add New Line <button class="btn btn-sm btn-secondary " id="btnshowline"> <i class="fa fa-plus"></i></button></h1>
         <form id="frmnewline">
             <div class="row" id="rowadd" style="display:none;">
                 <div class="col-2">
@@ -536,8 +361,8 @@
 
 
 
-            <form id="frmlines">
-                @*             <table id="tbllineas" class="table table-borderless table-striped table-sm w-100">
+        <form id="frmlines">
+            @*             <table id="tbllineas" class="table table-borderless table-striped table-sm w-100">
                 <thead class="bg-primary">
                     <tr>
                         <th class="text-white">Invoice #</th>
@@ -557,7 +382,7 @@
                 </tbody>
             </table> *@
 
-                @*             <h1 class="text-primary mt-2">Attachments</h1>
+            @*             <h1 class="text-primary mt-2">Attachments</h1>
             <div class="row mb-2 float-right">
                 <div class="col-12 d-flex">
                     <form method="post" enctype="multipart/form-data">
@@ -576,246 +401,9 @@
                 <tbody>
                 </tbody>
             </table> *@
-            </form>
-        </div>
-    }
-    else
-    {
-        @* <form> *@
-        <div class="row">
-            <!-- Request Information -->
-            <div class="row">
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-4">Request #:</dt>
-                        <dd class="col-8">@Model.Data.Details.Rmarequest</dd>
+        </form>
+    </div>
 
-                        <dt class="col-4">Build Location:</dt>
-                        <dd class="col-8">
-                            <select asp-for="Data.Details.Wherebuilt" id="selectWherebuilt" class="form-control form-control-sm">
-                                <option value="Nogales">Nogales</option>
-                                <option value="Endicott">Endicott</option>
-                                <option value="Mesa">Mesa</option>
-                            </select>
-                        </dd>
-                        <dt class="col-4">Request Type:</dt>
-                        <dd class="col-8">
-                            <select asp-for="Data.Details.Rmatypeofrequest" id="selectRequestType" class="form-control form-control-sm">
-                                <option value="VALUE ADD RMA">VALUE ADD RMA</option>
-                                <option value="CREDIT ONLY">CREDIT ONLY</option>
-                                <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
-                            </select>
-                        </dd>
-                    </dl>
-                </div>
+</div>
 
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-4">Date:</dt>
-                        <dd class="col-8">@Model.Data.Details.Date</dd>
-
-                        <dt class="col-4">Total Value:</dt>
-                        <dd class="col-8">
-                            $@Model.Data.Details.Totalrmavalues.ToString("F4")
-                        </dd>
-
-                        <dt class="col-4">Reason:</dt>
-                        <dd class="col-8">
-                            <select asp-for="Data.Details.reason" id="selectReason" class="form-control form-control-sm">
-                                <option value="1" selected="@(Model.Data.Details.reason == "Billing Error")">Billing Error</option>
-                                <option value="2" selected="@(Model.Data.Details.reason == "Buyback")">Buyback</option>
-                                <option value="3" selected="@(Model.Data.Details.reason == "Price Adjustment")">Price Adjustment</option>
-                                <option value="4" selected="@(Model.Data.Details.reason == "Price Protection")">Price Protection</option>
-                                <option value="5" selected="@(Model.Data.Details.reason.Trim() == "Quality Issues - NG")">Quality Issues - NG</option>
-                                <option value="6" selected="@(Model.Data.Details.reason == "Quality Issues - END")">Quality Issues - END</option>
-                                <option value="7" selected="@(Model.Data.Details.reason.Trim() == "Shipping Error")">Shipping Error</option>
-                                <option value="8" selected="@(Model.Data.Details.reason == "Contractual Return/Stock")">Contractual Return/Stock</option>
-                                <option value="9" selected="@(Model.Data.Details.reason == "Ship and Debits")">Ship and Debits</option>
-                                <option value="10" selected="@(Model.Data.Details.reason == "Scrap Allowance")">Scrap Allowance</option>
-                                <option value="11" selected="@(Model.Data.Details.reason == "Marcomco-op")">Marcomco-op</option>
-                            </select>
-                        </dd>
-                    </dl>
-                </div>
-                <div class="col-12 mb-4">
-                    <div class="fw-bold mb-1">Description</div>
-                    <input class="form-control" asp-for="Data.Details.Description" id="inputDescription" maxlength="29" />
-                </div>
-                <hr />
-            </div>
-            <div class="row">
-                <!-- Customer Information -->
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-4">Customer:</dt>
-                        <dd class="col-8">
-                            <div class="input-group">
-                                <input class="form-control" asp-for="Data.Details.Customer" id="inputCustomer" required list="customerOptions" autocomplete="off" />
-                                <datalist id="customerOptions">
-                                </datalist>
-                                <span class="btn btn-sm btn-outline-secondary" onclick="OpenCustomerModal()"><i class="fa fa-search"></i></span>
-                                <div class="invalid-feedback">
-                                    Please provide a customer number.
-                                </div>
-                            </div>
-                        </dd>
-                        <dt class="col-4">Ship To:</dt>
-                        <dd class="col-8">
-                            <div class="input-group">
-                                <input class="form-control" disabled asp-for="Data.Details.Ship_To" id="inputShipTo" />
-                                <span class="btn btn-sm btn-outline-secondary" onclick="OpenShipToModal()"><i class="fa fa-search"></i></span>
-                            </div>
-                        </dd>
-
-
-                        <dt class="col-4 contact-info">Phone:</dt>
-                        <dd class="col-8 contact-info">
-                            <div class="row">
-                                <div class="col-7">
-                                    <input class="form-control" asp-for="Data.Details.Phone" id="inputPhone" />
-                                </div>
-                                <div class="col-2 text-end">
-                                    <label for="inputExtension" class="col-form-label"><strong>Ext:</strong></label>
-                                </div>
-                                <div class="col-3">
-                                    <input class="form-control" asp-for="Data.Details.Ext" id="inputExtension" />
-                                </div>
-                            </div>
-                        </dd>
-
-                        <dt class="col-4 contact-info">Email:</dt>
-                        <dd class="col-8 contact-info">
-                            <input class="form-control" asp-for="Data.Details.Email" id="inputContactEmail" />
-                        </dd>
-                    </dl>
-                </div>
-                <div class="col-md-6">
-                    <dl class="row">
-                        <dt class="col-4">Cust. PO #:</dt>
-                        <dd class="col-8">
-                            <input class="form-control" asp-for="Data.Details.Customerpo" id="inputCustomerPo" />
-                        </dd>
-                        <dt class="col-4  contact-info">Contact:</dt>
-                        <dd class="col-8  contact-info">
-                            <input class="form-control" asp-for="Data.Details.Contact" id="inputContact" />
-                        </dd>
-
-                        <dt class="col-4 contact-info">Fax:</dt>
-                        <dd class="col-8 contact-info">
-                            <input class="form-control" asp-for="Data.Details.Fax" id="inputFax" />
-                        </dd>
-                        <dt class="col-4 contact-info">Co. Email:</dt>
-                        <dd class="col-8 contact-info">
-                            <input class="form-control" asp-for="Data.Details.Company" id="inputCompanyEmail" />
-                        </dd>
-                    </dl>
-                </div>
-                <div class="col-12 mb-4">
-                    <div class="fw-bold mb-1">Complaint</div>
-                    <textarea class="form-control" asp-for="Data.Details.Customercomplait" id="textareaComplaint"></textarea>
-                </div>
-                <hr />
-            </div>
-            <!-- Line Information -->
-            <div class="row">
-                <div class="col-6">
-                    <dl class="row">
-                        <dt class="col-4">Lines</dt>
-                    </dl>
-                </div>
-                <div class="col-6">
-                    <span class="btn btn-sm btn-primary action-btn float-right btn-add-rma-line"><i class="fa fa-plus"></i></span>
-                </div>
-                <div class="col-12 mb-3">
-                    <div class="table-responsive">
-                        <table id="LineTable" class="table table-striped table-bordered text-center align-middle" style="table-layout:fixed;">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="35px"></th>
-                                    <th width="150px">Invoice #</th>
-                                    <th width="90px">Sequence</th>
-                                    <th width="150px">Part Number</th>
-                                    <th width="80px">Action</th>
-                                    <th width="150px">Location</th>
-                                    <th width="150px">Authorized Qty</th>
-                                    <th width="150px">Price</th>
-                                    <th width="150px">Unit Cost</th>
-                                    <th width="150px">Return Code</th>
-                                    <th width="120px">Create CAR</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-
-                                @for (int i = 0; i < Model.Data.ItemLines.Count; i++)
-                                {
-                                    @await Html.PartialAsync("RmaItemEditableLine", Model.Data.ItemLines[i], new ViewDataDictionary(ViewData) { ["Index"] = i })
-                                }
-                            </tbody>
-                        </table>
-
-                    </div>
-                </div>
-            </div>
-            <!-- Attachment Information -->
-            <div class="row">
-                <div class="col-6">
-                    <dl class="row">
-                        <dt class="col-4">Attachments</dt>
-                    </dl>
-                </div>
-                <div class="col-6">
-                    <span class="btn btn-sm btn-primary action-btn float-right"><i class="fa fa-plus"></i></span>
-                </div>
-                <div class="col-12">
-                    @if (Model.Data.Attachments.Any())
-                    {
-                        <div class="table-responsive">
-                            <table id="GeneratedRmaTable" class="table table-striped table-bordered text-center align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="d-none">ID</th>
-                                        <th></th>
-                                        <th>Filename</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var file in Model.Data.Attachments)
-                                    {
-                                        <tr>
-                                            <td class="d-none">@file.Id</td>
-                                            <td>
-                                                <span class="btn btn-sm btn-outline-danger" title="Remove Attachment"><i class="fa fa-trash"></i></span>
-                                            </td>
-                                            <td>@file.Documento</td>
-                                            <td>
-                                                <span class="btn btn-light btn-sm action-btn"
-                                                      data-bs-toggle="tooltip"
-                                                      title="View File">
-                                                    <i class="fa fa-eye"></i>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-light">
-                            No attachments available.
-                        </div>
-                    }
-
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-footer">
-            <button class="btn btn-primary">Save Changes</button>
-        </div>
-        @* </form> *@
-    }
-</div>
 

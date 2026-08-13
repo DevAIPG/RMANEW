@@ -275,12 +275,7 @@ function    cargarDatatableRma() {
                 });
             });
 
-            $("#btnclosemedit").click(function () {
-                //#meditrma 
-                //$("#meditrma").modal("hide");
-                $('#meditrma').fadeOut();
-                window.location.reload();
-            });
+
 
             $(document).on("click", "#btndone", function () {
                 let id = $(this).data("id");
@@ -4563,3 +4558,6 @@ function Pass(data) {
     $("#idsa").val(data);
 
 }
+$(document).on("click", ".btn-dismiss-modal", function () {
+    $("#meditrma").modal("hide");
+});

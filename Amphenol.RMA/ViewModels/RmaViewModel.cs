@@ -1,4 +1,4 @@
-﻿using Amphenol.RMA.Enumerations;
+﻿using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models;
 using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using DocumentFormat.OpenXml.Spreadsheet;

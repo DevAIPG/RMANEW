@@ -62,298 +62,7 @@
     </div>
 </div>
 
-<!-- modal edit rma -->
-<div class="modal fade" id="meditrma" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-    <div class="modal-dialog-lg modal-dialog-centered ml-5 mr-5 mb-5 mt-1" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLongTitle">Edit RMA</h5>
-                <div class="d-flex">
-                    <button type="button" class="btn btn-sm btn-primary float-right m-0" disabled><i class="fa fa-save"></i>  Save changes</button>
-                    <button type="button" data-target="modal" data-dismiss="modal" id="btnclosemedit" class="btn btn-sm btn-danger float-right m-0"><i class="fa fa-times"></i> </button>
-                </div>
-            </div>
-            <div class="modal-body m-4">
-                <input type="hidden" name="name" value="" readonly id="rmaid" />
-                <form action="/" method="post">
-                    <div class="row p-0 m-0">
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold float-left">RMA Request</label>
-                        </div>
-                        <div class="col-4">
-                            <input type="text" id="rmanumber" readonly class="form-control form-control-sm w-100 float-left" />
-                        </div>
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Date</label>
-                        </div>
-                        <div class="col-4">
-                            <input type="text" id="daterma" class="form-control form-control-sm" />
-                        </div>
-                    </div>
-                    <div class="row p-0 mt-2">
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Where built</label>
-                        </div>
-                        <div class="col-4">
-                            <input type="text" id="whereb" class="form-control form-control-sm" />
-                        </div>
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Total RMA Values</label>
-                        </div>
-                        <div class="col-4">
-                            <input type="text" id="totalrma" class="form-control form-control-sm" />
-                        </div>
-                    </div>
-                    <div class="row p-0 mt-2">
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Description</label>
-                        </div>
-                        <div class="col-4">
-                            <input type="text" id="desc" class="form-control form-control-sm" />
-                        </div>
-                        <div class="col-6">
-                            <div class="row">
-                                <div class="col-2">
-                                    <label class="control-label font-weight-bold">Customer</label>
-                                </div>
-                                <div class="col-4">
-                                    <input type="text" id="client" class="form-control form-control-sm" />
-                                </div>
-                                <div class="col-2">
-                                    <label class="control-label font-weight-bold">PO #</label>
-                                </div>
-                                <div class="col-4">
-                                    <input type="text" id="po" class="form-control form-control-sm" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row p-0 mt-2">
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Ship_To</label>
-                        </div>
-                        <div class="col-4">
-                            <input type="text" id="shipto" class="form-control form-control-sm" />
-                        </div>
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Contact</label>
-                        </div>
-                        <div class="col-4">
-                            <input type="text" id="contactrma" class="form-control form-control-sm" />
-                        </div>
-                    </div>
-                    <div class="row p-0 mt-2">
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Phone</label>
-                        </div>
-                        <div class="col-4">
-                            <div class="row">
-                                <div class="col-6">
-                                    <input type="number" id="phone" class="form-control form-control-sm" />
 
-                                </div>
-                                <div class="col-6">
-                                    <input type="text" id="ext" class="form-control form-control-sm" />
-
-                                </div>
-                            </div>
-
-
-                        </div>
-                        <div class="col-6">
-                            <div class="row">
-                                <div class="col-6">
-                                    <label class="control-label font-weight-bold float-left">
-                                        RMA Type Of Request:
-                                    </label>
-                                </div>
-                                <div class="col-6">
-                                    <select id="selectrmatype" class="form-control form-control-sm">
-                                        <option value="0">Select an option</option>
-                                        <option value="VALUE ADD RMA">VALUE ADD RMA</option>
-                                        <option value="CREDIT & REPLACE">CREDIT & REPLACE</option>
-                                        <option value="CREDIT ONLY">CREDIT ONLY</option>
-                                        <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
-                                    </select>
-                                </div>
-
-
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <div class="row p-0 mt-2">
-                        <div class="col-2">
-                            <label class="control-label font-weight-bold">Fax</label>
-                        </div>
-                        <div class="col-2">
-                            <input type="text" id="fax" class="form-control form-control-sm" />
-
-                        </div>
-                        <div class="col-1">
-                            <label class="control-label font-weight-bold">Contact-Email</label>
-                        </div>
-                        <div class="col-3">
-                            <input type="email" id="email" class="form-control form-control-sm" />
-                        </div>
-
-                        <div class="col-1">
-                            <label class="control-label font-weight-bold">Company-Email</label>
-                        </div>
-                        <div class="col-3">
-                            <input type="email" id="emailc" class="form-control form-control-sm h6" />
-                        </div>
-                    </div>
-
-                    <div class="row p-0 mt-2">
-                        <div class="col-12">
-                            <textarea id="comments" class="form-control form-control-sm">
-
-  
-                            </textarea>
-                        </div>
-                    </div>
-                </form>
-                <h1 class="text-primary mt-2">Add New Line <button class="btn btn-sm btn-secondary " id="btnshowline"> <i class="fa fa-plus"></i></button></h1>
-
-
-                <form id="frmnewline">
-
-
-                    <div class="row" id="rowadd" style="display:none;">
-
-                        <div class="col-2">
-                            <div class="input-group mb-3">
-                                <input id="invoicee" readonly="readonly" value="0" placeholder="Select invoice" name="invoice" class="inv t invoice form-control form-control-sm float-left invoiceenew" />
-                                <div class="input-group-append">
-                                    <button type="button" data-backdrop="static" class="btn btn-sm btn-primary" id="bntabrirfact"><i class="fa fa-search"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-1">
-                            <div class="input-group mb-3">
-                                <input readonly="readonly" name="seq" value="0" id="seqnew" placeholder="seq" class="t2 t seq form-control form-control-sm seq" />
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-sm btn-primary" id="btnopenseq"><i class="fa fa-search"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-2">
-                            <div class="input-group mb-3">
-                                <input onkeyup="javascript:this.value=this.value.toUpperCase();" name="coustumer" readonly type="text" class="form-control form-control-sm cos t  coustumer" id="pnnew">
-                                <div>
-                                    <button type="button" id="imgpn" class="btn btn-sm btn-primary"><i class="fa fa-search"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-1">
-                            <div class="input-group mb-0">
-
-                                <select id='slocationsnew' onchange="validateLocation(this);" class="loc form-control form-control-sm" name="loc">
-                                    <option value="">Select Loc</option>
-                                    <option value="ARM">ARM</option>
-                                    <option value="ERN">ERN</option>
-                                    <option value="MRM">MRM</option>
-                                </select>
-
-
-                            </div>
-                            <div class="row mb-2">
-                                <div id="msgloc" style="position:absolute !important; font-size:0.9vh; display:none;" class="alert alert-warning p-1 mt-0" role="alert">
-                                    Item Not Stocked at this location.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-1">
-                            <input type="number" id="qtynew" class="form-control form-control-sm" placeholder="Authorized Qty" />
-                        </div>
-                        <div class="col-1">
-                            <input type="number" class="form-control form-control-sm" id="txtprice" placeholder="Price" />
-                        </div>
-                        <div class="col-1">
-                            <input type="number" class="form-control form-control-sm" id="txtcost" placeholder="Unit Cost" />
-                        </div>
-                        <div class="col-1">
-                            <input class='w-100 text-center mt-2 mr-0 text-center' type='checkbox' id="carnew" />
-                        </div>
-                        <div class="col-1">
-                            <div class="input-group mb-3">
-                                <input class="text-center form-control form-control-sm btn-block" type="text" id="rcodenew" />
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-sm btn-primary" id="btncodes"><i class="fa fa-search"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-1">
-                            <button class="btn btn-primary btn-sm float-right btn-block" id="btnAddRow" disabled><i class="fa fa-plus"></i> Save Line</button>
-                        </div>
-
-                    </div>
-                </form>
-                <table id="tbllineas" class="table table-sm w-100 ">
-                    <thead class="bg-primary">
-                        <tr>
-                            <th class="text-white">Invoice #</th>
-                            <th class="text-white">SeqNo</th>
-                            <th class="text-white">Part Number</th>
-                            <th class="text-white">Action</th>
-                            <th class="text-white">Loc</th>
-                            <th class="text-white">Authorized Qty</th>
-                            <th class="text-white">Price</th>
-                            <th class="text-white">Unit Cost</th>
-                            <th class="text-white">Create CAR</th>
-                            <th class="text-white">Return Code</th>
-                            <th>Operations</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-                <h1 class="text-primary mt-2">Attachments</h1>
-                <table id="tblfiles" class="table table-borderless table-striped table-hover table-sm w-100 ">
-                    <thead class="bg-primary">
-                        <tr>
-                            <th class="text-white">ID</th>
-                            <th class="text-white">Filename</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-<!--DEFECT CODES-->
-<div id="mcodes" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title lol" id="exampleModalLabel">Defect code</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group row">
-                    <table id="tblcodes" class="table table-striped table-bordered" style="width:100%;">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button data-target="modal" type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 <!--part numbers-->
 <div id="mPN" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -646,36 +355,13 @@
     </form>
 </div>
 <!-- Modal -->
-<div class="modal fade bd-example-modal-lg" id="Comments" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Additional Information</h5>
-                <div class="d-flex">
-                    <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <div id="commentcontrol" class="form-control" style="min-height: 100px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Modal -->
-<div class="modal fade bd-example-modal-lg" id="Remark" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="post" asp-action="Remark">
+<div class="modal fade bd-example-modal-lg" id="RemarkModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <form method="post" asp-action="Remark">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel">Remark Comments</h5>
-
                     <div class="d-flex">
-
-                        <button type="submit" class="btn btn-primary mr-1">
-                            Save
-                        </button>
                         <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
                     </div>
                     @*<button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -683,28 +369,21 @@
                         </button>*@
                 </div>
                 <div class="modal-body">
-
                     <div class="form-group row">
-
-
                         <div>
                             <textarea name="commentrema" id="commentrema" class="form-control" rows="7">     </textarea>
-
-
                             <input type="hidden" name="idrema" id="idrema" />
-
-
                         </div>
-
-
                     </div>
-
-
                 </div>
-
-            </form>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary mr-1">
+                        Save
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 <!--customarcomplain-->
 <div class="modal fade bd-example-modal-lg" id="Customer_complaint" tabindex="-1" aria-labelledby="customerComplaintTitle" aria-hidden="true">

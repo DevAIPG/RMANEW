@@ -22,7 +22,7 @@ namespace Amphenol.RMA.AccesoDatos.Data.Repository
 
         //Task<bool> SendMailAsync2(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
         //Task<bool> SendMail(string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp, string rmarequest);
-        void UpdateRema(int idrema, string commentrema, string var);
+        void UpdateRema(int idrema, string commentrema);
         void Updatedesaprobar(int ids, string comment, string var/* string mail1, string mail2, string mail3, string mail4, string mail5, string mail6,  string mailp*/);
         string Updateaprobar(int idsa, string commentt, string var);
 

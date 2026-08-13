@@ -1,5 +1,6 @@
 ﻿using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models.ModelsM10;
 using Amphenol.RMA.Models.ViewModels;
 using DocumentFormat.OpenXml.InkML;
@@ -34,7 +35,6 @@ namespace Amphenol.RMA.AccesoDatos.Data
             Name = "System"
         };
         private const double TwoStepAuthorizationThreshold = 20_000;
-        private const double SmallRmaValueThreshold = 5_000;
         private readonly IConfiguration _configuration;
 
         public CSEXSW_RmaRepository(DbContextM10 db, DbContext100 db2, IConfiguration configuration) : base(db)
@@ -906,34 +906,29 @@ namespace Amphenol.RMA.AccesoDatos.Data
         //    return true;
         //}
 
-        public void UpdateRema(int idrema, string commentrema, string var)
+        public void UpdateRema(int idrema, string commentrema)
         {
+            var rma = _db.CSEXSW_Rma
+                .FirstOrDefault(x => x.Id == idrema);
 
-            var rma = _db.CSEXSW_Rma.FirstOrDefault(s => s.Id == idrema);
-            var gm = _db.HRRoles.Where(S => S.RoleID == 100032).FirstOrDefault().EmpID;
-            var qd = _db.HRRoles.Where(S => S.RoleID == 100031).FirstOrDefault().EmpID;
+            if (rma == null) return;
 
-
-
-            if (rma.Totalrmavalues >= 20000)
+            if (rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
             {
-                //2 aprobadores
-                if (rma.res_id_approver == gm)
+                var qualityDirector = GetEmployeeByRole(100031);
+                var generalManager = GetEmployeeByRole(100032);
+
+                if (rma.res_id_approver == generalManager.Id)
                 {
-                    var emp = _db.humres.Where(s => s.res_id == qd).FirstOrDefault().fullname;
-                    rma.res_id_approver = qd;
-                    rma.Approver = emp.Trim();
-
+                    rma.Approver = qualityDirector.Name;
+                    rma.res_id_approver = qualityDirector.Id;
                 }
-
             }
 
-            rma.Status = "Remark";
-            rma.Comment = "Remark: " + commentrema;
+            rma.Status = RmaRequestStatus.Remark.ToDisplayString();
+            AddComment(rma, DateTime.Now, CommentAction.Remark, commentrema);
 
             _db.SaveChanges();
-
-
         }
         public async Task<bool> falloRMA(string rma, int requests, string reason)
         {
@@ -1433,16 +1428,16 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
         public void Updatedesaprobar(int ids, string comment, string var /* string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp*/)
         {
-            var currentDate = DateTime.Now;
+            var rma = _db.CSEXSW_Rma
+                .AsNoTracking()
+                .FirstOrDefault(x => x.Id == ids);
 
-            var rma = _db.CSEXSW_Rma.FirstOrDefault(s => s.Id == ids);
+            if (rma == null) return;
 
 
-            rma.Status = "Rejected";
+            rma.Status = RmaRequestStatus.Rejected.ToDisplayString();
 
-            string newComment = $"• ({currentDate:MM/dd/yyyy hh:mm:ss tt}) {rma.Approver}: {comment.Trim()}";
-
-            rma.Comment = string.IsNullOrWhiteSpace(rma.Comment) ? newComment : $"{rma.Comment}{Environment.NewLine}{newComment}";
+            AddComment(rma, DateTime.Now, CommentAction.Rejected, comment);
 
             _db.SaveChanges();
             //BackgroundJob.Enqueue(() => SendMailAsync5(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));
@@ -1459,7 +1454,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             var currentDate = DateTime.Now;
 
-            AddComment(rma, currentDate, comment);
+            AddComment(rma, currentDate, CommentAction.Approved, comment);
 
             rma.date_approved = currentDate;
 
@@ -1478,14 +1473,14 @@ namespace Amphenol.RMA.AccesoDatos.Data
             return ApproveRma(rma, currentDate);
         }
 
-        private void AddComment(CSEXSW_Rma rma, DateTime currentDate, string comment)
+        private static void AddComment(CSEXSW_Rma rma, DateTime currentDate, CommentAction action, string comment)
         {
             var newComment =
-                $"• ({currentDate:MM/dd/yyyy hh:mm:ss tt}) {rma.Approver}: {comment.Trim()}";
+               $" • {rma.Approver} [{action}] {currentDate:MM/dd/yyyy h:mm tt}{Environment.NewLine}-{comment.Trim()}";
 
             rma.Comment = string.IsNullOrWhiteSpace(rma.Comment)
                 ? newComment
-                : $"{rma.Comment}{Environment.NewLine}{newComment}";
+                : $"{rma.Comment}{Environment.NewLine}{Environment.NewLine}{newComment}";
         }
 
         private double GetRmaExchangeRate(CSEXSW_Rma rma)

@@ -25,7 +25,7 @@
     </td>
 
     <td>
-        <a href="@Model.FilePath" target="_blank">
+        <a asp-action="DownloadAttachment" asp-route-id="@Model.Id" target="_blank">
             @Model.FileName
         </a>
     </td>

@@ -1,14 +1,15 @@
 ﻿using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.AccesoDatos.Data.Repository;
-using Amphenol.RMA.Enumerations;
 using Amphenol.RMA.Extensions;
 using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models.ModelsM10;
 using Amphenol.RMA.Models.ViewModels;
 using Amphenol.RMA.Services.Email;
 using Amphenol.RMA.Utilidades;
 using Amphenol.RMA.ViewModels;
 using AspNetCoreGeneratedDocument;
+using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Hangfire;
 using Humanizer;
@@ -63,6 +64,7 @@ namespace Amphenol.RMA.Controllers
         private readonly CustomerServiceManager _customerServiceManager;
         const string rootE = @"E:\CSFiles\documents\";
         const string rootEC = @"E:\CSFiles\";
+        private const double TwoStepAuthorizationThreshold = 20_000;
         private Approver _autoApprover = new()
         {
             Id = -4,
@@ -147,64 +149,37 @@ namespace Amphenol.RMA.Controllers
 
             return View();
         }
-        [HttpGet]
+        [HttpPost]
         public IActionResult DoneRemark(int id)
         {
-            var rma = _context2.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+            var rma = _context2.CSEXSW_Rma
+                .FirstOrDefault(x => x.Id == id);
 
-            var gm = _context2.HRRoles.Where(S => S.RoleID == 100032).FirstOrDefault().EmpID;
-            var qd = _context2.HRRoles.Where(S => S.RoleID == 100031).FirstOrDefault().EmpID;
+            if (rma == null) NotFound();
 
-
-
-            if (rma.Totalrmavalues >= 20000)
+            if (rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
             {
-                //2 aprobadores
-                if (rma.res_id_approver == gm)
+                var qualityDirector = GetEmployeeByRole(100031);
+                var generalManager = GetEmployeeByRole(100032);
+
+                if (rma.res_id_approver == generalManager.Id)
                 {
-                    var emp = _context2.humres.Where(s => s.res_id == qd).FirstOrDefault().fullname;
-                    rma.res_id_approver = qd;
-                    rma.Approver = emp.Trim();
-
+                    rma.Approver = qualityDirector.Name;
+                    rma.res_id_approver = qualityDirector.Id;
                 }
-
             }
-            rma.Status = "Pending";
-            _context2.Entry(rma).State = EntityState.Modified;
-            var result = _context2.SaveChanges();
-            return Json(result > 0 || result != -1 ? true : false);
+            rma.Status = RmaRequestStatus.Pending.ToDisplayString();
+
+            _context2.SaveChanges();
+
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         public IActionResult Remark(string commentrema, int idrema)
         {
-            String cadena = User.Identity.Name;
-            string delimitador = @"\";
-            string[] valores = cadena.Split(delimitador);
-            string usuario = valores[1];
+            _contenedorTrabajo.CSEXSW_Rma.UpdateRema(idrema, commentrema);
 
-
-            string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-
-
-
-
-            string QM = _context2.CSEXSW_Approver.Where(a => a.Rango == "QM").Select(a => a.Approver).FirstOrDefault();
-            string QD = _context2.CSEXSW_Approver.Where(a => a.Rango == "QD").Select(a => a.Approver).FirstOrDefault();
-            string GM = _context2.CSEXSW_Approver.Where(a => a.Rango == "GM").Select(a => a.Approver).FirstOrDefault();
-            string Dee = _context2.CSEXSW_Approver.Where(a => a.Rango == "Dee").Select(a => a.Approver).FirstOrDefault();
-            string Controller = _context2.CSEXSW_Approver.Where(a => a.Rango == "Controller").Select(a => a.Approver).FirstOrDefault();
-            string CSM = _context2.CSEXSW_Approver.Where(a => a.Rango == "CSM").Select(a => a.Approver).FirstOrDefault();
-            string mail1 = _context2.humres.Where(a => a.fullname == QM).Select(a => a.mail).FirstOrDefault();
-            string mail2 = _context2.humres.Where(a => a.fullname == QD).Select(a => a.mail).FirstOrDefault();
-            string mail3 = _context2.humres.Where(a => a.fullname == GM).Select(a => a.mail).FirstOrDefault();
-            string mail4 = _context2.humres.Where(a => a.fullname == Dee).Select(a => a.mail).FirstOrDefault();
-            string mail5 = _context2.humres.Where(a => a.fullname == Controller).Select(a => a.mail).FirstOrDefault();
-            string mail6 = _context2.humres.Where(a => a.fullname == CSM).Select(a => a.mail).FirstOrDefault();
-            string mailp = _context2.humres.Where(a => a.fullname == usuario).Select(a => a.mail).FirstOrDefault();
-
-            _contenedorTrabajo.CSEXSW_Rma.UpdateRema(idrema, commentrema, var);
-            _contenedorTrabajo.Save();
             return RedirectToAction(nameof(Control));
         }
 
@@ -3461,41 +3436,102 @@ namespace Amphenol.RMA.Controllers
             var partialView = "RmaDetailsModalView";
             if (id < 1 || string.IsNullOrWhiteSpace(mode))
             {
-                return PartialView(partialView, new RmaModalViewModel());
+                return PartialView(partialView, new RmaViewModel());
             }
 
-            var rmaDetails = _context2.CSEXSW_Rma
+            var rma = _context2.CSEXSW_Rma
                 .AsNoTracking()
                 .FirstOrDefault(x => x.Id == id);
 
-            if (rmaDetails == null)
+            if (rma == null)
             {
-                return PartialView(partialView, new RmaModalViewModel());
+                return PartialView(partialView, new RmaViewModel());
             }
 
+            string directory = Path.Combine(rootEC, "documents", "RMA", rma.Rmarequest.Trim(), "Attachments");
 
-            var viewModel = new RmaModalViewModel
+
+            var viewModel = new RmaViewModel
             {
-                Mode = mode,
-                Data = new Rma
-                {
-                    Details = rmaDetails,
-                    ItemLines = await _context2.csexsw_coustumer
-                        .AsNoTracking()
-                        .Where(x => x.RmaId == id)
-                        .OrderByDescending(x => x.Id)
-                        .ToListAsync(),
-
-                    Attachments = await _context2.CSEXSW_Attachmentrma
-                        .AsNoTracking()
-                        .Where(x => x.RmaId == id)
-                        .OrderByDescending(x => x.Id)
-                        .ToListAsync()
-                }
+                Attachments = await _context2.CSEXSW_Attachmentrma
+                     .AsNoTracking()
+                     .Where(x => x.RmaId == rma.Id)
+                     .Select(x => new RmaAttachmentViewModel
+                     {
+                         Id = x.Id,
+                         FileName = x.Documento
+                     }).ToListAsync(),
+                Comments = rma.Comment,
+                CompanyEmail = rma.Company,
+                Complaint = rma.Customercomplait,
+                Contact = rma.Contact,
+                ContactEmail = rma.Email,
+                CustomerId = rma.Customer,
+                Date = Convert.ToDateTime(rma.Date),
+                Description = rma.Description,
+                ExtensionNumber = rma.Ext,
+                Fax = rma.Fax,
+                Lines = await _context2.csexsw_coustumer
+                     .AsNoTracking()
+                     .Where(x => x.CSEXSW_Rma == rma)
+                     .Select(x => new RmaLineViewModel
+                     {
+                         Id = x.Id,
+                         AuthorizedQuantity = (int)x.Qty,
+                         GenerateCAR = x.Car,
+                         InvoiceNumber = x.Invoice,
+                         PartNumber = x.Coustumer,
+                         Price = x.Unit,
+                         ReturnCode = x.Retur,
+                         RmaRequestId = x.RmaId,
+                         SelectedAction = x.Action,
+                         SelectedLocation = x.Loc,
+                         SequenceNumber = x.Seq,
+                         UnitCost = x.Cost
+                     }).ToListAsync(),
+                PhoneNumber = rma.Phone,
+                PoNumber = rma.Customerpo,
+                RequestId = int.Parse(rma.Rmarequest),
+                RequestStatus = RmaRequestStatusExtensions.FromDisplayString(rma.Status),
+                SelectedBuildLocation = rma.Wherebuilt,
+                SelectedReason = rma.reason,
+                SelectedRequestType = rma.Rmatypeofrequest,
+                ShipTo = rma.Ship_To,
+                SubmitStatus = RmaSubmitStatusExtensions.FromDisplayString(rma.Sumbit)
             };
 
 
             return PartialView(partialView, viewModel);
+        }
+        [HttpGet]
+        public async Task<IActionResult> DownloadAttachment(int id)
+        {
+            var attachment = await _context2.CSEXSW_Attachmentrma
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (attachment == null)
+            {
+                return NotFound();
+            }
+
+            var rma = await _context2.CSEXSW_Rma
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == attachment.RmaId);
+
+            if (rma == null)
+            {
+                return NotFound();
+            }
+
+            string filePath = Path.Combine(rootEC, "documents", "RMA", rma.Rmarequest.Trim(), "Attachments", attachment.Documento);
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                return NotFound();
+            }
+
+            return PhysicalFile(filePath, "application/octet-stream", attachment.Documento);
         }
         [HttpGet]
         public IActionResult AddLineRow()

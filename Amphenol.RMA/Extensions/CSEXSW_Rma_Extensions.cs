@@ -1,5 +1,5 @@
-﻿using Amphenol.RMA.Enumerations;
-using Amphenol.RMA.Models;
+﻿using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models.ModelsM10;
 
 namespace Amphenol.RMA.Extensions
