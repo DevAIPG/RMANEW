@@ -1,0 +1,71 @@
+﻿@model Amphenol.RMA.ViewModels.RmaLineViewModel
+@{
+    var index = ViewData["Index"]?.ToString() ?? "__INDEX__";
+}
+<tr>
+    <td>
+        <span class="btn btn-sm btn-outline-danger btn-remove-rma-line" title="Remove Line"><i class="fa fa-trash"></i></span>
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control  invoice-input" type="text" readonly asp-for="InvoiceNumber" id="Line_@(index)_InvoiceNumber"
+                   name="Lines[@(index)].InvoiceNumber" />
+            <span class="btn btn-sm btn-outline-secondary btn-search-invoice"><i class="fa fa-search"></i></span>
+        </div>
+        <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control  sequence-input" type="text" readonly asp-for="SequenceNumber" id="Line_@(index)_SequenceNumber"
+                   name="Lines[@(index)].SequenceNumber" />
+            <span class="btn btn-sm btn-outline-secondary btn-search-sequence"><i class="fa fa-search"></i></span>
+        </div>
+        <span asp-validation-for="SequenceNumber" class="text-danger"></span>
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control  partnumber-input" type="text" readonly asp-for="PartNumber" id="Line_@(index)_PartNumber"
+                   name="Lines[@(index)].PartNumber" />
+            <span class="btn btn-sm btn-outline-secondary btn-search-partnumber"><i class="fa fa-search"></i></span>
+        </div>
+        <span asp-validation-for="PartNumber" class="text-danger"></span>
+    </td>
+    <td>
+        <select class="form-control action-select" asp-for="SelectedAction"
+                asp-items="@(new SelectList(Model.Actions, nameof(SelectableStringOption.SelectedValue), nameof(SelectableStringOption.DisplayValue)))"
+                id="Line_@(index)_SelectedAction" name="Lines[@(index)].SelectedAction">
+        </select>
+    </td>
+    <td>
+        <select class="form-control location-select" asp-for="SelectedLocation"
+                asp-items="@(new SelectList(Model.Locations, nameof(SelectableStringOption.SelectedValue), nameof(SelectableStringOption.DisplayValue)))"
+                id="Line_@(index)_SelectedLocation" name="Lines[@(index)].SelectedLocation">
+        </select>
+    </td>
+    <td>
+        <input class="form-control  quantity-input" type="number" asp-for="AuthorizedQuantity" id="Line_@(index)_AuthorizedQuantity"
+               name="Lines[@(index)].AuthorizedQuantity" />
+        <span asp-validation-for="AuthorizedQuantity" class="text-danger"></span>
+    </td>
+    <td>
+        <input class="form-control  price-input" type="number" asp-for="Price" id="Line_@(index)_Price"
+               name="Lines[@(index)].Price" />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </td>
+    <td>
+        <input class="form-control  unitcost-input" type="number" asp-for="UnitCost" id="Line_@(index)_UnitCost"
+               name="Lines[@(index)].UnitCost" />
+        <span asp-validation-for="UnitCost" class="text-danger"></span>
+    </td>
+    <td>
+        <div class="input-group">
+            <input class="form-control returncode-input" type="text" readonly asp-for="ReturnCode" id="Line_@(index)_ReturnCode"
+                   name="Lines[@(index)].ReturnCode" />
+            <span class="btn btn-sm btn-outline-secondary btn-search-returncode"><i class="fa fa-search"></i></span>
+        </div>
+    </td>
+    <td>
+        <input class='form-check-inline m-2 generatecar-checkbox' type='checkbox' asp-for="GenerateCAR" id="Line_@(index)_GenerateCAR"
+               name="Lines[@(index)].GenerateCARe" />
+    </td>
+</tr>

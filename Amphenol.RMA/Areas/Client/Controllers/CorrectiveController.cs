@@ -18,14 +18,12 @@ using System.Linq;
 
 namespace Amphenol.RMA.Controllers
 {
-
-
-
     [Area("Client")]
     [Authorize]
     public class CorrectiveController : Controller
     {
-        private const double V = 1.0000;
+        private const int _maxOrdersReturned = 8192;
+        private const double _defaultExchangeRate = 1.0000;
         private readonly IConfiguration _configuration;
         private readonly IContenedorTrabajo _contenedorTrabajo;
 
@@ -64,14 +62,14 @@ namespace Amphenol.RMA.Controllers
             foreach (var item in addministrador)
             {
 
-              var user =   dbContext.humres.FirstOrDefault(a => a.res_id == item.EmpID).usr_id;
+                var user = dbContext.humres.FirstOrDefault(a => a.res_id == item.EmpID).usr_id;
 
                 if ((user == username))
                 {
-            return Ok(username);
+                    return Ok(username);
 
                 }
-                
+
 
             }
 
@@ -106,15 +104,16 @@ namespace Amphenol.RMA.Controllers
 
                      select new
                      {
-                         data,
-
-                         rateExchange = f.RateExchange == null ? V : f.RateExchange
+                         data.cus_no,
+                         data.cus_name,
+                         data.curr_cd,
+                         rateExchange = f.RateExchange == null ? _defaultExchangeRate : f.RateExchange
                      }).ToList();
 
 
 
 
-            return Json(new { data = q.OrderBy(a => a.data.cus_no) });
+            return Json(new { data = q.OrderBy(a => a.cus_no) });
         }
 
         [HttpGet]
@@ -130,20 +129,42 @@ namespace Amphenol.RMA.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetPricesByInvoice(int invoicenumber, string loc)
+        public IActionResult GetPricesByInvoice(string invoicenumber, string loc)
         {
+            var formmattedInvoice = invoicenumber.Trim().PadLeft(8, ' ');
+            var prices = _context2.OELINHST_SQL.Where(s => s.InvNo == formmattedInvoice)
+                .Select(r => new
+                {
+                    price = r.UnitPrice,
+                    std = r.UnitCost,
+                    pn = r.ItemNo,
+                    loc = r.Loc
+                }
+            );
 
-            var prices = _context2.OELINHST_SQL.Where(s => s.InvNo.Trim() == invoicenumber.ToString().Trim()).Select(r => new { price = r.UnitPrice, std = r.UnitCost, pn = r.ItemNo, loc = r.Loc });
             return Json(prices);
         }
 
         [HttpGet]
         public IActionResult GetAllI2(string filtro)
-
         {
-            char pad = ' ';
-            var data = _context2.OEHDRHST_SQL.Where(a => a.CusNo.Trim() == filtro.Trim()).OrderByDescending(a => a.OrdNo).Take(8192);
-            return Json(data);
+            if (string.IsNullOrWhiteSpace(filtro))
+            {
+                return Json(new { data = Array.Empty<object>() });
+            }
+
+            var formattedCustomerId = filtro.Trim().PadLeft(20, ' ');
+
+            var data = _context2.OEHDRHST_SQL
+            .Where(x => x.CusNo == formattedCustomerId && !string.IsNullOrWhiteSpace(x.InvNo))
+            .OrderByDescending(x => x.OrdDt)
+            .Take(_maxOrdersReturned)
+            .ToList();
+
+            return Json(new
+            {
+                data = data
+            });
         }
         [HttpGet]
 
@@ -370,8 +391,8 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult GETclientscodigo(string term)
         {
-          
-            if(term==null)
+
+            if (term == null)
             {
                 term = "";
             }
@@ -382,7 +403,7 @@ namespace Amphenol.RMA.Controllers
                 dato = "existe";
             }
             return Json(new { existe = dato, result = _context2.arcusfil_sql.Where(a => a.cus_no.Contains(term)).Select(a => a.cus_no.Trim()).Take(20).ToList() });
-        
+
         }
     }
 }

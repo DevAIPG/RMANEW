@@ -1,315 +1,383 @@
-﻿@model Amphenol.RMA.Models.ViewModels.csexsw_coustumerVM
+﻿@model Amphenol.RMA.ViewModels.RmaViewModel
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Edit";
     Layout = "~/Views/Shared/_Layout6.cshtml";
 }
-<br />
+@section Head {
+    <style>
+        .comments-toggle .icon-collapsed {
+            display: none;
+        }
 
-<div class="gif">
-    <img src="~/tenor.gif" alt="">
-</div>
-<div class="cargar" ng-controller="Rma">
-    <div class="row">
-        <div class="col-6">
-            <h2 class="text-primary">Edit Item</h2>
+        .comments-toggle .icon-expanded {
+            display: inline-block;
+        }
+
+        .comments-toggle.collapsed .icon-collapsed {
+            display: inline-block;
+        }
+
+        .comments-toggle.collapsed .icon-expanded {
+            display: none;
+        }
+    </style>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    var errorTitle = TempData["ErrorTitle"] as string ?? "Something went wrong";
+
+    <div class="d-flex justify-content-center align-items-center py-5">
+        <div class="card shadow-sm border-0 text-center" style="max-width: 500px; width: 100%;">
+            <div class="card-body p-5">
+                <div class="mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light"
+                         style="width: 64px; height: 64px;">
+                        <i class="fas fa-exclamation-triangle text-danger fa-2x"
+                           aria-hidden="true"></i>
+                    </div>
+                </div>
+                <h4 class="card-title font-weight-bold mb-3">
+                    @errorTitle
+                </h4>
+                <p class="card-text text-muted mb-4">
+                    @errorMessage
+                </p>
+                <a href="@Model.ReturnUrl" class="btn btn-primary px-4">
+                    <i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>
+                    Back To @Model.ReturnPageTitle
+                </a>
+            </div>
         </div>
-
     </div>
+}
+else
+{
+    <link href="~/css/jquery.loadingModal.min.css" rel="stylesheet" />
+    <div asp-validation-summary="All" class="alert alert-danger"></div>
+    if (!string.IsNullOrEmpty(Model.Comments))
+    {
+        <div class="alert alert-secondary" role="alert">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="alert-heading mb-0 font-weight-bold">Comments</h5>
+                <button class="btn btn-sm btn-outline-secondary comments-toggle"
+                        type="button"
+                        data-toggle="collapse"
+                        data-target="#commentsCollapse"
+                        aria-expanded="true"
+                        aria-controls="commentsCollapse">
+                    <!-- Shown when expanded -->
+                    <i class="fa fa-chevron-up icon-expanded"></i>
+                    <!-- Shown when collapsed -->
+                    <i class="fa fa-chevron-down icon-collapsed"></i>
+                </button>
+            </div>
+            <div class="collapse show mt-2" id="commentsCollapse">
+                <hr />
+                <div style="white-space: pre-line;">@Model.Comments</div>
+            </div>
+        </div>
+    }
+    <div class="card">
+        <form id="editRmaForm" asp-action="Edit" asp-controller="Rma" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(x => x.RequestStatus)
+            @Html.HiddenFor(x => x.RequestId)
+            @Html.HiddenFor(x => x.ReturnUrl)
+            <div class="card-header m-3 bg-white">
+                <div class="card-title">
+                    <div class="col-12">
+                        <h5 class="font-weight-bold">Edit RMA Request</h5>
 
-    <br />
-    <br />
+                        <small class="text-muted">
 
+                            <span class="text-danger">*</span> Required fields
 
-
-    <form id="crearma" method="post" asp-action="Edit" enctype="multipart/form-data" autocomplete="off">
-
-        <input type="hidden" id="proceso" value="edit" />
-        <input type="hidden" id="clientesmodelo" value="@Model.CSEXSW_Rma.Customer" />
-        <input type="hidden" id="preparado" value="@Model.CSEXSW_Rma.Preparado" />
-        <div class="row px-2 mx-2 border">
-
-            <div class="col-10 offset-1 mt-4">
-                <div class="form-group row">
-                    <div class="col-12 offset-3">
-                        <div class="row">
-                            <div>
-                                <button type="submit" onclick="Cargar()" class="btn btn-primary">Save</button>
-                                &nbsp;
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Request Information -->
+                <div class="row m-3">
+                    <div class="col-12 mb-3">
+                        <h5 class="font-weight-bold">1- RMA Information</h5>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-2 row">
+                            <label class="col-4 col-form-label font-weight-bold">Request Number:</label>
+                            <label class="col-8 form-control disabled" style="background-color:#e9ecef">@Model.RequestId</label>
+                        </div>
+                        <div class="mb-2 row">
+                            <label class="col-4 col-form-label font-weight-bold">Build Location<span class="ml-2 text-danger">*</span></label>
+                            <select class="col-8 form-select form-control" asp-for="SelectedBuildLocation" id="selectWherebuilt"
+                                    asp-items="@(new SelectList(Model.BuildLocations))">
+                            </select>
+                        </div>
+                        <div class="mb-2 row">
+                            <label class="col-4 col-form-label font-weight-bold">Request Type <span class="ml-2 text-danger">*</span></label>
+                            <select class="col-8 form-select form-control" asp-for="SelectedRequestType" id="selectRequestType"
+                                    asp-items="@(new SelectList(Model.RequestTypes))">
+                            </select>
+                        </div>
+                        <div class="mb-2 row">
+                            <div class="col-4 col-form-label font-weight-bold">Customer Complaint<span class="ml-2 text-danger">*</span></div>
+                            <textarea class="col-8 form-control  complaint-textarea" rows="4" asp-for="Complaint" id="textareaComplaint"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-2 row">
+                            <label class="col-4 col-form-label font-weight-bold">Date:</label>
+                            <label class="col-8 form-control disabled" style="background-color:#e9ecef">@Model.Date.ToString("MM/dd/yyyy")</label>
+                        </div>
+                        <div class="mb-2 row">
+                            <label class="col-4 col-form-label font-weight-bold">RMA Reason<span class="ml-2 text-danger">*</span></label>
+                            <select class="col-8 form-select form-control" asp-for="SelectedReason" id="selectReason"
+                                    asp-items="@(new SelectList(Model.Reasons))">
+                            </select>
+                        </div>
+                        <div class="mb-2 row">
+                            <div class="col-4 col-form-label font-weight-bold">Issue Description:</div>
+                            <input class="col-8 form-control" asp-for="Description" id="inputDescription" maxlength="29" />
+                        </div>
+                    </div>
+                    <div class="border-top mt-4 pt-4">
+                    </div>
+                </div>
+                <!-- Customer Information -->
+                <div class="row m-3">
+                    <div class="col-12 mb-3">
+                        <h5 class="font-weight-bold">2- Customer Information</h5>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-2 row">
+                            <label class="col-4 col-form-label font-weight-bold" for="inputCustomer">Customer Number<span class="ml-2 text-danger">*</span></label>
+                            <div class="col-8 input-group">
+                                <input tabindex="1" class="form-control  customer-input" placeholder="Enter or search for a customer id" asp-for="CustomerId" id="inputCustomer" list="customerOptions" autocomplete="off" />
+                                <span class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#CustomerModal"><i class="fa fa-search"></i></span>
                             </div>
-                            <div>
-                                <button type="submit" onclick="Cargar2()" class="btn btn-primary">Sumbit</button>
-                                &nbsp;
+                            <datalist id="customerOptions">
+                            </datalist>
+                            <div class="invalid-feedback">
+                                Please provide a customer number.
                             </div>
-                            @if (Model.CSEXSW_Rma.Status == "Remark")
-                            {
-                                <div>
-                                    <button type="submit" onclick="Cargar3()" class="btn btn-primary">Done</button>
-                                    &nbsp;
+                        </div>
+                        <div class="mb-2 row customer-info d-none">
+                            <label class="col-4 col-form-label font-weight-bold">Contact<span class="ml-2 text-danger">*</span></label>
+                            <div class="col-8 input-group">
+                                <input class="form-control  contact-input" asp-for="Contact" id="inputContact" />
+                                <span asp-validation-for="Contact" class="col-12 text-danger"></span>
+                            </div>
+
+                        </div>
+                        <div class="mb-2 row customer-info d-none">
+                            <label class="col-4 col-form-label font-weight-bold">
+                                Phone<span class="ml-2 text-danger">*</span>
+                            </label>
+                            <div class="col-8">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input class="form-control  phone-input" type="tel" asp-for="PhoneNumber" id="inputPhone" />
+                                    </div>
+                                    <label class="col-2 col-form-label font-weight-bold">
+                                        Ext:
+                                    </label>
+                                    <div class="col-4">
+                                        <input class="form-control" asp-for="ExtensionNumber" type="tel" id="inputExtension" />
+                                    </div>
+                                    <span asp-validation-for="PhoneNumber" class="col-12 text-danger"></span>
                                 </div>
-                            }
+                            </div>
+                        </div>
+                        <div class="mb-2 row customer-info d-none">
+                            <label class="col-4 col-form-label font-weight-bold">Email<span class="ml-2 text-danger">*</span></label>
+                            <div class="col-8 input-group">
+                                <input class="form-control  contactEmail-input" asp-for="ContactEmail" id="inputContactEmail" />
+                                <span asp-validation-for="ContactEmail" class="col-12 text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-2 row shipto-section d-none">
+                            <label class="col-4 col-form-label font-weight-bold">Ship To<span class="ml-2 text-danger">*</span></label>
+                            <div class="col-8 input-group">
+                                <input tabindex="2" class="form-control  shipto-input disabled" readonly asp-for="ShipTo" id="inputShipTo" autocomplete="off" />
+                                <span class="btn btn-sm btn-outline-secondary" onclick="OpenShipToModal()"><i class="fa fa-search"></i></span>
+                                <span asp-validation-for="ShipTo" class="col-12 text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="mb-2 row customer-info d-none">
+                            <label class="col-4 col-form-label font-weight-bold">PO Number<span class="ml-2 text-danger">*</span></label>
+                            <div class="col-8 input-group">
+                                <input class="form-control  po-input" asp-for="PoNumber" id="inputCustomerPo" />
+                                <span asp-validation-for="PoNumber" class="col-12 text-danger"></span>
+                            </div>
+
+                        </div>
+                        <div class="mb-2 row customer-info d-none">
+                            <label class="col-4 col-form-label font-weight-bold">Fax:</label>
+                            <div class="col-8 input-group">
+                                <input class="form-control" asp-for="Fax" id="inputFax" />
+                            </div>
+                        </div>
+                        <div class="mb-2 row customer-info d-none">
+                            <label class="col-4 col-form-label font-weight-bold">Company Email:</label>
+                            <div class="col-8 input-group">
+                                <input class="form-control disabled" readonly asp-for="CompanyEmail" id="inputCompanyEmail" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border-top mt-4 pt-4">
+                    </div>
+                </div>
+                <!-- Line Information -->
+                <div class="row line-section m-3 d-none">
+                    <div class="col-12 mb-3">
+                        <h5 class="font-weight-bold mr-3">3- Lines</h5>
+                        <span class="btn btn-sm btn-primary action-btn float-right btn-add-rma-line"><i class="fa fa-plus"></i></span>
+                    </div>
+
+                    <div class="col-12 mb-2">
+                        <div class="table-responsive">
+                            <table id="LineTable" class="table table-striped table-bordered text-center align-middle" style="table-layout:fixed;">
+                                <colgroup>
+                                    <col style="width:50px">
+                                    <col style="width:150px">
+                                    <col style="width:100px">
+                                    <col style="width:260px">
+                                    <col style="width:260px">
+                                    <col style="width:215px">
+                                    <col style="width:150px">
+                                    <col style="width:150px">
+                                    <col style="width:150px">
+                                    <col style="width:150px">
+                                    <col style="width:120px">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Invoice #</th>
+                                        <th>Sequence</th>
+                                        <th>Part Number</th>
+                                        <th>Action</th>
+                                        <th>Location</th>
+                                        <th>Authorized Qty</th>
+                                        <th>Price</th>
+                                        <th>Unit Cost</th>
+                                        <th>Return Code</th>
+                                        <th>Create CAR</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Lines != null && Model.Lines.Any())
+                                    {
+                                        @for (int i = 0; i < Model.Lines.Count; i++)
+                                        {
+                                            @await Html.PartialAsync("RmaItemEditableLine", Model.Lines[i], new ViewDataDictionary(ViewData) { ["Index"] = i })
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr id="emptyLineRow">
+                                            <td colspan="11" class="text-center text-muted py-4">
+                                                <div class="d-flex justify-content-center align-items-center">
+                                                    <h5 class="font-weight-bold mb-0 mr-3">Add new lines</h5>
+                                                    <button type="button" class="btn btn-sm btn-primary action-btn btn-add-rma-line">
+                                                        <i class="fa fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-3">
+                        <div class="alert alert-light border mb-0 text-right">
+                            <strong>Total RMA Value:</strong>
+                            $<span class="totalrmavalue-label">@Model.TotalValue</span>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-3 mb-3">
+                        <hr>
+                    </div>
+                </div>
+                <!-- Attachment Information -->
+                <div class="row attachment-section m-3 d-none">
+                    <div class="col-12 mb-3">
+                        <h5 class="font-weight-bold">4- Attachments</h5>
+                        <span class="btn btn-sm btn-primary action-btn float-right btn-add-rma-attachment"><i class="fa fa-plus"></i></span>
+                    </div>
+                    <div class="col-12">
+                        <input type="file" id="attachmentInput" name="UploadedFiles" multiple hidden />
+                        <div class="table-responsive">
+                            <table id="AttachmentTable" class="table table-striped table-bordered text-center align-middle" style="table-layout:fixed;">
+                                <colgroup>
+                                    <col style="width:50px">
+                                    <col>
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Filename</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Attachments != null && Model.Attachments.Any())
+                                    {
+                                        @for (int i = 0; i < Model.Attachments.Count; i++)
+                                        {
+                                            @await Html.PartialAsync("RmaAttachmentRow", Model.Attachments[i], new ViewDataDictionary(ViewData) { ["Index"] = i })
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr id="emptyAttachmentRow">
+                                            <td colspan="2" class="text-center text-muted py-4">
+                                                <div class="d-flex justify-content-center align-items-center">
+                                                    <h5 class="font-weight-bold mb-0 mr-3">Add attachments</h5>
+                                                    <button type="button" class="btn btn-sm btn-primary action-btn btn-add-rma-attachment">
+                                                        <i class="fa fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-                <input asp-for="CSEXSW_Rma.Id" type="hidden" id="id" />
-
-                <div class="form-group row">
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Rmarequest"></label>
-                    </div>
-                    <div class="col-3">
-                        <input asp-for="CSEXSW_Rma.Rmarequest" readonly="readonly" placeholder="Enter value here" id="foliorma" />
-
-                    </div>
-                    <input type="hidden" asp-for="CSEXSW_Rma.Status" id="rmastatus" />
-                    <input type="hidden" asp-for="CSEXSW_Rma.Approver" id="rmaapprover" />
-                    <input type="hidden" asp-for="CSEXSW_Rma.Sumbit" id="rmasumbit" />
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Date"></label>
-                    </div>
-                    <div class="col-3">
-                        <input asp-for="CSEXSW_Rma.Date" readonly="readonly" value="@DateTime.Today.ToString("MM/dd/yyyy ")" style="background: #efef7b;" id="rmadata" />
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Wherebuilt"></label>
-                    </div>
-                    <div class="col-3">
-                        <select id="validar1" asp-for="CSEXSW_Rma.Wherebuilt">
-
-                            <option value="0">Select an option</option>
-                            <option value="ATZ">ATZ</option>
-
-                            <option value="Nogales">Nogales</option>
-                            <option value="Endicott">Endicott</option>
-                        </select><br />
-                        <span class="spam1 text-danger">Mandatory: Where built</span>
-                    </div>
-
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Totalrmavalues"></label>
-                    </div>
-                    <div class="col-3">
-                        <input type="number" class="validar" style="background: #efef7b;" id="total" step="any" placeholder="0" min="0" asp-for="CSEXSW_Rma.Totalrmavalues" readonly="readonly" />
-                    </div>
-
-                </div>
-                <div class="form-group row">
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Customer"></label>
-                    </div>
-                    <div class="col-3">
-                        <input asp-for="CSEXSW_Rma.Customer" id="client" ng-keyup="buscarclient()" style="width: 150px;" placeholder="Enter value here" onkeyup="javascript:this.value=this.value.toUpperCase();" /> <a data-toggle='modal' data-target='#tblAm'><img src="~/buscar.png" /></a>
-                        <br />
-                        <span class="spam4 text-danger">Client not exit</span>
-
-                        <span class="spam3 text-danger">Mandatory: Customer</span>
-                    </div>
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Rmatypeofrequest"></label>
-                    </div>
-                    <div class="col-3">
-                        <select id="select" asp-for="CSEXSW_Rma.Rmatypeofrequest">
-                            <option value="0">Select an option</option>
-                            <option value="VALUE ADD RMA">VALUE ADD RMA</option>
-                            <option value="CREDIT & REPLACE">CREDIT & REPLACE</option>
-                            <option value="CREDIT ONLY">CREDIT ONLY</option>
-                            <option value="DISTY SCRAP ALLOWANCE">DISTY SCRAP ALLOWANCE</option>
-                        </select><br />
-                        <span class="spam2 text-danger">Mandatory: RMA type of Request</span>
-                    </div>
-
-
-                </div>
-                <div class="form-group row">
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Customercomplait"></label>
-                    </div>
-                    <div class="col-3">
-                        <input asp-for="CSEXSW_Rma.Customercomplait" id="customercomplait" />
-                    </div>
-
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Description"></label>
-                    </div>
-                    <div class="col-3">
-                        <input asp-for="CSEXSW_Rma.Description" id="description" />
-                    </div>
-
-                </div>
-
-
-
-                <div class="form-group row">
-
-                    <div class="ocultar500 col-3">
-                        <label asp-for="CSEXSW_Rma.RMA500"></label>
-                    </div>
-                    <div class="ocultar500 col-3">
-                        <select asp-for="CSEXSW_Rma.RMA500" id="rma500">
-                            <option value="">Select an option</option>
-                            <option value="Yes">Yes</option>
-                            <option value="No">No</option>
-                        </select>
-                    </div>
-
-                    <div class="col-3">
-                        <label asp-for="CSEXSW_Rma.Customerpo"></label>
-                    </div>
-                    <div class="col-3">
-                        <input asp-for="CSEXSW_Rma.Customerpo" placeholder="Enter value here" id="customerpo" />
-
-                    </div>
-
-                </div>
-
-                <div class="form-group row">
-
-                    <div class="col-3" ng-if="cliente == true">
-                        <label asp-for="CSEXSW_Rma.Ship_To"></label>
-                    </div>
-                    <div class="col-3" ng-if="cliente == true">
-                        <input asp-for="CSEXSW_Rma.Ship_To" ng-blur="ship()" id="ship" readonly="readonly" style="width: 150px;" /><a data-toggle='modal' data-target='#mtblSt'><img src="~/buscar.png" /></a>
-                        <br />  <span class="spam5 text-danger">Mandatory: Ship_To</span>
-                    </div>
-                    <div class="col-1 ship">
-                        <label>Contact</label>
-                    </div>
-                    <div class="col-5 ship">
-                        <input type="text" id="contact" asp-for="CSEXSW_Rma.Contact" style="width: 300px;" />
-
-                    </div>
-                </div>
-                <div class="form-group row ship">
-
-                    <div class=" col-3">
-                        <label>Import RMA Lines</label>
-                    </div>   <div class=" col-3">
-                        <input type="file" name="archivos2" id="subidaArchivo2" style="width: 70%;" />
-
-
-                        <button type="button" ng-click="importexcel()" class="btn btn-primary">Import</button>
-                    </div>
-                    <div class="col-1 ship">
-                        <label>Phone</label>
-                    </div>
-                    <div class="col-3 ship">
-                        <input type="text" id="phone" style="width: 150px;" asp-for="CSEXSW_Rma.Phone" />
-
-
-                    </div>
-                    <div class="col-2 ship">
-                        Ext.<input type="text" id="ext" style="width: 70%;" asp-for="CSEXSW_Rma.Ext" />
-
-
-                    </div>
-                </div>
-
-
-
-
-
-                <div class="ship form-group row">
-
-                    <div class="col-3">
-                        <label>Fax</label>
-                    </div>
-                    <div class="col-3">
-                        <input type="text" id="fax" asp-for="CSEXSW_Rma.Fax" />
-
-                    </div>
-                    <div class="col-1">
-                        <label>Contact E-mail</label>
-                    </div>
-                    <div class="col-5">
-                        <input type="text" id="contactemail" style="width: 300px;" asp-for="CSEXSW_Rma.Email" />
-                        <span asp-validation-for="CSEXSW_Rma.Email" class="text-danger"></span>
-
-                    </div>
-                </div>
-
-                <div class="ship form-group row">
-
-
-                    <div class="col-3">
-                        <label>Company E-mail</label>
-                    </div>
-                    <div class="col-3">
-                        <input type="text" id="companyemail" style="width :250px; background: #efef7b;" readonly="readonly" asp-for="CSEXSW_Rma.Company" />
-
-                    </div>
-                    <div class="col-3">
-                    </div>
-                    <div class="col-3">
-                        <a ng-if="cliente == true && count != 0 && clientelineas == true" class="btn btn-primary" data-toggle='modal' data-target='#tblIm2' style="color: white;" ng-click="Mover8()">
-                            Invoice History Price
-                        </a>
-                    </div>
-                </div>
-
-                <div class="form-group row">
-                    <div class="col-2">
-                        <label asp-for="CSEXSW_Rma.Comment"></label>
-                    </div>
-                    <div class="col-10">
-                        <textarea asp-for="CSEXSW_Rma.Comment" class="form-control" style="height:100px; width:100%;" id="comment"></textarea>
-                    </div>
-                </div>
-
-
             </div>
+            <div class="card-footer m-3 bg-white text-right">
+                <a class="btn btn-secondary mr-5" href="@Model.ReturnUrl">
+                    Cancel
+                </a>
 
-        </div>
+                <button type="submit" name="submitAction" value="save" class="btn btn-outline-primary mr-3">
+                    Save Changes
+                </button>
 
-
-        <partial name="SharedRma/_Modalstabla" />
-
-
-
-
-
-        <table id="tblStandar" ng-if="cliente == true">
-            <thead>
-                <tr>
-
-                    <th>Attachments</th>
-                    <th></th>
-                </tr>
-            </thead>
-            @if (Model.Attachments.Count() > 0)
-            {
-
-                @foreach (var dato in Model.Attachments)
+                @if (Model.CanResubmit)
                 {
-                    <tr>
-
-                        <td> <a href=javascript:finestraSecundaria("../../../documents/documents/rma/@dato.Documento.Replace(' ','¶')")>@dato.Documento</a></td>
-
-                        <td><a onclick='Deletedocument("/client/rma/Deletedocumentrma/@dato.Id")' style="cursor: pointer;"> <i class="fas fa-trash-alt" style="color: red;"></i> Delete </a></td>
-
-                    </tr>
+                    <button type="submit" name="submitAction" value="resubmit" class="btn btn-primary">
+                        Re-Submit RMA
+                    </button>
                 }
-            }
-            <tbody>
-                <tr>
-
-
-                    <td align="center"><input type="file" name="archivos" id="subidaArchivo" multiple /></td>
-
-
-            </tbody>
-
-
-        </table>
-
-
-    </form>
-    <partial name="_ModalsRma" />
-</div>
-@section Scripts{
-    @if (Model.CSEXSW_Rma.Rmatypeofrequest != "DISTY SCRAP ALLOWANCE")
-    {
-<script>  $(".ocultar500").hide();</script>
-        }
-
-    }
+                @if (Model.CanSubmit)
+                {
+                    <button type="submit" name="submitAction" value="submit" class="btn btn-primary">
+                        Submit RMA
+                    </button>
+                }
+            </div>
+        </form>
+    </div>
+    <partial name="_RmaRequestModals" />
+}
+@section Scripts {
+    <script src="~/js/jquery.loadingModal.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="~/js/RmaRequest.js"></script>
+}

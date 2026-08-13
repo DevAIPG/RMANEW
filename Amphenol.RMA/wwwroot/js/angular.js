@@ -6857,14 +6857,12 @@
      * ```js
      * function linkingFn(scope, elm, attrs, ctrl) {
      *   // get the attribute value
-     *   console.log(attrs.ngModel);
      *
      *   // change the attribute
      *   attrs.$set('ngModel', 'new value');
      *
      *   // observe changes to interpolated attribute
      *   attrs.$observe('ngModel', function(value) {
-     *     console.log('ngModel has changed value to ' + value);
      *   });
      * }
      * ```
@@ -23492,7 +23490,6 @@
                 getAndClearSevereErrors().then(function(filteredLog) {
                   expect(filteredLog.length).toEqual(0);
                   if (filteredLog.length) {
-                    console.log('browser console errors: ' + util.inspect(filteredLog));
                   }
                 });
               }
@@ -28876,7 +28873,6 @@
 
     if (window.angular.bootstrap) {
         //AngularJS is already loaded, so we can return here...
-        console.log('WARNING: Tried to load angular more than once.');
         return;
     }
 

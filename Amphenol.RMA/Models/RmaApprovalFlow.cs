@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Amphenol.RMA.Models.ModelsM10;
+using System.Collections.Generic;
 
 namespace Amphenol.RMA.Models
 {

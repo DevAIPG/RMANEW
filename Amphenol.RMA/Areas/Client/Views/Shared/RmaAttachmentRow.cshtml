@@ -1,0 +1,32 @@
+﻿@model Amphenol.RMA.ViewModels.RmaAttachmentViewModel
+@{
+    var index = ViewData["Index"];
+}
+<tr data-attachment-id="@Model.Id" data-existing="true">
+    <td>
+        <button type="button"
+                class="btn btn-sm btn-outline-danger btn-remove-attachment"
+                title="Remove Attachment">
+            <i class="fa fa-trash" aria-hidden="true"></i>
+        </button>
+
+        <input type="hidden"
+               name="Attachments.Index"
+               value="@Model.Id" />
+
+        <input type="hidden"
+               name="Attachments[@Model.Id].Id"
+               value="@Model.Id" />
+
+        <input type="hidden"
+               name="Attachments[@Model.Id].MarkedForDeletion"
+               value="false"
+               class="attachment-delete-flag" />
+    </td>
+
+    <td>
+        <a href="@Model.FilePath" target="_blank">
+            @Model.FileName
+        </a>
+    </td>
+</tr>

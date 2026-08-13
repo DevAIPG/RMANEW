@@ -154,8 +154,6 @@ function test2() {
     var x = 0;
     $("#tblRoles tbody >  tr").each(function (index) {
         if (x < 100) {
-
-            console.log("Sigo aca");
             seq[x] = $(this).find(".seq").val();
 
             invoice[x] = $(this).find(".invoice").val();
@@ -209,7 +207,6 @@ function test2() {
             qty = [];
 
             action = [];
-            console.log("Sigo aca");
             x = 0;
 
         }
@@ -242,7 +239,6 @@ function InsertBD(datos) {
 
             var respuesta = JSON.parse(xhr.responseText);
 
-            console.log(respuesta);
             if (respuesta.data == "Terminado") {
                 setTimeout(function () {
                     redireccionar();
@@ -256,7 +252,6 @@ function InsertBD(datos) {
     xhr.upload.onprogress = function (e) {
         if (e.lengthComputable) {
             var progreso = e.loaded / e.total * 100;
-            console.log(progreso);
         }
     };
 
@@ -327,8 +322,6 @@ function LoadSecuencias(fact, linea) {
         cache: true,
         async: true,
         success: function success(data) {
-            console.log("SECUENCIAS");
-            console.log(data);
             var table = $("#tblQ").DataTable({
                 destroy: true,
                 data: data,
@@ -353,7 +346,6 @@ function LoadSecuencias(fact, linea) {
             $('body').loadingModal('destroy');
         },
         error: function error(xhr, status, _error17) {
-            console.log(xhr.responseText);
         },
     });
 
@@ -457,7 +449,6 @@ function LoadPN(pn, linea) {
 
         },
         error: function error(xhr, status, _error17) {
-            console.log(xhr.responseText);
         },
     });
     $(document).on("click", "#linkpn" + linea, function () {
@@ -472,7 +463,6 @@ function LoadPN(pn, linea) {
             async: true,
             success: function success(data) {
                 var availabconstags = data.result;
-                console.log(data);
                 $('input[name=coustumer]').autocomplete({
                     source: availabconstags,
                     minlength: 1,
@@ -490,7 +480,6 @@ function LoadPN(pn, linea) {
                                     $("." + clase5 + "").val(0);
                                 }
 
-                                console.log(data);
                                 $("." + clase6 + "").val(data.data.price.toFixed(6));
                                 $("." + clase5 + "").val(data.data.std_cost.toFixed(6));
                                 enviaDatos();
@@ -511,10 +500,7 @@ function LoadPN(pn, linea) {
                             cache: true,
                             async: true,
                             success: function success(data) {
-                                console.log(data);
                                 color = data.data;
-                                console.log("Data dany");
-
                             },
                             error: function error(xhr, status, _error9) {
                                 $().toastmessage('showToast', {
@@ -596,7 +582,6 @@ function abrirfacturas(btn) {
         cache: true,
 
         success: function (data) {
-            console.log("facturas");
             $("#tblI").DataTable({
                 destroy: true,
                 data: data,
@@ -697,7 +682,6 @@ function loadPartNumbers(currentPage) {
             //$('body').loadingModal('destroy');
         },
         error: function error(xhr, status, _error17) {
-            console.log(xhr.responseText);
         },
     });
 
@@ -794,7 +778,6 @@ $("#crearma").validate({
                 var mensaje = "";
                 $("#tblRoles > tbody input[name='invoice']").each(function () {
                     var color = $(this).css("background-color");
-                    console.log($(this).css("background-color"));
 
                     if (color == "rgb(255, 0, 0)") {
                         mensaje =
@@ -805,7 +788,6 @@ $("#crearma").validate({
 
                 $("#tblRoles > tbody input[name='coustumer']").each(function () {
                     var color = $(this).css("color");
-                    console.log($(this).css("color"));
 
                     if (color == "rgb(255, 0, 0)" || color == "rgb(33, 33, 33)") {
                         pass2 = false;
@@ -846,7 +828,6 @@ $("#crearma").validate({
                 //});
                 $("#tblRoles > tbody input[name='unit']").each(function () {
                     if (parseFloat($(this).val()) > 0) {
-                        console.log("debe ser mayor de 0")
                     } else {
                         pass2 = false;
                         mensaje = "Price cannot be zero";
@@ -861,8 +842,6 @@ $("#crearma").validate({
                     let select = document.querySelector("[id='" + valor + "']").options[
                         document.querySelector("[id='" + valor + "']").selectedIndex
                     ].value;
-
-                    console.log(select);
 
                     if (select != "" && select != null) {
                     } else {
@@ -915,7 +894,6 @@ $("input[type=checkbox]").live("click", function (e) {
         $("#" + arr[0] + "").attr("value", "true");
         $(this).attr("value", "true");
         $("#" + arr[0] + "").val("true");
-        console.log(arr[0]);
     } else {
         var _atributo = $(this).attr("class");
 
@@ -924,20 +902,17 @@ $("input[type=checkbox]").live("click", function (e) {
         $("#" + _arr[0] + "").attr("value", "false");
         $("#" + _arr[0] + "").val("false");
         $(this).attr("value", "false");
-        console.log(_arr[0]);
     }
 });
 
 $("input[name=coustumer]").live("keydown", function (e) {
     var color = $(this).css("color");
-    console.log($(this).css("color"));
     $("." + clase2 + "").css("background", "");
     $("." + clase2 + "").css("color", "black");
     $("." + clase2 + "").val("");
     $("." + clase3 + "").val(0);
     if (color != "rgb(255, 0, 0)") {
         var keyCode = e.keyCode || e.which;
-        console.log($("." + clase2 + "").val());
         if ((keyCode == 9 || keyCode == 13) && $("." + clase2 + "").val() == "") {
             var valor = $(this).attr("value");
             var _color = "";
@@ -967,7 +942,6 @@ $("input[name=coustumer]").live("keydown", function (e) {
                         dataType: "json",
                         cache: true,
                         success: function success(data) {
-                            console.log(data);
                             $("." + clase6 + "").val(data.data.price.toFixed(6));
                             $("." + clase5 + "").val(data.data.std_cost.toFixed(6));
                             enviaDatos();
@@ -989,7 +963,6 @@ $("input[name=coustumer]").live("keydown", function (e) {
                         cache: true,
                         async: true,
                         success: function success(data) {
-                            console.log(data);
                             _color = data.data;
                         },
                         error: function error(xhr, status, _error5) {
@@ -1015,7 +988,6 @@ $("input[name=coustumer]").live("keydown", function (e) {
 });
 $("input[name=coustumer]").live("paste", function (e) {
     var color = $(this).css("color");
-    console.log($(this).css("color"));
     $("." + clase2 + "").css("background", "");
     $("." + clase2 + "").css("color", "black");
 
@@ -1048,7 +1020,6 @@ $("input[name=coustumer]").live("paste", function (e) {
                         dataType: "json",
                         cache: true,
                         success: function success(data) {
-                            console.log(data);
                             $("." + clase6 + "").val(data.data.price.toFixed(6));
                             $("." + clase5 + "").val(data.data.std_cost.toFixed(6));
                             enviaDatos();
@@ -1070,7 +1041,6 @@ $("input[name=coustumer]").live("paste", function (e) {
                         cache: true,
                         async: true,
                         success: function success(data) {
-                            console.log(data);
                             _color2 = data.data;
                         },
                         error: function error(xhr, status, _error7) {
@@ -1109,8 +1079,6 @@ $("input[name=coustumer]").live("keyup", function (e) {
         async: true,
         success: function success(data) {
             var availabconstags = data.result;
-
-            console.log(data);
             $("input[name=coustumer]").autocomplete({
                 source: availabconstags,
                 minlength: 1,
@@ -1143,7 +1111,6 @@ $("input[name=coustumer]").live("keyup", function (e) {
                                 dataType: "json",
                                 cache: true,
                                 success: function success(data) {
-                                    console.log(data);
                                     $("." + clase6 + "").val(data.data.price.toFixed(6));
                                     $("." + clase5 + "").val(data.data.std_cost.toFixed(6));
                                     enviaDatos();
@@ -1721,20 +1688,20 @@ function botonrechazo(event) {
     }
 }
 
-function botonaprobar(event) {
-    var botonaprobar = document.getElementById("botonaprobar");
-    botonaprobar.disabled = false;
-    $(".cargar").hide();
-    var formulario = document.getElementById("frmaprobar");
+//function botonaprobar(event) {
+//    var botonaprobar = document.getElementById("botonaprobar");
+//    botonaprobar.disabled = false;
+//    $(".cargar").hide();
+//    var formulario = document.getElementById("frmaprobar");
 
-    if (enviando == false) {
-        enviando = true;
-        formulario.submit();
-        $(".gif").show();
-    } else {
-        console.log("The form is already being sent");
-    }
-}
+//    if (enviando == false) {
+//        enviando = true;
+//        formulario.submit();
+//        $(".gif").show();
+//    } else {
+//        console.log("The form is already being sent");
+//    }
+//}
 
 if ($("#select").val() == "DISTY SCRAP ALLOWANCE") {
     $(".ocultar500").hide();

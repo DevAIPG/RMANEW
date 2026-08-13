@@ -1,4 +1,10 @@
-﻿namespace Amphenol.RMA.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Amphenol.RMA.Models.ModelsM10
 {
     public class Approver
     {
