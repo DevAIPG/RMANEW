@@ -1,4 +1,4 @@
-﻿namespace Amphenol.RMA.Enumerations
+﻿namespace Amphenol.RMA.Models.Enumerations
 {
     public enum RmaRequestType
     {
