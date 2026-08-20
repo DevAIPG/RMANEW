@@ -116,48 +116,37 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     cn.Open();
 
                     string query = @"
-                    Select
-                        Sum(IsNull(csexsw_coustumer.Qty,0)) As qty,
-                        Count(Distinct csexsw_coustumer.Coustumer) As parts,
-                        CSEXSW_Rma.Id,
-                        CSEXSW_Rma.Rmarequest,
-                        CSEXSW_Rma.Date,
-                        CSEXSW_Rma.Customerpartno,
-                        CSEXSW_Rma.Customerpo,
-                        CSEXSW_Rma.Customercomplait,
-                        CSEXSW_Rma.Description,
-                        CSEXSW_Rma.Rmatypeofrequest,
-                        CSEXSW_Rma.Totalrmavalues,
-                        CSEXSW_Rma.Wherebuilt,
-                        CSEXSW_Rma.Preparado,
-                        CSEXSW_Rma.Sumbit,
-                        CSEXSW_Rma.Status,
-                        CSEXSW_Rma.turno,
-                        CSEXSW_Rma.Approver,
-                        CSEXSW_Rma.res_id,
-                        CONVERT(VARCHAR(10), CAST(CSEXSW_Rma.date_approved AS DATETIME), 101) As formated_date_approved
-                    From CSEXSW_Rma With(NoLock)
-                    Left Join csexsw_coustumer With(NoLock)
-                        On CSEXSW_Rma.Id = csexsw_coustumer.RmaId
-                    Group By
-                        CSEXSW_Rma.Id,
-                        CSEXSW_Rma.Rmarequest,
-                        CSEXSW_Rma.Date,
-                        CSEXSW_Rma.Customerpartno,
-                        CSEXSW_Rma.Customerpo,
-                        CSEXSW_Rma.Customercomplait,
-                        CSEXSW_Rma.Description,
-                        CSEXSW_Rma.Rmatypeofrequest,
-                        CSEXSW_Rma.Totalrmavalues,
-                        CSEXSW_Rma.Wherebuilt,
-                        CSEXSW_Rma.Preparado,
-                        CSEXSW_Rma.Sumbit,
-                        CSEXSW_Rma.Status,
-                        CSEXSW_Rma.turno,
-                        CSEXSW_Rma.Approver,
-                        CSEXSW_Rma.res_id,
-                        CSEXSW_Rma.date_approved
-                    Order By CSEXSW_Rma.Date";
+                        SELECT
+                            ISNULL(c.qty, 0) AS qty,
+                            ISNULL(c.parts, 0) AS parts,
+                            r.Id,
+                            r.Rmarequest,
+                            r.Date,
+                            r.Customerpartno,
+                            r.Customerpo,
+                            r.Customercomplait,
+                            r.Description,
+                            r.Rmatypeofrequest,
+                            r.Totalrmavalues,
+                            r.Wherebuilt,
+                            r.Preparado,
+                            r.Sumbit,
+                            r.Status,
+                            r.turno,
+                            r.Approver,
+                            r.res_id,
+                            CONVERT(VARCHAR(10), r.date_approved, 101) AS formated_date_approved
+                        FROM CSEXSW_Rma r WITH (NOLOCK)
+                        LEFT JOIN (
+                            SELECT
+                                RmaId,
+                                SUM(ISNULL(Qty, 0)) AS qty,
+                                COUNT(DISTINCT Coustumer) AS parts
+                            FROM csexsw_coustumer WITH (NOLOCK)
+                            GROUP BY RmaId
+                        ) c
+                            ON r.Id = c.RmaId
+                        ORDER BY r.Rmarequest DESC;";
 
                     using SqlCommand cmd = new(query, cn);
                     using SqlDataReader rdr = cmd.ExecuteReader();

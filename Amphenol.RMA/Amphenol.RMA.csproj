@@ -7,15 +7,19 @@
 
   <ItemGroup>
     <Compile Remove="Areas\Client\ViewModels\**" />
+    <Compile Remove="Areas\Client\Views\Shared\EditorTemplates\**" />
     <Compile Remove="Images\**" />
     <Compile Remove="wwwroot\lib\scripts\**" />
     <Content Remove="Areas\Client\ViewModels\**" />
+    <Content Remove="Areas\Client\Views\Shared\EditorTemplates\**" />
     <Content Remove="Images\**" />
     <Content Remove="wwwroot\lib\scripts\**" />
     <EmbeddedResource Remove="Areas\Client\ViewModels\**" />
+    <EmbeddedResource Remove="Areas\Client\Views\Shared\EditorTemplates\**" />
     <EmbeddedResource Remove="Images\**" />
     <EmbeddedResource Remove="wwwroot\lib\scripts\**" />
     <None Remove="Areas\Client\ViewModels\**" />
+    <None Remove="Areas\Client\Views\Shared\EditorTemplates\**" />
     <None Remove="Images\**" />
     <None Remove="wwwroot\lib\scripts\**" />
     <TypeScriptCompile Remove="Areas\Client\ViewModels\**" />
@@ -86,13 +90,6 @@
     <ProjectReference Include="..\Amphenol.RMA.AccesoDatos\Amphenol.RMA.AccesoDatos.csproj" />
     <ProjectReference Include="..\Amphenol.RMA.Models\Amphenol.RMA.Models.csproj" />
     <ProjectReference Include="..\Amphenol.RMA.Utilidades\Amphenol.RMA.Utilidades.csproj" />
-  </ItemGroup>
-
-
- 
-
-  <ItemGroup>
-    <Folder Include="Areas\Client\Views\Shared\EditorTemplates\" />
   </ItemGroup>
 
   <Target Name="MyPublishScripts" BeforeTargets="BeforePublish">

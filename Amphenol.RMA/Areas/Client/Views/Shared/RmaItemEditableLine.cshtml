@@ -26,7 +26,7 @@
         <div class="input-group">
             <input class="form-control  partnumber-input" type="text" readonly asp-for="PartNumber" id="Line_@(index)_PartNumber"
                    name="Lines[@(index)].PartNumber" />
-            <span class="btn btn-sm btn-outline-secondary btn-search-partnumber"><i class="fa fa-search"></i></span>
+            @* <span class="btn btn-sm btn-outline-secondary btn-search-partnumber"><i class="fa fa-search"></i></span> *@
         </div>
         <span asp-validation-for="PartNumber" class="text-danger"></span>
     </td>

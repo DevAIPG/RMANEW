@@ -101,6 +101,25 @@ $(document).on('click', '.btn-search-sequence', function () {
     LoadSequenceTable(invoice);
     $("#SequenceModal").modal("show");
 });
+$(document).on('click', '.select-sequence', function () {
+    var row = $(this).closest('tr');
+    var sequence = $(this).text().trim();
+    var partNumber = row.find('.sequence-partnumber').text();
+
+    var table = $("#SequenceTable").DataTable();
+    table.search('').draw();
+
+    if (!selectedLineRow) {
+        return;
+    }
+
+    selectedLineRow.find('.sequence-input').val(sequence).trigger("input");
+    selectedLineRow.find('.partnumber-input').val(partNumber).trigger("input");
+
+    var invoice = selectedLineRow.find('.invoice-input').val();
+    SetValuesBasedOnInvoice(invoice);
+    $("#SequenceModal").modal("hide");
+})
 $(document).on('input', '.sequence-input', function () {
     selectedLineRow = $(this).closest('tr');
     var sequenceInput = selectedLineRow.find('.sequence-input');
@@ -280,25 +299,19 @@ $(document).on('change', '#attachmentInput', function () {
 
     this.files = attachmentStore.files;
 })
-$(document).on(
-    "input change",
-    ".customer-input, .contact-input, .phone-input, .contactEmail-input, .complaint-textarea, .shipto-input, .po-input, .invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input, .returncode-input",
-    function () {
+$(document).on("input change", ".customer-input, .contact-input, .phone-input, .contactEmail-input, .complaint-textarea, .shipto-input, .po-input, .invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input, .returncode-input", function () {
 
-        const value = ($(this).val() || "").toString().trim();
+    const value = ($(this).val() || "").toString().trim();
 
-        if (value.length > 0) {
-            $(this).removeClass("border-danger");
-        } else {
-            $(this).addClass("border-danger");
-        }
+    if (value.length > 0) {
+        $(this).removeClass("border-danger");
+    } else {
+        $(this).addClass("border-danger");
     }
-);
-$(document).on("focus", ".quantity-input, .price-input, .unitcost-input",
-    function () {
-        $(this).trigger("select");
-    }
-);
+});
+$(document).on("focus", ".quantity-input, .price-input, .unitcost-input", function () {
+    $(this).trigger("select");
+});
 $(document).on("submit", "#newRmaForm", function () {
     if ($(this).find(".border-danger").length > 0) {
         e.preventDefault();
@@ -311,7 +324,7 @@ $(document).on("submit", "#newRmaForm", function () {
             confirmButtonText: 'OK',
         });
     }
-}); 
+});
 
 
 function InitializeForm() {
@@ -654,12 +667,17 @@ function LoadSequenceTable(invoice) {
                     {
                         "data": "line_seq_no",
                         render: function (data, type, row) {
-                            return `<a class='link-opacity-100-hover' onClick="SetSequenceModalResult('${row.line_seq_no}')">${row.line_seq_no}</a>`;
+                            return `<a class='link-opacity-100-hover select-sequence'>${row.line_seq_no}</a>`;
                         }
                     },
                     { "data": "ord_type" },
                     { "data": "ord_no" },
-                    { "data": "item_no" }
+                    {
+                        "data": "item_no",
+                        render: function (data, type, row) {
+                            return `<label class='sequence-partnumber'>${row.item_no}</label>`;
+                        }
+                    }
                 ]
             });
         },
@@ -667,19 +685,9 @@ function LoadSequenceTable(invoice) {
         }
     });
 }
-function SetSequenceModalResult(sequenceNumber) {
-    var table = $("#SequenceTable").DataTable();
-    table.search('').draw();
+//function SetSequenceModalResult(sequenceNumber) {
 
-    if (!selectedLineRow) {
-        return;
-    }
-
-    selectedLineRow.find('.sequence-input').val(sequenceNumber).trigger("input");
-    var invoice = selectedLineRow.find('.invoice-input').val();
-    SetValuesBasedOnInvoice(invoice);
-    $("#SequenceModal").modal("hide");
-}
+//}
 function SetValuesBasedOnInvoice(invoice) {
     if (!invoice || invoice.trim() == '') {
         return;

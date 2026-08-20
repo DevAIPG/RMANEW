@@ -587,34 +587,6 @@ namespace Amphenol.RMA.Controllers
             var rmaViewModel = new RmaViewModel(requestId);
 
             return View(rmaViewModel);
-
-            //var num = "1";
-            //try
-            //{
-            //    int id = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-            //    num = "" + id;
-            //}
-            //catch (Exception)
-            //{
-
-            //}
-            //ViewBag.folio = num;
-            //csexsw_coustumerVM rma = new csexsw_coustumerVM()
-            //{
-            //    CSEXSW_Rma = new Models.CSEXSW_Rma(),
-
-            //};
-
-
-
-            //if (rma == null)
-            //{
-            //    return NotFound();
-            //}
-
-            //return View(rma);
-
-
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -655,9 +627,7 @@ namespace Amphenol.RMA.Controllers
 
             var formattedCustomerId = vm.CustomerId.Trim().PadLeft(20, ' ');
 
-            var customer = _context.oecusitm_sql.FirstOrDefault(x => x.cus_no == formattedCustomerId);
-
-            string customerPartNumber = customer?.cus_item_no?.Trim() ?? "";
+            string customerPartNumber = vm.Lines.FirstOrDefault().PartNumber ?? "";
 
             string requesterUserId = _contenedorTrabajo.csexsw_dibujo.usuario(requester);
 
@@ -992,9 +962,7 @@ namespace Amphenol.RMA.Controllers
 
             var formattedCustomerId = vm.CustomerId.Trim().PadLeft(20, ' ');
 
-            var customer = _context.oecusitm_sql.FirstOrDefault(x => x.cus_no == formattedCustomerId);
-
-            string customerPartNumber = customer?.cus_item_no?.Trim() ?? "";
+            string customerPartNumber = vm.Lines.FirstOrDefault().PartNumber ?? "";
 
             var rma = await _context2.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == vm.RequestId);
 
