@@ -6,6 +6,7 @@ using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models.ModelsM10;
 using Amphenol.RMA.Models.ViewModels;
 using Amphenol.RMA.Services.Email;
+using Amphenol.RMA.Services.Reports;
 using Amphenol.RMA.Utilidades;
 using Amphenol.RMA.ViewModels;
 using AspNetCoreGeneratedDocument;
@@ -65,6 +66,8 @@ namespace Amphenol.RMA.Controllers
         const string rootE = @"E:\CSFiles\documents\";
         const string rootEC = @"E:\CSFiles\";
         private const double TwoStepAuthorizationThreshold = 20_000;
+        private readonly ReportService _reportService;
+
         private Approver _autoApprover = new()
         {
             Id = -4,
@@ -77,7 +80,7 @@ namespace Amphenol.RMA.Controllers
         public RmaController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContextM10 context2,
                              DbContext100 context, IWebHostEnvironment hostingEnvironmen,
                              IHttpContextAccessor httpContextAccessor, IEmailService emailService,
-                             IOptions<CustomerServiceManager> customerServiceManager)
+                             IOptions<CustomerServiceManager> customerServiceManager, ReportService reportService)
         {
             _contenedorTrabajo = contenedorTrabajo;
             _context2 = context2;
@@ -88,6 +91,7 @@ namespace Amphenol.RMA.Controllers
             _httpContextAccessor = httpContextAccessor;
             _emailService = emailService;
             _customerServiceManager = customerServiceManager.Value;
+            _reportService = reportService;
         }
         public IConfiguration Configuration { get; }
         public async Task crearcar(csexsw_car objDesdeDbt, int idCAR)
@@ -2204,7 +2208,18 @@ namespace Amphenol.RMA.Controllers
             }
             return Json(inserted);
         }
+        [HttpGet]
+        public async Task<IActionResult> DownloadReport(string rma)
+        {
+            if (string.IsNullOrWhiteSpace(rma))
+            {
+                return BadRequest("An RMA number is required.");
+            }
 
+            ReportDownloadDto report = await _reportService.GenerateReturnMaterialsAuthorizationPDF(rma);
+
+            return File(report.Data, report.ContentType, report.FileName);
+        }
 
 
         // [HttpPost]

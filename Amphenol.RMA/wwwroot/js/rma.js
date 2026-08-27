@@ -35,6 +35,18 @@ $(document).ready(function () {
 
     });
 });
+function DownloadRmaFile(rmaId) {
+    console.log(rmaId);
+    if (rmaId === null || rmaId === undefined || rmaId === '') {
+        console.error('An RMA number is required.');
+        return;
+    }
+
+    const url =
+        `/Client/rma/DownloadReport?rma=${encodeURIComponent(rmaId)}`;
+
+    window.location.href = url;
+}
 function OnCreateOrderClicked(id) {
     $.ajax({
         "url": "/Client/rma/GetGeneratedOrderNumber",
@@ -67,17 +79,17 @@ function OnCreateOrderClicked(id) {
 
             const options = hasOrder
                 ? `
-                    <button class="btn btn-secondary me-3" data-dismiss="modal">
+                    <button class="btn btn-secondary me-3" data-bs-dismiss="modal">
                         OK
                     </button>
                   `
                 : `
-                    <button class="btn btn-secondary me-3" data-dismiss="modal">
+                    <button class="btn btn-secondary me-3" data-bs-dismiss="modal">
                         No
                     </button>
                     <button id="createorderyesbtn"
-                            onclick="CreateorderyesbtnF(${id})"
-                            data-dismiss="modal"
+                            onclick="GenerateOrder(${id})"
+                            data-bs-dismiss="modal"
                             class="btn btn-primary">
                         Yes
                     </button>
@@ -92,6 +104,62 @@ function OnCreateOrderClicked(id) {
                 sticky: true,
                 type: 'error'
             });
+        }
+    });
+}
+
+function GenerateOrder(id) {
+    $('#tblQm').modal('hide');
+
+    $.ajax({
+        url: '/Client/rma/RMA_IdTo_OrderCreate',
+        type: 'GET',
+        data: { id: id },
+        success: function (response) {
+
+            var data = {
+                rmaNo: response.rmaNo,
+                orderDate: response.orderDate
+            };
+
+            $.ajax({
+                url: '/Client/rma/CreateOrderpost',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (response) {
+
+                    $('#NewOrderModal .modal-title').text("Order Created");
+                    $('#NewOrderModal .modal-body').html(response.message);
+                    $('#NewOrderModal').modal('show');
+
+                    $('#NewOrderModal').one('hidden.bs.modal', function () {
+                        location.reload();
+                    });
+                },
+                error: function (err) {
+
+                    console.error('Order creation error:', err);
+
+                    $('#NewOrderModal .modal-title').text("Order Creation Failed");
+
+                    if (err.responseJSON && err.responseJSON.message) {
+                        $('#NewOrderModal .modal-body').html(err.responseJSON.message);
+                    } else {
+                        $('#NewOrderModal .modal-body').html('An unexpected error occurred.');
+                    }
+
+                    $('#NewOrderModal').modal('show');
+                }
+            });
+        },
+        error: function (xhr) {
+
+            var err = xhr.responseJSON?.Error;
+
+            console.error('Error fetching RMA data:', err);
+
+            alert('Error: ' + err);
         }
     });
 }

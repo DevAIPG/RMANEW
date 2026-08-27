@@ -104,7 +104,7 @@ function cargarDatatableRma() {
                 columns: [
                     {
                         "data": "id",
-                        "width": "120px",
+                        "width": "155px",
                         "render": function render(data, type, row) {
                             const complaintButton = `
                                     <a class="btn btn-light btn-sm action-btn d-flex align-items-center gap-1" data-toggle="modal" data-target="#Customer_complaint"
@@ -158,15 +158,25 @@ function cargarDatatableRma() {
 
                                     const hasOrder = !!row.orderNumber?.trim();
 
-                                    const generateOrderButtonColor = !row.canGenerateOrder
-                                        ? 'btn-warning'
-                                        : hasOrder ? 'btn-success' : 'btn-primary';
+                                    const hasRmaId = !!row.turno?.trim();
 
-                                    const generateOrderButtonModal = row.canGenerateOrder ? `OnClick="OnCreateOrderClicked(${row.id})"` : '';
+                                    const generateOrderButtonColor = !row.canGenerateOrder ? 'btn-warning' : hasOrder ? 'btn-success' : 'btn-primary';
 
-                                    const generateOrderButtonTitle = !row.canGenerateOrder
-                                        ? 'Awaiting returned products'
-                                        : hasOrder ? `Order #${row.orderNumber} Generated` : 'Generate New Order';
+                                    const generateOrderButtonModal = row.canGenerateOrder && !hasOrder ? `OnClick="OnCreateOrderClicked(${row.id})"` : '';
+
+                                    const generateOrderButtonIcon = !row.canGenerateOrder ? 'fa-truck' : hasOrder ? 'fa-clipboard-check' : 'fa-file-invoice';
+
+                                    const generateOrderButtonTitle = !row.canGenerateOrder ?
+                                        'Awaiting returned products' : hasOrder ? `Order #${row.orderNumber} Generated` : 'Generate New Order';
+
+                                    //const generateOrderButtonModal = hasOrder ? `onclick="DownloadRmaFile(${row.turno})"` :
+                                    //    row.canGenerateOrder ? `OnClick="OnCreateOrderClicked(${row.id})"` : '';
+
+                                    const documentButton = hasRmaId ? `
+                                    <a class="btn btn-outline-primary btn-sm action-btn d-flex align-items-center" onclick="DownloadRmaFile(${row.turno})" data-bs-toggle="tooltip" data-bs-placement="right" title="Download RMA file">
+                                        <i class="fa fa-file-download"></i>
+                                    </a>` : '';
+
 
                                     return `
                                     <div class="d-flex gap-1">
@@ -174,8 +184,9 @@ function cargarDatatableRma() {
                                         ${complaintButton}
                                         <a class="btn ${generateOrderButtonColor} btn-sm action-btn d-flex align-items-center justify-content-center gap-1" id="btncreateorder"
                                             ${generateOrderButtonModal} data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="${generateOrderButtonTitle}">
-                                            <i class="fa fa-file-invoice"></i>
+                                            <i class="fa ${generateOrderButtonIcon}"></i>
                                         </a>
+                                        ${documentButton}
                                     </div>`;
                                 }
 

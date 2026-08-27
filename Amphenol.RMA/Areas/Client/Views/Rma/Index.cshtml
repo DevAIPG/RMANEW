@@ -360,7 +360,7 @@
             <div class="modal-body">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal" aria-label="Close">OK</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="Close">OK</button>
             </div>
         </div>
     </div>
@@ -440,67 +440,6 @@
             $("#aa").val(data);
             $("#aaa").val(data);
         }
-
-
-        function CreateorderyesbtnF(id) {
-            // let id = $("#createorderyesbtn").data("id");
-
-            $('#tblQm').modal('hide');
-
-            // First AJAX call: Fetch data using the ID
-            $.ajax({
-                url: '/Client/rma/RMA_IdTo_OrderCreate',
-                type: 'GET',
-                data: { id: id },
-                success: function (response) {
-                    var data = {
-                        rmaNo: response.rmaNo,
-                        orderDate: response.orderDate,
-                        //previewOnly: response.previewOnly
-                    };
-
-                    // Second AJAX call: Create the order
-                    $.ajax({
-                        url: '/Client/rma/CreateOrderpost',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(data),
-                        success: function (response) {
-                            $('#NewOrderModal .modal-title').text("Order Created");
-                            $('#NewOrderModal .modal-body').html(response.message);
-                            $('#NewOrderModal').modal('show');
-
-
-                            // alert('Order created: ' + response.message); // ✅ lowercase "message"
-                        },
-                        error: function (err) {
-                            console.error('Order creation error:', err);
-                            $('#NewOrderModal .modal-title').text("Order Creation Failed");
-
-                            // If server sends JSON with message:
-                            if (err.responseJSON && err.responseJSON.message) {
-                            $('#NewOrderModal .modal-body').html(err.responseJSON.message);
-
-                                // alert('Error: ' + err.responseJSON.message);
-                            } else {
-                               $('#NewOrderModal .modal-body').html('An unexpected error occurred.');
-
-                                // alert('An unexpected error occurred.');
-                            }
-                              $('#NewOrderModal').modal('show');
-                        }
-                    });
-                },
-                error: function (xhr) {
-                    var err = xhr.responseJSON?.Error;
-                    console.error('Error fetching RMA data:', err);
-                    alert('Error: ' + err);
-                }
-            });
-        }
-
-
-
         function Abrir(data) {
             var now = new Date();
             var datetime = now.getFullYear() + '/' + (now.getMonth() + 1) + '/' + now.getDate();

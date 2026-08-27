@@ -1,0 +1,271 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="08/20/2026 19:06:17" ReportInfo.Modified="08/27/2026 14:11:49" ReportInfo.CreatorVersion="2022.3.11.0">
+  <ScriptText>using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Data;
+using FastReport;
+using FastReport.Data;
+using FastReport.Dialog;
+using FastReport.Barcode;
+using FastReport.Table;
+using FastReport.Utils;
+
+namespace FastReport
+{
+  public class ReportScript
+  {
+    public string FmtCustomerNo(string value)
+    {
+      long numericValue;
+ 
+      if (Int64.TryParse(value.Trim(), out numericValue))
+        return numericValue.ToString();
+      else
+        return value.Trim();
+    }
+    public string FmtOrderNo(string value)
+    {
+      string result = (value ?? &quot;&quot;).Trim();
+
+      foreach (char character in result)
+      {
+        if (!Char.IsDigit(character))
+          return result;
+      }
+
+      result = result.TrimStart('0');
+
+      return result.Length == 0 ? &quot;0&quot; : result;  
+    }
+  }
+}
+</ScriptText>
+  <Dictionary>
+    <MsSqlDataConnection Name="MacolaConnection" ConnectionString="rijcmlqrPNqCqb8Ip3feUjqqdl2DhMaKpBUkHW8zrb4OBwdGcylHl6Pzlj5bxSi6KEJM1vdbanfngpV4tA+CxIrN4vb5IqLpRQG2oVGfhay5+7ZeJjfme5ZVSFi9F4MJcq1jfLNcIn3+qT9yfiT5g70h21jgS1RCM+tegwFaHYECOHe9IcjRAVrl2kswrl5ApzwQxD8">
+      <TableDataSource Name="Table" Alias="HeaderSection" DataType="System.Int32" Enabled="true" SelectCommand="WITH RmaInformation AS (&#13;&#10;	SELECT&#13;&#10;		A.rma_no,&#13;&#10;		A.rma_dt_entered,&#13;&#10;		A.bill_to_name,&#13;&#10;		ISNULL(A.bill_to_addr_1,'') AS bill_to_addr_1,&#13;&#10;		A.bill_to_addr_2,&#13;&#10;		A.bill_to_addr_3,&#13;&#10;		A.bill_to_addr_4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.bill_to_Country))&lt;&gt; 'US' THEN  B.oms60_0 ELSE RTRIM(LTRIM(A.bill_to_Country)) END AS bill_to_Country,&#13;&#10;		A.ship_to_name,&#13;&#10;		ISNULL(A.ship_to_addr_1,'') AS ship_to_addr_1,&#13;&#10;		A.ship_to_addr_2,&#13;&#10;		A.ship_to_addr_3,&#13;&#10;		A.ship_to_addr_4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.ship_to_country))&lt;&gt; 'US' THEN  C.oms60_0 ELSE RTRIM(LTRIM(A.ship_to_country)) END AS ship_to_country,&#13;&#10;		A.cus_no,&#13;&#10;		A.contact,&#13;&#10;		A.slspsn_no AS sales_rep,&#13;&#10;		D.code_desc AS ship_via,&#13;&#10;		ISNULL(A.job_no,'') AS job_no,&#13;&#10;		A.exp_rec_date,&#13;&#10;		A.rma_cmt AS comment,&#13;&#10;		ISNULL(A.ship_instruction_1,'') AS ship_instruction_1,&#13;&#10;		ISNULL(A.ship_instruction_2,'') AS ship_instruction_2&#13;&#10;	FROM oerhdfil_sql AS A&#13;&#10;	INNER JOIN land AS B ON B.landcode = A.bill_to_Country&#13;&#10;	INNER JOIN land AS C on C.landcode = A.ship_to_country	&#10;	LEFT JOIN sycdefil_sql AS D ON D.sy_code = A.ship_via_cd&#13;&#10;	WHERE RTRIM(LTRIM(A.rma_no)) = @rma_no&#13;&#10;),&#13;&#10;CompanyInformation AS (&#13;&#10;	SELECT&#13;&#10;		bedrnm AS CompanyName,&#13;&#10;		adr AS AddressLine1,&#13;&#10;		adres2 AS AddressLine2,&#13;&#10;		adres3 AS AddressLine3,&#13;&#10;		CONCAT(RTRIM(LTRIM(woonpl)),', ',RTRIM(LTRIM(region)), ' ',RTRIM(LTRIM(pstcd)),' ',RTRIM(LTRIM(A.landcode))) AS AddressLine4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.landcode))&lt;&gt; 'US' THEN  B.oms60_0 ELSE RTRIM(LTRIM(A.landcode)) END AS Country,&#13;&#10;		telnr AS  PhoneNumber,&#13;&#10;		faxnr AS FaxNumber&#13;&#10;	FROM bedryf AS A&#13;&#10;	INNER JOIN land AS B ON B.landcode = A.landcode&#13;&#10;)&#13;&#10;SELECT&#13;&#10;*&#13;&#10;FROM CompanyInformation,RmaInformation">
+        <Column Name="CompanyName" DataType="System.String"/>
+        <Column Name="AddressLine1" DataType="System.String"/>
+        <Column Name="AddressLine2" DataType="System.String"/>
+        <Column Name="AddressLine3" DataType="System.String"/>
+        <Column Name="AddressLine4" DataType="System.String"/>
+        <Column Name="Country" DataType="System.String"/>
+        <Column Name="PhoneNumber" DataType="System.String"/>
+        <Column Name="FaxNumber" DataType="System.String"/>
+        <Column Name="rma_no" DataType="System.String"/>
+        <Column Name="rma_dt_entered" DataType="System.DateTime"/>
+        <Column Name="bill_to_name" DataType="System.String"/>
+        <Column Name="bill_to_addr_1" DataType="System.String"/>
+        <Column Name="bill_to_addr_2" DataType="System.String"/>
+        <Column Name="bill_to_addr_3" DataType="System.String"/>
+        <Column Name="bill_to_addr_4" DataType="System.String"/>
+        <Column Name="bill_to_Country" DataType="System.String"/>
+        <Column Name="ship_to_name" DataType="System.String"/>
+        <Column Name="ship_to_addr_1" DataType="System.String"/>
+        <Column Name="ship_to_addr_2" DataType="System.String"/>
+        <Column Name="ship_to_addr_3" DataType="System.String"/>
+        <Column Name="ship_to_addr_4" DataType="System.String"/>
+        <Column Name="ship_to_country" DataType="System.String"/>
+        <Column Name="cus_no" DataType="System.String"/>
+        <Column Name="contact" DataType="System.String"/>
+        <Column Name="sales_rep" DataType="System.Int32"/>
+        <Column Name="ship_via" DataType="System.String"/>
+        <Column Name="job_no" DataType="System.String"/>
+        <Column Name="exp_rec_date" DataType="System.DateTime"/>
+        <Column Name="comment" DataType="System.String"/>
+        <Column Name="ship_instruction_1" DataType="System.String"/>
+        <Column Name="ship_instruction_2" DataType="System.String"/>
+        <CommandParameter Name="@rma_no" DataType="22" Expression="[@rma_no]"/>
+      </TableDataSource>
+      <TableDataSource Name="Table1" Alias="HeaderCommentSection" DataType="System.Int32" Enabled="true" SelectCommand="SELECT&#13;&#10;	cmt&#13;&#10;FROM oelincmt_sql&#13;&#10;WHERE RTRIM(LTRIM(ord_no)) = @rma_no&#13;&#10;AND line_seq_no = 0">
+        <Column Name="cmt" DataType="System.String"/>
+        <CommandParameter Name="@rma_no" DataType="22" Expression="[@rma_no]"/>
+      </TableDataSource>
+      <TableDataSource Name="Table2" Alias="LineItemSection" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;A.rma_seq_no,&#13;&#10;A.item_no,&#13;&#10;ISNULL(A.item_desc_1,'') AS item_desc_1,&#13;&#10;ISNULL(A.item_desc_2,'') AS item_desc_2,&#13;&#10;A.rma_qty_rtn_auth,&#13;&#10;A.uom,&#13;&#10;B.ord_no,&#13;&#10;A.apply_to_invc_no,&#13;&#10;B.oe_po_no,&#13;&#10;CASE WHEN RTRIM(LTRIM(A.[action])) = '' THEN 'Pending'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'N' THEN 'New Order'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'R' THEN 'Reship'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'C' THEN 'Credit'&#13;&#10;	 ELSE '-' END AS [action]&#13;&#10;FROM oerdtfil_sql AS A&#13;&#10;INNER JOIN oehdrhst_sql AS B ON B.inv_no = A.apply_to_invc_no&#13;&#10;WHERE RTRIM(LTRIM(A.rma_no)) = @rma_no&#13;&#10;ORDER BY A.rma_seq_no&#13;&#10;">
+        <Column Name="rma_seq_no" DataType="System.Int16"/>
+        <Column Name="item_no" DataType="System.String"/>
+        <Column Name="item_desc_1" DataType="System.String"/>
+        <Column Name="item_desc_2" DataType="System.String"/>
+        <Column Name="uom" DataType="System.String"/>
+        <Column Name="ord_no" DataType="System.String"/>
+        <Column Name="apply_to_invc_no" DataType="System.String"/>
+        <Column Name="oe_po_no" DataType="System.String"/>
+        <Column Name="action" DataType="System.String"/>
+        <Column Name="rma_qty_rtn_auth" DataType="System.Decimal"/>
+        <CommandParameter Name="@rma_no" DataType="22" Expression="[@rma_no]"/>
+      </TableDataSource>
+      <TableDataSource Name="Table3" Alias="LineItemCommentSection" DataType="System.Int32" Enabled="true" SelectCommand="SELECT&#13;&#10;	cmt&#13;&#10;FROM oelincmt_sql&#13;&#10;WHERE RTRIM(LTRIM(ord_no)) = @rma_no&#13;&#10;AND line_seq_no = @line_no&#13;&#10;ORDER BY cmt_seq_no">
+        <Column Name="cmt" DataType="System.String"/>
+        <CommandParameter Name="@rma_no" DataType="22" Expression="[@rma_no]"/>
+        <CommandParameter Name="@line_no" DataType="22" Expression="[LineItemSection.rma_seq_no]"/>
+      </TableDataSource>
+    </MsSqlDataConnection>
+    <Parameter Name="@rma_no" DataType="System.Int32"/>
+  </Dictionary>
+  <ReportPage Name="Main" Guides="384,0,163.2" Watermark.Font="Arial, 60pt">
+    <PageHeaderBand Name="PageHeader1" Width="718.2" Height="38.4">
+      <ShapeObject Name="TitleBackground" Width="718.2" Height="28.35" Border.ShadowWidth="0" Border.ShadowColor="Transparent" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
+      <TextObject Name="TitleLabel" Width="718.2" Height="28.35" Text="Return Materials Authorization" HorzAlign="Center" VertAlign="Center" Font="Verdana, 16pt, style=Bold"/>
+      <ChildBand Name="Child25" Top="42.4" Width="718.2" Height="76.8">
+        <SubreportObject Name="CompanyAddress" Top="-1.35" Width="384" Height="76.5" Anchor="Top, Left, Right" ShiftMode="Never" ReportPage="Company"/>
+        <TextObject Name="Text12" Left="556.8" Top="57.6" Width="163.2" Height="19.2" Text="[HeaderSection.rma_dt_entered]" Format="Custom" Format.Format="MM/dd/yyyy" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt"/>
+        <ShapeObject Name="Shape1" Left="556.8" Top="38.4" Width="163.2" Height="19.2" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
+        <TextObject Name="RmaDateTitle" Left="556.8" Top="38.4" Width="163.2" Height="19.2" Text="RMA Date" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+        <TextObject Name="Text11" Left="662.4" Top="19.2" Width="57.6" Height="19.2" Text="[Page]" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt"/>
+        <TextObject Name="Text13" Left="556.8" Top="19.2" Width="105.6" Height="19.2" Text="[FmtCustomerNo([HeaderSection.rma_no])]" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt"/>
+        <TextObject Name="RmaNumberTitle" Left="556.8" Width="105.6" Height="19.2" Text="RMA Number" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+        <ShapeObject Name="RmaNumberBackground" Left="556.8" Width="163.2" Height="19.2" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
+        <TextObject Name="PageTitle" Left="662.4" Width="57.6" Height="19.2" Text="Page" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+        <TextObject Name="Text62" Left="556.8" Width="105.6" Height="19.2" Text="RMA Number" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+        <ChildBand Name="Child24" Top="123.2" Width="718.2" Height="48">
+          <SubreportObject Name="SoldTo" Top="28.8" Width="96" Height="19.2" ReportPage="SoldToSection"/>
+          <SubreportObject Name="ShipTo" Left="384" Top="28.8" Width="96" Height="19.2" ReportPage="Page1"/>
+          <ChildBand Name="Child19" Top="175.2" Width="718.2" Height="124.8">
+            <ShapeObject Name="Shape2" Top="19.2" Width="720" Height="19.2" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
+            <TextObject Name="Text27" Top="19.2" Width="115.2" Height="19.2" Text="Customer No" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text28" Left="115.2" Top="19.2" Width="172.8" Height="19.2" Text="Contact" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text29" Left="288" Top="19.2" Width="144" Height="19.2" Text="Sales Rep" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text30" Left="432" Top="19.2" Width="144" Height="19.2" Text="Ship Via" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text31" Left="576" Top="19.2" Width="144" Height="19.2" Text="Job Number" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text32" Top="38.4" Width="115.2" Height="19.2" Text="[FmtCustomerNo([HeaderSection.cus_no])]&#13;&#10;" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+            <TextObject Name="Text33" Left="115.2" Top="38.4" Width="172.8" Height="19.2" Text="[Trim([HeaderSection.contact])]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+            <TextObject Name="Text34" Left="288" Top="38.4" Width="144" Height="19.2" Text="[HeaderSection.sales_rep]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+            <TextObject Name="Text35" Left="432" Top="38.4" Width="144" Height="19.2" Text="[Trim([HeaderSection.ship_via])]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+            <TextObject Name="Text36" Left="576" Top="38.4" Width="144" Height="19.2" Text="[Trim([HeaderSection.job_no])]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+            <ShapeObject Name="Shape3" Top="57.6" Width="720" Height="19.2" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
+            <TextObject Name="Text37" Top="57.6" Width="115.2" Height="19.2" Text="Expected Return" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text38" Top="86.4" Width="115.2" Height="9.6" Text="[HeaderSection.exp_rec_date]" Format="Custom" Format.Format="MM/dd/yyyy" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+            <TextObject Name="Text39" Left="115.2" Top="57.6" Width="288" Height="19.2" Text="Comments" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text40" Left="115.2" Top="86.4" Width="288" Height="9.6" Text="[HeaderSection.comment]" VertAlign="Center" Font="Arial, 7pt"/>
+            <TextObject Name="Text41" Left="422.4" Top="57.6" Width="288" Height="19.2" Text="Shipping Instructions" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text42" Left="422.4" Top="86.4" Width="288" Height="9.6" Text="[HeaderSection.ship_instruction_1]" Font="Arial, 7pt"/>
+            <TextObject Name="Text43" Left="422.4" Top="96" Width="288" Height="9.6" Text="[HeaderSection.ship_instruction_2]" Font="Arial, 7pt"/>
+            <ShapeObject Name="Shape4" Top="105.6" Width="720" Height="19.2" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
+            <TextObject Name="Text44" Top="105.6" Width="230.4" Height="19.2" Text="Item No" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text45" Left="230.4" Top="105.6" Width="115.2" Height="19.2" Text="Quantity To Return" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text46" Left="345.6" Top="105.6" Width="38.4" Height="19.2" Text="UOM" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text47" Left="384" Top="105.6" Width="86.4" Height="19.2" Text="Order No" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text48" Left="470.4" Top="105.6" Width="86.4" Height="19.2" Text="Invoice No" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text49" Left="556.8" Top="105.6" Width="105.6" Height="19.2" Text="Your P.O. Number" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <TextObject Name="Text50" Left="662.4" Top="105.6" Width="57.6" Height="19.2" Text="Action" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+            <ChildBand Name="Child20" Top="304" Width="718.2" Height="19.2">
+              <SubreportObject Name="HeaderComments" Width="153.6" Height="19.2" ReportPage="Page3"/>
+            </ChildBand>
+          </ChildBand>
+        </ChildBand>
+      </ChildBand>
+    </PageHeaderBand>
+    <DataBand Name="MainData" Top="327.2" Width="718.2" Height="28.8" CanGrow="true" DataSource="Table2">
+      <TextObject Name="Text51" Top="9.6" Width="230.4" Height="9.6" Text="[LineItemSection.item_no]" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text52" Left="9.6" Top="19.2" Width="153.6" Height="9.6" CanGrow="true" Text="[LineItemSection.item_desc_1]" AutoWidth="true" Font="Arial, 7pt"/>
+      <TextObject Name="Text53" Left="230.4" Top="9.6" Width="115.2" Height="9.6" Text="[LineItemSection.rma_qty_rtn_auth]" Format="Number" Format.UseLocale="true" Format.DecimalDigits="4" HorzAlign="Right" VertAlign="Center" WordWrap="false" Font="Arial, 7pt" Trimming="EllipsisCharacter"/>
+      <TextObject Name="Text54" Left="345.6" Top="9.6" Width="38.4" Height="9.6" Text="[LineItemSection.uom]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text56" Left="662.4" Top="9.6" Width="57.6" Height="9.6" Text="[LineItemSection.action]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text58" Left="556.8" Top="9.6" Width="105.6" Height="9.6" Text="[LineItemSection.oe_po_no]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text59" Left="470.4" Top="9.6" Width="86.4" Height="9.6" Text="[Trim([LineItemSection.apply_to_invc_no])]" HorzAlign="Center" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="Text63" Left="384" Top="9.6" Width="86.4" Height="9.6" Text="[FmtOrderNo([LineItemSection.ord_no])]&#13;&#10;" HorzAlign="Center" VertAlign="Center" Font="Verdana, 7pt"/>
+      <ChildBand Name="Child21" Top="360" Width="718.2" Height="9.6" CanGrow="true" CanShrink="true">
+        <TextObject Name="Text57" Left="9.6" Width="153.6" Height="9.6" VisibleExpression="Trim([LineItemSection.item_desc_2]) != &quot;&quot;" CanGrow="true" CanShrink="true" Text="[LineItemSection.item_desc_2]" AutoWidth="true" Font="Arial, 7pt"/>
+        <ChildBand Name="Child22" Top="373.6" Width="718.2" Height="19.2" CanGrow="true" CanShrink="true">
+          <SubreportObject Name="LineComments" Width="153.6" Height="19.2" ReportPage="Page2"/>
+          <ChildBand Name="Child23" Top="396.8" Width="718.2" Height="9.6">
+            <LineObject Name="Line3" Top="9.6" Width="720" Border.Color="227, 238, 240" Border.Width="3"/>
+          </ChildBand>
+        </ChildBand>
+      </ChildBand>
+    </DataBand>
+    <PageFooterBand Name="PageFooter1" Top="410.4" Width="718.2" Height="18.9">
+      <LineObject Name="Line4" Top="9.6" Width="720" Border.Color="227, 238, 240" Border.Width="3"/>
+    </PageFooterBand>
+  </ReportPage>
+  <ReportPage Name="Company" PaperWidth="101.6" PaperHeight="25.4" LeftMargin="0" TopMargin="0" RightMargin="0" BottomMargin="0" Guides="384,0" Watermark.Font="Arial, 60pt" TitleBeforeHeader="false">
+    <DataBand Name="CompanyAdressData" Width="384.05" Height="28.5" CanShrink="true">
+      <TextObject Name="Text1" Left="18.9" Width="293.4" Height="18.9" Text="[HeaderSection.CompanyName]" AutoWidth="true" Font="Verdana, 10pt, style=Bold"/>
+      <ChildBand Name="Child1" Top="32.5" Width="384.05" Height="19.2" CanShrink="true">
+        <TextObject Name="Text2" Left="19.2" Width="326.4" Height="19.2" Text="[HeaderSection.AddressLine1]" AutoWidth="true" Font="Verdana, 8pt"/>
+        <ChildBand Name="Child2" Top="55.7" Width="384.05" Height="19.2" VisibleExpression="Trim([HeaderSection.AddressLine2]) != &quot;&quot;" CanShrink="true">
+          <TextObject Name="Text3" Left="19.2" Width="345.6" Height="19.2" Text="[HeaderSection.AddressLine2]" AutoWidth="true" Font="Verdana, 8pt"/>
+          <ChildBand Name="Child3" Top="78.9" Width="384.05" Height="19.2" VisibleExpression="Trim([HeaderSection.AddressLine3]) != &quot;&quot;" CanShrink="true">
+            <TextObject Name="Text4" Left="19.2" Width="345.6" Height="19.2" Text="[HeaderSection.AddressLine3]" AutoWidth="true" Font="Verdana, 8pt"/>
+            <ChildBand Name="Child4" Top="102.1" Width="384.05" Height="19.2" CanShrink="true">
+              <TextObject Name="Text5" Left="19.2" Width="345.6" Height="19.2" Text="[HeaderSection.AddressLine4]" AutoWidth="true" Font="Verdana, 8pt"/>
+              <ChildBand Name="Child5" Top="125.3" Width="384.05" Height="19.2" CanShrink="true">
+                <TextObject Name="Text6" Left="19.2" Width="345.6" Height="19.2" Text="[HeaderSection.Country]" AutoWidth="true" Font="Verdana, 8pt"/>
+                <ChildBand Name="Child6" Top="148.5" Width="384.05" Height="28.8" VisibleExpression="Trim([HeaderSection.PhoneNumber]) != &quot;&quot;" CanShrink="true">
+                  <TextObject Name="Text7" Left="19.2" Top="9.6" Width="38.4" Height="19.2" Text="Tel:" Font="Verdana, 8pt"/>
+                  <TextObject Name="Text8" Left="67.2" Top="9.6" Width="297.6" Height="19.2" Text="[HeaderSection.PhoneNumber]" AutoWidth="true" Font="Verdana, 8pt"/>
+                  <ChildBand Name="Child7" Top="181.3" Width="384.05" Height="19.2" VisibleExpression="Trim([HeaderSection.FaxNumber]) != &quot;&quot;" CanShrink="true">
+                    <TextObject Name="Text9" Left="19.2" Width="38.4" Height="19.2" Text="Fax:" Font="Verdana, 8pt"/>
+                    <TextObject Name="Text10" Left="67.2" Width="297.6" Height="19.2" Text="[HeaderSection.FaxNumber]" AutoWidth="true" Font="Verdana, 8pt"/>
+                  </ChildBand>
+                </ChildBand>
+              </ChildBand>
+            </ChildBand>
+          </ChildBand>
+        </ChildBand>
+      </ChildBand>
+    </DataBand>
+  </ReportPage>
+  <ReportPage Name="SoldToSection" PaperWidth="101.6" PaperHeight="101.6" LeftMargin="0" Watermark.Font="Arial, 60pt">
+    <DataBand Name="Data" Width="346.25" Height="28.8">
+      <TextObject Name="Text14" Width="96" Height="19.2" ShiftMode="Never" Text="Sold To:" VertAlign="Center" Font="Verdana, 7pt"/>
+      <ChildBand Name="Child26" Top="32.8" Width="346.25" Height="19.2">
+        <TextObject Name="Text64" Left="19.2" Width="326.4" Height="19.2" Text="[HeaderSection.bill_to_name]" Font="Verdana, 7pt"/>
+        <ChildBand Name="Child13" Top="56" Width="346.25" Height="19.2" VisibleExpression="Trim([HeaderSection.bill_to_addr_1]) != &quot;&quot;">
+          <TextObject Name="Text16" Left="19.2" Width="326.4" Height="19.2" Text="[HeaderSection.bill_to_addr_1]" Font="Verdana, 7pt"/>
+          <ChildBand Name="Child14" Top="79.2" Width="346.25" Height="19.2" VisibleExpression="Trim([HeaderSection.bill_to_addr_2]) != &quot;&quot;">
+            <TextObject Name="Text17" Left="19.2" Width="326.4" Height="19.2" Text="[HeaderSection.bill_to_addr_2]" Font="Verdana, 7pt"/>
+            <ChildBand Name="Child15" Top="102.4" Width="346.25" Height="19.2" VisibleExpression="Trim([HeaderSection.bill_to_addr_3]) != &quot;&quot;">
+              <TextObject Name="Text18" Left="19.2" Width="326.4" Height="19.2" Text="[HeaderSection.bill_to_addr_3]" Font="Verdana, 7pt"/>
+              <ChildBand Name="Child16" Top="125.6" Width="346.25" Height="19.2" VisibleExpression="Trim([HeaderSection.bill_to_addr_4]) != &quot;&quot;">
+                <TextObject Name="Text19" Left="19.2" Width="326.4" Height="19.2" Text="[HeaderSection.bill_to_addr_4]" Font="Verdana, 7pt"/>
+                <ChildBand Name="Child17" Top="148.8" Width="346.25" Height="19.2">
+                  <TextObject Name="Text20" Left="19.2" Width="326.4" Height="19.2" Text="[HeaderSection.bill_to_Country]" Font="Verdana, 7pt"/>
+                </ChildBand>
+              </ChildBand>
+            </ChildBand>
+          </ChildBand>
+        </ChildBand>
+      </ChildBand>
+    </DataBand>
+  </ReportPage>
+  <ReportPage Name="Page1" PaperWidth="101.6" PaperHeight="101.6" Watermark.Font="Arial, 60pt">
+    <DataBand Name="Data1" Width="308.45" Height="28.8">
+      <TextObject Name="Text15" Width="96" Height="19.2" ShiftMode="Never" Text="Shipped To:" VertAlign="Center" Font="Verdana, 7pt"/>
+      <ChildBand Name="Child8" Top="32.8" Width="308.45" Height="19.2">
+        <TextObject Name="Text21" Left="19.2" Width="288" Height="19.2" Text="[HeaderSection.ship_to_name]" Font="Verdana, 7pt"/>
+        <ChildBand Name="Child9" Top="56" Width="308.45" Height="19.2" VisibleExpression="Trim([HeaderSection.ship_to_addr_1]) != &quot;&quot;">
+          <TextObject Name="Text22" Left="19.2" Width="288" Height="19.2" Text="[HeaderSection.ship_to_addr_1]" Font="Verdana, 7pt"/>
+          <ChildBand Name="Child10" Top="79.2" Width="308.45" Height="19.2" VisibleExpression="Trim([HeaderSection.ship_to_addr_2]) != &quot;&quot;">
+            <TextObject Name="Text23" Left="19.2" Width="288" Height="19.2" Text="[HeaderSection.ship_to_addr_2]" Font="Verdana, 7pt"/>
+            <ChildBand Name="Child11" Top="102.4" Width="308.45" Height="19.2" VisibleExpression="Trim([HeaderSection.ship_to_addr_3]) != &quot;&quot;">
+              <TextObject Name="Text24" Left="19.2" Width="288" Height="19.2" Text="[HeaderSection.ship_to_addr_3]" Font="Verdana, 7pt"/>
+              <ChildBand Name="Child12" Top="125.6" Width="308.45" Height="19.2" VisibleExpression="Trim([HeaderSection.ship_to_addr_4]) != &quot;&quot;">
+                <TextObject Name="Text25" Left="19.2" Width="288" Height="19.2" Text="[HeaderSection.ship_to_addr_4]" Font="Verdana, 7pt"/>
+                <ChildBand Name="Child18" Top="148.8" Width="308.45" Height="19.2">
+                  <TextObject Name="Text26" Left="19.2" Width="288" Height="19.2" Text="[HeaderSection.ship_to_country]" Font="Verdana, 7pt"/>
+                </ChildBand>
+              </ChildBand>
+            </ChildBand>
+          </ChildBand>
+        </ChildBand>
+      </ChildBand>
+    </DataBand>
+  </ReportPage>
+  <ReportPage Name="Page3" Watermark.Font="Arial, 60pt">
+    <DataBand Name="Data3" Width="718.2" Height="28.8" DataSource="Table1">
+      <TextObject Name="Text61" Left="19.2" Width="201.6" Height="19.2" Text="[HeaderCommentSection.cmt]" VertAlign="Center" Font="Verdana, 7pt"/>
+      <DataFooterBand Name="DataFooter1" Top="32.8" Width="718.2">
+        <LineObject Name="Line2" Width="720" Border.Color="227, 238, 240" Border.Width="3"/>
+      </DataFooterBand>
+    </DataBand>
+  </ReportPage>
+  <ReportPage Name="Page2" Watermark.Font="Arial, 60pt">
+    <DataBand Name="Data2" Width="718.2" Height="9.6" DataSource="Table3">
+      <TextObject Name="Text60" Left="28.8" Width="211.2" Height="9.6" Text="[LineItemCommentSection.cmt]" AutoWidth="true" VertAlign="Center" Font="Verdana, 7pt"/>
+    </DataBand>
+  </ReportPage>
+</Report>
