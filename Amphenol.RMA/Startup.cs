@@ -1,7 +1,10 @@
-﻿using Amphenol.RMA.AccesoDatos.Data;
+﻿using AIO.MailDispatch;
+using AIO.MailDispatch.Abstractions;
+using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Models;
 using Amphenol.RMA.Services.Email;
+using Amphenol.RMA.Services.Email.Templates;
 using Amphenol.RMA.Services.Reports;
 using Hangfire;
 using Hangfire.SqlServer;
@@ -64,11 +67,11 @@ namespace Amphenol.RMA
             services.AddServerSideBlazor();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
-            services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
             services.Configure<CustomerServiceManager>(Configuration.GetSection("CustomerServiceManager"));
-            services.AddTransient<IEmailService, EmailService>();
+            services.AddMailDispatch(Configuration);
+            services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+            services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ReportService>();
-
         }
 
 
@@ -111,10 +114,6 @@ namespace Amphenol.RMA
                 endpoints.MapHub<RmaHub>("/rmaHub");
             });
         }
-
-
-
-
     }
 }
 

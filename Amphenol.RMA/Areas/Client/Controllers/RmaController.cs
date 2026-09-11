@@ -1,4 +1,5 @@
-﻿using Amphenol.RMA.AccesoDatos.Data;
+﻿using AIO.MailDispatch.Models;
+using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Extensions;
 using Amphenol.RMA.Models;
@@ -6,6 +7,7 @@ using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models.ModelsM10;
 using Amphenol.RMA.Models.ViewModels;
 using Amphenol.RMA.Services.Email;
+using Amphenol.RMA.Services.Email.Templates;
 using Amphenol.RMA.Services.Reports;
 using Amphenol.RMA.Utilidades;
 using Amphenol.RMA.ViewModels;
@@ -63,6 +65,7 @@ namespace Amphenol.RMA.Controllers
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly CustomerServiceManager _customerServiceManager;
+        private readonly IEmailTemplateRenderer _templateRenderer;
         const string rootE = @"E:\CSFiles\documents\";
         const string rootEC = @"E:\CSFiles\";
         private const double TwoStepAuthorizationThreshold = 20_000;
@@ -458,7 +461,7 @@ namespace Amphenol.RMA.Controllers
 
         }
         [HttpPost]
-        public IActionResult Desaprobar(string comment, int ids)
+        public async Task<IActionResult> Desaprobar(string comment, int ids)
         {
             String cadena = User.Identity.Name;
             string delimitador = @"\";
@@ -470,11 +473,38 @@ namespace Amphenol.RMA.Controllers
 
             _contenedorTrabajo.CSEXSW_Rma.Updatedesaprobar(ids, comment, var);
             _contenedorTrabajo.Save();
+
+            var rma = _context2.CSEXSW_Rma.FirstOrDefault(x => x.Id == ids);
+
+            if (rma != null)
+            {
+                var requester = _context2.humres.FirstOrDefault(x => x.res_id == rma.res_id);
+                var firstName = requester.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Requester";
+
+                var approver = _context2.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
+
+
+                await _emailService.SendRejectNotification(
+                    "RMA Request Rejected",
+                    rma.Rmarequest,
+                    $"""
+                        Hello {firstName},<br><br>
+                        We regret to inform you that RMA request #{rma.Rmarequest} has been rejected by {approver.fullname}.<br><br>
+                        The approver provided the following comments:<br><br>
+                        {comment}<br><br>
+                        If you have any questions or require additional clarification, please contact the approver directly.<br><br>
+                        Thank you,<br>
+                        Amphenol Industrial Operations RMA System
+                    """,
+                    new EmailAddress(requester.mail)
+                );
+            }
+
             return RedirectToAction(nameof(Control));
         }
 
         [HttpPost]
-        public RedirectToActionResult Aprobar(string commentt, int idsa, bool isAutoApproved = false)
+        public async Task<RedirectToActionResult> Aprobar(string commentt, int idsa, bool isAutoApproved = false)
         {
             String cadena = User.Identity.Name;
             string delimitador = @"\";
@@ -483,6 +513,8 @@ namespace Amphenol.RMA.Controllers
 
             string userId = isAutoApproved ? _autoApprover.Id.ToString() : _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
 
+            var rma = _context2.CSEXSW_Rma.FirstOrDefault(x => x.Id == idsa);
+            var originalApprover = rma.Approver;
             //OERHDFIL_SQL
             string retorno = _contenedorTrabajo.CSEXSW_Rma.Updateaprobar(idsa, commentt, userId);
 
@@ -552,6 +584,64 @@ namespace Amphenol.RMA.Controllers
                     objDesdeDbt.Notes = "RMA Requests No" + objDesdeDb.Rmarequest + "Description: " + objDesdeDb.Description + " Customer complait: " + objDesdeDb.Customercomplait + " Approver: " + objDesdeDb.Approver + " RMA type of request: " + objDesdeDb.Rmatypeofrequest + " Where built: " + objDesdeDb.Wherebuilt;
                     BackgroundJob.Enqueue(() => crearcar(objDesdeDbt, idCAR));
                 }
+
+                var report = await _reportService.GenerateReturnMaterialsAuthorizationPDF(rma.turno.Trim().ToString());
+                var attachment = new EmailAttachment(report.FileName, report.ContentType, report.Data);
+
+                var custormerServiceRepresentative = _context2.humres.FirstOrDefault(x => x.res_id == rma.res_id);
+
+                //Notify Amphenol Team
+                await _emailService.SendApproveNotification(
+                    "RMA No.",
+                    rma.turno.Trim(),
+                    $"""
+                        RMA request #{rma.Rmarequest} has been approved and assigned RMA number <strong>{rma.turno.Trim()}</strong>.<br><br>
+                        The RMA is now ready for customer return. Please coordinate with the customer as needed to ensure the material is returned with the assigned RMA number clearly identified.<br><br>
+                        Upon receipt of the material, the Quality team will confirm receipt and begin the evaluation process.<br><br>
+                        Thank you,<br>
+                        Amphenol Industrial Operations RMA System
+                     """,
+                    new EmailAddress(custormerServiceRepresentative.mail),
+                    new EmailAddress(_customerServiceManager.Email),
+                    attachment
+                );
+
+                var contact = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(rma.Contact.ToLower())?
+                 .Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Requester"; ;
+
+                //Notify Customer
+                await _emailService.SendCustomerNotification(
+                    "RMA Request Approved",
+                    rma.turno.Trim(),
+                    $"""
+                      Hello {contact},<br><br>
+                      Your RMA request #{rma.Rmarequest} has been approved and assigned RMA number <strong>{rma.turno.Trim()}</strong>.<br><br>
+                      Please find the approved RMA document attached to this email. The document contains the information needed to proceed with the return of the material.<br><br>
+                      If you have any questions or require additional assistance, please contact our customer service team.<br><br>
+                      Thank you for choosing Amphenol Industrial Operations.<br><br>
+                      Amphenol Industrial Operations RMA System
+                     """,
+                    new EmailAddress(rma.Email),
+                    attachment
+                );
+            }
+            else
+            {
+                var newApprover = _context2.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
+                var approverFirstname = newApprover.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
+
+                await _emailService.SendApprovalRequestNotification(
+                    "RMA Request",
+                    rma.Rmarequest,
+                    $"""
+                        Hello {approverFirstname},<br><br>
+                        {originalApprover} has approved RMA request #{rma.Rmarequest}. As part of the approval workflow, this request now requires your review and secondary approval.<br><br>
+                        Please review the request details and provide your approval decision at your earliest convenience.<br><br>
+                        Thank you,<br>
+                        Amphenol Industrial Operations RMA System
+                     """,
+                    new EmailAddress(newApprover.mail)
+                );
             }
 
             return isAutoApproved ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Control));
@@ -680,6 +770,9 @@ namespace Amphenol.RMA.Controllers
             //    generalManager.mail,
             //    customerServiceManager.Email
             //];
+
+            Approver approver = null;
+
             if (rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString())
             {
                 if (rma.Totalrmavalues < 5000 && !vm.HasLineOverThreshold)
@@ -692,7 +785,8 @@ namespace Amphenol.RMA.Controllers
                 }
                 else
                 {
-                    rma.SetApprover(qualityDirector);
+                    approver = qualityDirector;
+                    rma.SetApprover(approver);
                 }
             }
             else
@@ -700,12 +794,15 @@ namespace Amphenol.RMA.Controllers
                 switch (rma.Totalrmavalues)
                 {
                     case > 0 and < 5000:
-                        rma.SetApprover(qualityManager);
+                        approver = qualityManager;
+                        rma.SetApprover(approver);
                         break;
                     case >= 5000 and < 20000:
+                        approver = qualityDirector;
                         rma.SetApprover(qualityDirector);
                         break;
                     case > 20000:
+                        approver = qualityDirector;
                         rma.SetApprover(qualityDirector);
                         //requires secondary approval
                         break;
@@ -732,9 +829,26 @@ namespace Amphenol.RMA.Controllers
 
             //BackgroundJob.Enqueue(() => SendRmaCreationNotification(idRma, approvalFlow));
 
+            var firstName = approver.Name?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
+
             if (rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString())
             {
-                Aprobar("RMA auto-approved", rma.Id, true);
+                await Aprobar("RMA auto-approved", rma.Id, true);
+            }
+            else
+            {
+                await _emailService.SendApprovalRequestNotification(
+                    "RMA Request",
+                    rma.Rmarequest,
+                    $"""
+                    Hello {firstName},<br><br>
+                    You have been assigned as the approver for RMA request #{rma.Rmarequest}.<br><br>
+                    Please review the request details and provide your approval decision.<br><br>
+                    Thank you,<br>
+                    Amphenol Industrial Operations RMA System
+                    """,
+                    new EmailAddress(approver.Email)
+                );
             }
 
             return RedirectToAction(nameof(Index));
@@ -1425,7 +1539,7 @@ namespace Amphenol.RMA.Controllers
             overviewTemplate = overviewTemplate.Replace("{RmaLines}", DateTime.Today.Year.ToString());
             overviewTemplate = overviewTemplate.Replace("{Year}", DateTime.Today.Year.ToString());
 
-            await _emailService.SendEmail(subject, overviewTemplate, [approvalFlow.Approver.Email], approvalFlow.NotifyEmails);
+            //await _emailService.SendEmail(subject, overviewTemplate, [approvalFlow.Approver.Email], approvalFlow.NotifyEmails);
         }
 
 
@@ -3370,8 +3484,6 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-
-
             return View();
         }
         [HttpGet]

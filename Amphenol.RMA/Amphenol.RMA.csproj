@@ -66,6 +66,7 @@
 
   
   <ItemGroup>
+    <PackageReference Include="AIO.MailDispatch" Version="1.0.0" />
     <PackageReference Include="EntityFramework" Version="6.5.1" />
     <PackageReference Include="EPPlus" Version="8.1.0" />
     <PackageReference Include="FastReport.Data.MsSql" Version="2026.2.3" />

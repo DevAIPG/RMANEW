@@ -1415,11 +1415,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
             return true;
         }
 
-        public void Updatedesaprobar(int ids, string comment, string var /* string mail1, string mail2, string mail3, string mail4, string mail5, string mail6, string mailp*/)
+        public void Updatedesaprobar(int ids, string comment, string var)
         {
-            var rma = _db.CSEXSW_Rma
-                .AsNoTracking()
-                .FirstOrDefault(x => x.Id == ids);
+            var rma = _db.CSEXSW_Rma.FirstOrDefault(x => x.Id == ids);
 
             if (rma == null) return;
 
@@ -1427,6 +1425,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
             rma.Status = RmaRequestStatus.Rejected.ToDisplayString();
 
             AddComment(rma, DateTime.Now, CommentAction.Rejected, comment);
+
+            rma.Status = "Rejected";
+            rma.Sumbit = "Submitted";
 
             _db.SaveChanges();
             //BackgroundJob.Enqueue(() => SendMailAsync5(mail1, mail2, mail3, mail4, mail5, mail6, mailp, objDesdeDbs.Rmarequest));

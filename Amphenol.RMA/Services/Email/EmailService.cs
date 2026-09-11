@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using AIO.MailDispatch.Abstractions;
+using AIO.MailDispatch.Models;
+using Amphenol.RMA.Services.Email.Templates;
+using Amphenol.RMA.ViewModels;
 using Humanizer;
 using iTextSharp.tool.xml.html;
 using MailKit.Net.Smtp;
@@ -11,76 +10,104 @@ using Microsoft.CodeAnalysis.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.Services.WebApi.Exceptions;
 using MimeKit;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Amphenol.RMA.Services.Email
 {
-    public class EmailSettings
-    {
-        public string SenderAccount { get; set; }
-        public string SmtpServer { get; set; }
-        public int Port { get; set; }
-        public List<string> Bcc { get; set; }
-    }
     public interface IEmailService
     {
-        EmailSettings EmailSettings { get; }
-
-        public Task SendEmail(string subject, string body, List<string> recipients, List<string> bcc);
+        public Task SendApprovalRequestNotification(string title, string subtitle, string message, EmailAddress recipient, CancellationToken cancellationToken = default);
+        public Task SendApproveNotification(string title, string subtitle, string message, EmailAddress representativeEmail, EmailAddress managerEmail, EmailAttachment attachment, CancellationToken cancellationToken = default);
+        public Task SendRejectNotification(string title, string subtitle, string message, EmailAddress recipient, CancellationToken cancellationToken = default);
+        public Task SendCustomerNotification(string title, string subtitle, string message, EmailAddress recipient, EmailAttachment attachment, CancellationToken cancellationToken = default);
     }
-    internal class EmailService(IOptions<EmailSettings> emailSettings) : IEmailService
+    internal class EmailService(IMailSender mailSender, IEmailTemplateRenderer templateRenderer) : IEmailService
     {
-        public EmailSettings EmailSettings { get; } = emailSettings.Value;
-
-        public async Task SendEmail(string subject, string body, List<string> recipients, List<string> bcc)
+        private readonly string notificationTemplatePath = "/Views/Shared/_EmailInternalNotification.cshtml";
+        public async Task SendApprovalRequestNotification(string title, string subtitle, string message, EmailAddress recipient, CancellationToken cancellationToken = default)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(subject);
-            ArgumentException.ThrowIfNullOrWhiteSpace(body);
-            if (recipients is null || !recipients.Any())
+            var htmlMessage = await templateRenderer.RenderAsync(notificationTemplatePath, new InternalEmailNotificationViewModel()
             {
-                throw new ArgumentNullException(nameof(recipients));
-            }
+                Title = title,
+                Subtitle = subtitle,
+                Message = message,
+            });
 
-            var email = new MimeMessage();
+            var emailMessage = EmailMessage.Create(subject: "RMA Approval Required", htmlBody: htmlMessage);
 
-            email.From.Add(new MailboxAddress(EmailSettings.SenderAccount, EmailSettings.SenderAccount));
-            email.To.AddRange(recipients.Select(InternetAddress.Parse));
-
-            if (bcc is not null && bcc.Any())
-            {
-                email.Bcc.AddRange(bcc.Select(InternetAddress.Parse));
-            }
 #if DEBUG
-            email.To.Clear();
-            email.Bcc.Clear();
-            email.To.Add(InternetAddress.Parse("jhernandez@amphenol-aio.com"));
+            emailMessage.To.Add(new EmailAddress("jhernandez@amphenol-aio.com"));
+#else
+            emailMessage.To.Add(recipient);
 #endif
 
-            email.Subject = subject;
+            await mailSender.SendAsync(emailMessage, cancellationToken);
+        }
 
-            email.Body = new TextPart("html")
+        public async Task SendApproveNotification(string title, string subtitle, string message, EmailAddress representativeEmail, EmailAddress managerEmail, EmailAttachment attachment, CancellationToken cancellationToken = default)
+        {
+            var htmlMessage = await templateRenderer.RenderAsync(notificationTemplatePath, new InternalEmailNotificationViewModel()
             {
-                Text = body
-            };
+                Title = title,
+                Subtitle = subtitle,
+                Message = message,
+            });
 
-            using var client = new SmtpClient();
+            var emailMessage = EmailMessage.Create(subject: "RMA Request Approved", htmlBody: htmlMessage);
+            emailMessage.Attachments.Add(attachment);
+#if DEBUG
+            emailMessage.To.Add(new EmailAddress("jhernandez@amphenol-aio.com"));
+#else
+            emailMessage.To.Add(representativeEmail);
+            emailMessage.Cc.AddRange(managerEmail);
+#endif
 
-            try
+            await mailSender.SendAsync(emailMessage, cancellationToken);
+        }
+
+        public async Task SendCustomerNotification(string title, string subtitle, string message, EmailAddress recipient, EmailAttachment attachment, CancellationToken cancellationToken = default)
+        {
+            var htmlMessage = await templateRenderer.RenderAsync(notificationTemplatePath, new InternalEmailNotificationViewModel()
             {
-                await client.ConnectAsync(EmailSettings.SmtpServer, EmailSettings.Port, SecureSocketOptions.StartTls);
+                Title = title,
+                Subtitle = subtitle,
+                Message = message,
+            });
 
-                //TODO: set password
-                await client.AuthenticateAsync(EmailSettings.SenderAccount, "{PasswordPlaceHolder}");
+            var emailMessage = EmailMessage.Create(subject: "RMA Approved", htmlBody: htmlMessage);
+            emailMessage.Attachments.Add(attachment);
 
-                await client.SendAsync(email);
-            }
-            finally
+#if DEBUG
+            emailMessage.To.Add(new EmailAddress("jhernandez@amphenol-aio.com"));
+#else
+            emailMessage.To.Add(recipient);
+#endif
+
+            await mailSender.SendAsync(emailMessage, cancellationToken);
+        }
+
+        public async Task SendRejectNotification(string title, string subtitle, string message, EmailAddress recipient, CancellationToken cancellationToken = default)
+        {
+            var htmlMessage = await templateRenderer.RenderAsync(notificationTemplatePath, new InternalEmailNotificationViewModel()
             {
-                if (client.IsConnected)
-                {
-                    await client.DisconnectAsync(true);
-                }
-            }
+                Title = title,
+                Subtitle = subtitle,
+                Message = message,
+            });
 
+            var emailMessage = EmailMessage.Create(subject: "RMA Request Rejected", htmlBody: htmlMessage);
+
+#if DEBUG
+            emailMessage.To.Add(new EmailAddress("jhernandez@amphenol-aio.com"));
+#else
+            emailMessage.To.Add(recipient);
+#endif
+
+            await mailSender.SendAsync(emailMessage, cancellationToken);
         }
     }
 }
