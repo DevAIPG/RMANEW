@@ -3655,7 +3655,7 @@ namespace Amphenol.RMA.Controllers
                     """
                         Amphenol Industrial Operations<br>
                         Attn: Lynette Lipski<br>
-                        20 Valley St.<br>
+                        20 Valley St<br>
                         Endicott, NY 13760<br><br>
                         Use <strong>UPS acct# 1Z543W6Y</strong> and provide the tracking number as soon as it is available.
                     """,
@@ -3672,8 +3672,7 @@ namespace Amphenol.RMA.Controllers
                     """
                         Arizona Warehouse and Distribution Center<br>
                         Attn: Benjamin Cervantes<br>
-                        482 N Mariposa Rd.<br>
-                        Warehouse A<br>
+                        482 N Mariposa Rd, Warehouse A<br>
                         Nogales, AZ 85621<br><br>
                         Use <strong>FedEx acct# 523385704</strong> and provide the tracking number as soon as it is available.
                     """
