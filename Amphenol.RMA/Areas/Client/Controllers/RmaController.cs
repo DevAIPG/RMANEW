@@ -66,8 +66,8 @@ namespace Amphenol.RMA.Controllers
         private readonly IEmailService _emailService;
         private readonly CustomerServiceManager _customerServiceManager;
         private readonly IEmailTemplateRenderer _templateRenderer;
-        const string rootE = @"E:\CSFiles\documents\";
-        const string rootEC = @"E:\CSFiles\";
+        const string rootE = @"E:\CSFiles\documents";
+        //const string rootEC = @"E:\CSFiles\";
         private const double TwoStepAuthorizationThreshold = 20_000;
         private readonly ReportService _reportService;
 
@@ -907,7 +907,7 @@ namespace Amphenol.RMA.Controllers
                 return;
             }
 
-            string directory = Path.Combine(rootEC, "documents", "RMA", rma.Rmarequest.Trim(), "Attachments");
+            string directory = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments");
 
             Directory.CreateDirectory(directory);
 
@@ -1018,7 +1018,7 @@ namespace Amphenol.RMA.Controllers
                 return View(rmaViewModel);
             }
 
-            string directory = Path.Combine(rootEC, "documents", "RMA", rma.Rmarequest.Trim(), "Attachments");
+            string directory = Path.Combine(rootE,  "RMA", rma.Rmarequest.Trim(), "Attachments");
 
             rmaViewModel = new()
             {
@@ -1312,7 +1312,7 @@ namespace Amphenol.RMA.Controllers
                     .Where(x => x.RmaId == rma.Id)
                     .ToListAsync();
 
-            var directory = Path.Combine(rootEC, "documents", "RMA", rma.Rmarequest.Trim(), "Attachments");
+            var directory = Path.Combine(rootE,  "RMA", rma.Rmarequest.Trim(), "Attachments");
 
             // Remove existing attachments marked for deletion
             foreach (var attachmentVm in attachments
@@ -2245,7 +2245,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult OpenFileRMA(string rmano, string filename)
         {
-            var directoryrma = Path.Combine(rootEC, $@"documents\RMA\{rmano}\Attachments\{filename}");
+            var directoryrma = Path.Combine(rootE, "RMA", rmano, "Attachments", filename);
 
 
 
@@ -2285,7 +2285,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult DeleteFileRMA(int id, string rma, string filename)
         {
-            var directoryfile = Path.Combine(rootEC, $@"documents\RMA\{rma}\Attachments\{filename}");
+            var directoryfile = Path.Combine(rootE, "RMA", rma, "Attachments", filename);
             if (_context2.CSEXSW_Attachmentrma.Any(s => s.Id == id))
             {
                 var file = _context2.CSEXSW_Attachmentrma.Where(S => S.Id == id).FirstOrDefault();
@@ -2313,7 +2313,8 @@ namespace Amphenol.RMA.Controllers
             {
                 string rmano = Request.Form["rma"];
                 string fname = Request.Form["file"];
-                var directoryrma = Path.Combine(rootEC, $@"documents\RMA\{rmano}\Attachments\");
+                var directoryrma = Path.Combine(rootE, "RMA", rmano, "Attachments");
+
                 int idrma = _context2.CSEXSW_Rma.Where(s => s.Rmarequest.Trim() == rmano.Trim()).FirstOrDefault().Id;
 
                 if (!Directory.Exists(directoryrma))
@@ -3558,8 +3559,7 @@ namespace Amphenol.RMA.Controllers
             {
                 return PartialView(partialView, new RmaViewModel());
             }
-
-            string directory = Path.Combine(rootEC, "documents", "RMA", rma.Rmarequest.Trim(), "Attachments");
+            var directory = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments");
 
 
             var viewModel = new RmaViewModel
@@ -3617,6 +3617,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public async Task<IActionResult> DownloadAttachment(int id)
         {
+
             var attachment = await _context2.CSEXSW_Attachmentrma
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -3635,7 +3636,7 @@ namespace Amphenol.RMA.Controllers
                 return NotFound();
             }
 
-            string filePath = Path.Combine(rootEC, "documents", "RMA", rma.Rmarequest.Trim(), "Attachments", attachment.Documento);
+            var filePath = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments", attachment.Documento);
 
             if (!System.IO.File.Exists(filePath))
             {
