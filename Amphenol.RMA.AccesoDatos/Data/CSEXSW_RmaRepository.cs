@@ -116,37 +116,60 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     cn.Open();
 
                     string query = @"
+                    SELECT
+                        ISNULL(c.qty, 0) AS qty,
+                        ISNULL(c.parts, 0) AS parts,
+                        r.Id,
+                        r.Rmarequest,
+                        r.Date,
+                        COALESCE(customerParts.CoustumerList, r.Customerpartno) AS Customerpartno,
+                        r.Customerpo,
+                        r.Customercomplait,
+                        r.Description,
+                        r.Rmatypeofrequest,
+                        r.Totalrmavalues,
+                        r.Wherebuilt,
+                        r.Preparado,
+                        r.Sumbit,
+                        r.Status,
+                        r.turno,
+                        r.Approver,
+                        r.res_id,
+                        CONVERT(VARCHAR(10), r.date_approved, 101)
+                            AS formated_date_approved
+                    FROM CSEXSW_Rma AS r WITH (NOLOCK)
+                    LEFT JOIN
+                    (
                         SELECT
-                            ISNULL(c.qty, 0) AS qty,
-                            ISNULL(c.parts, 0) AS parts,
-                            r.Id,
-                            r.Rmarequest,
-                            r.Date,
-                            r.Customerpartno,
-                            r.Customerpo,
-                            r.Customercomplait,
-                            r.Description,
-                            r.Rmatypeofrequest,
-                            r.Totalrmavalues,
-                            r.Wherebuilt,
-                            r.Preparado,
-                            r.Sumbit,
-                            r.Status,
-                            r.turno,
-                            r.Approver,
-                            r.res_id,
-                            CONVERT(VARCHAR(10), r.date_approved, 101) AS formated_date_approved
-                        FROM CSEXSW_Rma r WITH (NOLOCK)
-                        LEFT JOIN (
-                            SELECT
-                                RmaId,
-                                SUM(ISNULL(Qty, 0)) AS qty,
-                                COUNT(DISTINCT Coustumer) AS parts
-                            FROM csexsw_coustumer WITH (NOLOCK)
-                            GROUP BY RmaId
-                        ) c
-                            ON r.Id = c.RmaId
-                        ORDER BY r.Rmarequest DESC;";
+                            RmaId,
+                            SUM(ISNULL(Qty, 0)) AS qty,
+                            COUNT(DISTINCT Coustumer) AS parts
+                        FROM csexsw_coustumer WITH (NOLOCK)
+                        GROUP BY RmaId
+                    ) AS c
+                        ON r.Id = c.RmaId
+                    OUTER APPLY
+                    (
+                        SELECT STUFF
+                        (
+                            (
+                                SELECT '; ' + d.Coustumer
+                                FROM
+                                (
+                                    SELECT DISTINCT cc.Coustumer
+                                    FROM csexsw_coustumer AS cc WITH (NOLOCK)
+                                    WHERE cc.RmaId = r.Id
+                                      AND cc.Coustumer IS NOT NULL
+                                ) AS d
+                                ORDER BY d.Coustumer
+                                FOR XML PATH(''), TYPE
+                            ).value('.', 'nvarchar(max)'),
+                            1,
+                            1,
+                            ''
+                        ) AS CoustumerList
+                    ) AS customerParts
+                    ORDER BY r.Rmarequest DESC;";
 
                     using SqlCommand cmd = new(query, cn);
                     using SqlDataReader rdr = cmd.ExecuteReader();
