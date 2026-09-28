@@ -609,17 +609,24 @@ namespace Amphenol.RMA.Controllers
                 var contact = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(rma.Contact.ToLower())?
                  .Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Requester"; ;
 
+                var returnAddress = GetReturnAddress(rma.Wherebuilt);
+
                 //Notify Customer
                 await _emailService.SendCustomerNotification(
                     "RMA Request Approved",
                     rma.turno.Trim(),
                     $"""
-                      Hello {contact},<br><br>
-                      Your RMA request #{rma.Rmarequest} has been approved and assigned RMA number <strong>{rma.turno.Trim()}</strong>.<br><br>
-                      Please find the approved RMA document attached to this email. The document contains the information needed to proceed with the return of the material.<br><br>
-                      If you have any questions or require additional assistance, please contact our customer service team.<br><br>
-                      Thank you for choosing Amphenol Industrial Operations.<br><br>
-                      Amphenol Industrial Operations RMA System
+                         Hello {contact},<br><br>
+                         Your RMA request #{rma.Rmarequest} has been approved and assigned RMA number
+                         <strong>{rma.turno.Trim()}</strong>.<br><br>
+                         Please find the approved RMA document attached to this email. The document
+                         contains the information needed to proceed with the return of the material.<br><br>
+                         <strong>Please return the material to:</strong><br>
+                         {returnAddress}<br><br>
+                         If you have any questions or require additional assistance, please contact
+                         our customer service team.<br><br>
+                         Thank you for choosing Amphenol Industrial Operations.<br><br>
+                         Amphenol Industrial Operations RMA System
                      """,
                     new EmailAddress(rma.Email),
                     attachment
@@ -3636,6 +3643,41 @@ namespace Amphenol.RMA.Controllers
             return PartialView("RmaItemEditableLine", new RmaLineViewModel());
         }
 
+        private string GetReturnAddress(string location)
+        {
+            //var returnAddress = _context2.CSEXSW_ReturnAddress
+            //    .AsNoTracking()
+            //    .FirstOrDefault(x => x.Location == location);
+
+            return location switch
+            {
+                "Endicott" =>
+                    """
+                        Amphenol Industrial Operations<br>
+                        Attn: Lynette Lipski<br>
+                        20 Valley St<br>
+                        Endicott, NY 13760<br><br>
+                        Use <strong>UPS acct# 1Z543W6Y</strong> and provide the tracking number as soon as it is available.
+                    """,
+
+                "Mesa" =>
+                    """
+                        Amphenol Industrial Operations<br>
+                        Attn: Anahis Estrada<br>
+                        1907 South Hobson Rd, Suite 109<br>
+                        Mesa, AZ 85204<br><br>
+                        Use <strong>FedEx acct# 202637684</strong> and provide the tracking number as soon as it is available.
+                    """,
+                _ =>
+                    """
+                        Arizona Warehouse and Distribution Center<br>
+                        Attn: Benjamin Cervantes<br>
+                        482 N Mariposa Rd, Warehouse A<br>
+                        Nogales, AZ 85621<br><br>
+                        Use <strong>FedEx acct# 523385704</strong> and provide the tracking number as soon as it is available.
+                    """
+            };
+        }
 
         #region LLAMADAS A LA API
         [HttpGet]
