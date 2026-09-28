@@ -6,6 +6,7 @@ using Amphenol.RMA.Models;
 using Amphenol.RMA.Services.Email;
 using Amphenol.RMA.Services.Email.Templates;
 using Amphenol.RMA.Services.Reports;
+using Amphenol.RMA.Utilidades;
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Builder;
@@ -72,6 +73,7 @@ namespace Amphenol.RMA
             services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ReportService>();
+            services.AddScoped<StoreProcedures>();
         }
 
 

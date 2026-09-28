@@ -637,18 +637,23 @@ namespace Amphenol.RMA.Controllers
                 var newApprover = _context2.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
                 var approverFirstname = newApprover.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
 
-                await _emailService.SendApprovalRequestNotification(
-                    "RMA Request",
-                    rma.Rmarequest,
-                    $"""
+                if (rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString())
+                {
+                    await _emailService.SendApprovalRequestNotification(
+                        "RMA Request",
+                        rma.Rmarequest,
+                        $"""
                         Hello {approverFirstname},<br><br>
                         {originalApprover} has approved RMA request #{rma.Rmarequest}. As part of the approval workflow, this request now requires your review and secondary approval.<br><br>
                         Please review the request details and provide your approval decision at your earliest convenience.<br><br>
                         Thank you,<br>
                         Amphenol Industrial Operations RMA System
                      """,
-                    new EmailAddress(newApprover.mail)
-                );
+                        new EmailAddress(newApprover.mail)
+                    );
+                }
+
+
             }
 
             return isAutoApproved ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Control));
@@ -844,18 +849,22 @@ namespace Amphenol.RMA.Controllers
             }
             else
             {
-                await _emailService.SendApprovalRequestNotification(
-                    "RMA Request",
-                    rma.Rmarequest,
-                    $"""
+                if (rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString())
+                {
+                    await _emailService.SendApprovalRequestNotification(
+                        "RMA Request",
+                        rma.Rmarequest,
+                        $"""
                     Hello {firstName},<br><br>
                     You have been assigned as the approver for RMA request #{rma.Rmarequest}.<br><br>
                     Please review the request details and provide your approval decision.<br><br>
                     Thank you,<br>
                     Amphenol Industrial Operations RMA System
                     """,
-                    new EmailAddress(approver.Email)
-                );
+                        new EmailAddress(approver.Email)
+                    );
+                }
+
             }
 
             return RedirectToAction(nameof(Index));

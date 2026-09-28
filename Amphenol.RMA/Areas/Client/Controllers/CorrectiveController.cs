@@ -5,6 +5,7 @@ using Amphenol.RMA.Utilidades;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using OfficeOpenXml.VBA;
@@ -26,18 +27,19 @@ namespace Amphenol.RMA.Controllers
         private const double _defaultExchangeRate = 1.0000;
         private readonly IConfiguration _configuration;
         private readonly IContenedorTrabajo _contenedorTrabajo;
+        private readonly StoreProcedures _storeProcedures;
 
         private readonly DbContext100 _context2;
 
         private readonly DbContextM10 dbContext;
 
 
-        public CorrectiveController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContext100 context2, DbContextM10 dbContext)
+        public CorrectiveController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContext100 context2, DbContextM10 dbContext, StoreProcedures storeProcedures)
         {
 
             _configuration = configuration;
             _contenedorTrabajo = contenedorTrabajo;
-
+            _storeProcedures = storeProcedures;
 
             this.dbContext = dbContext;
 
@@ -192,7 +194,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult GetAllSt(string Client)
         {
-            var data = StoreProcedures.Ships(Client.Trim());
+            var data = _storeProcedures.Ships(Client.Trim());
             return Json(data);
         }
 
@@ -200,7 +202,7 @@ namespace Amphenol.RMA.Controllers
         public IActionResult getSecuencias(string factura)
         {
 
-            var secuencias = StoreProcedures.GetSecuencias(factura);
+            var secuencias = _storeProcedures.GetSecuencias(factura);
 
             return Json(secuencias);
         }
@@ -208,7 +210,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult GetPartNumbers(int page = 1, int pageSize = 10)
         {
-            var data = StoreProcedures.GetItems();
+            var data = _storeProcedures.GetItems();
             return Json(new { data = data });
         }
 

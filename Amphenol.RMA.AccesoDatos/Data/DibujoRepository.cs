@@ -527,16 +527,16 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
         public string usuario(string id)
         {
-            var LastRecord = (from c in _db.humres
-                              select c.res_id).FirstOrDefault().ToString();
+            //var LastRecord = (from c in _db.humres
+            //                  select c.res_id).FirstOrDefault().ToString();
 
             //var LastRecord = (from c in _db.humres
             //                  where c.usr_id == id
             //                  select c.res_id).FirstOrDefault().ToString();
 
+            return _db.humres.Where(humres => humres.usr_id.Trim() == id.Trim()).Select(humres => humres.res_id).FirstOrDefault().ToString();
 
-
-            return LastRecord;
+            //return LastRecord;
         }
 
 

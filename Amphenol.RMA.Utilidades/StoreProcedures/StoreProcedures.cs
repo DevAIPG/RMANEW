@@ -2,14 +2,21 @@
 using Amphenol.RMA.Models.Models500;
 
 using Amphenol.RMA.Models.ViewModels100;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 namespace Amphenol.RMA.Utilidades
 {
     public class StoreProcedures
     {
+        private readonly string _m10ConnectionString;
+        public StoreProcedures(IConfiguration configuration)
+        {
+            _m10ConnectionString = configuration.GetConnectionString("Connection100").ToString();
+        }
         #region CheckLists W/O Inspection
         public static string AddCheckListBody(string question, string username, int fkheader)
         {
@@ -93,11 +100,11 @@ namespace Amphenol.RMA.Utilidades
 
 
 
-        public static List<ShipViewModel> Ships(string customer)
+        public  List<ShipViewModel> Ships(string customer)
         {
 
             var ships = new List<ShipViewModel>();
-            using (var conn = new SqlConnection(ConnectionM10.Connection100))
+            using (var conn = new SqlConnection(_m10ConnectionString))
             {
                 conn.Open();
                 using (var cmd = new SqlCommand("CS_SHIPS_BY_CUSTOMER", conn))
@@ -126,10 +133,10 @@ namespace Amphenol.RMA.Utilidades
         }
 
 
-        public static List<SquenceViewModel> GetSecuencias(string factura)
+        public  List<SquenceViewModel> GetSecuencias(string factura)
         {
             List<SquenceViewModel> secuencias = new List<SquenceViewModel>();
-            using (var conn = new SqlConnection(ConnectionM10.Connection100))
+            using (var conn = new SqlConnection(_m10ConnectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -162,10 +169,10 @@ namespace Amphenol.RMA.Utilidades
             }
             return secuencias;
         }
-        public static List<ItemVM> GetItems()
+        public  List<ItemVM> GetItems()
         {
             List<ItemVM> items = new List<ItemVM>();
-            using (SqlConnection con = new SqlConnection(ConnectionM10.Connection100))
+            using (SqlConnection con = new SqlConnection(_m10ConnectionString))
             {
                 con.Open();
                 using (SqlCommand cmd = con.CreateCommand())
@@ -194,7 +201,7 @@ namespace Amphenol.RMA.Utilidades
             return items;
         }
 
-        public static csexsw_tarea TaskById(int id)
+        public  csexsw_tarea TaskById(int id)
         {
             csexsw_tarea employee = new csexsw_tarea();
             using (var conn = new SqlConnection(ConnectionM10.Connection))
