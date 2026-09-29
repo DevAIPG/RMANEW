@@ -528,44 +528,13 @@ namespace Amphenol.RMA.Controllers
             {
                 int idCAR = await _m10DbCcontext.csexsw_car.MaxAsync(x => (int?)x.Id) ?? 0;
 
-                //ArrayList objs = new ArrayList();
-                //string connectionString = _configuration.GetConnectionString("Connection500").ToString();
-                //var values = new List<Dictionary<string, object>>();
-                //using (SqlConnection cn = new SqlConnection(connectionString))
-                //{
-                //    cn.Open();
-                //    string query = @"SELECT IDENT_CURRENT('csexsw_car') as IdActual,
-                //        IDENT_SEED('csexsw_car') as IdInicial,
-                //        IDENT_INCR('csexsw_car') as Incremento";
-                //    SqlCommand cmd = new SqlCommand(query, cn);
-
-                //    SqlDataReader rdr = cmd.ExecuteReader();
-
-                //    //get the data reader, etc.
-                //    while (rdr.Read())
-                //    {
-                //        objs.Add(new
-                //        {
-                //            IdActual = rdr["IdActual"],
-                //            IdInicial = rdr["IdInicial"],
-                //            Incremento = rdr["Incremento"]
-                //        });
-
-                //        idCAR = Convert.ToInt32(rdr["IdActual"]);
-                //    }
-
-                //    cn.Close();
-                //}
-
                 var objDesdeDblinea = _m10DbCcontext.csexsw_coustumer.Where(s => s.RmaId == idsa).ToList();
                 var checkcars = _m10DbCcontext.csexsw_coustumer.Count(r => r.RmaId == idsa && r.Car == true);
                 if (checkcars > 0)
                 {
-                    idCAR = idCAR + 1;
                     var objDesdeDb = _m10DbCcontext.CSEXSW_Rma.FirstOrDefault(s => s.Id == idsa);
 
-                    string numString = idCAR.ToString();
-                    objDesdeDb.Car = objDesdeDb.Car + "  " + numString;
+
                     _500DbContext.SaveChanges();
                     string Client = (from c in _500DbContext.arcusfil_sql
                                      where c.cus_no.Contains(objDesdeDb.Customer)
@@ -1222,7 +1191,7 @@ namespace Amphenol.RMA.Controllers
             {
                 if (rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString())
                 {
-                    Aprobar("RMA auto-approved", rma.Id, true);
+                    await Aprobar("RMA auto-approved", rma.Id, true);
                 }
             }
 

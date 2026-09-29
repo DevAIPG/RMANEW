@@ -3,27 +3,35 @@ let invoiceTable = null;
 let sequenceTable = null;
 let selectedLineRow = null;
 let invoices = [];
+let nextRmaLineIndex = 0;
 const attachmentStore = new DataTransfer();
 
 $(document).ready(function () {
     InitializeForm();
+    initializeNextRmaLineIndex();
 });
 $(document).on("click", ".btn-add-rma-line", function () {
+    const index = nextRmaLineIndex++;
 
-    let index = $("#LineTable tbody tr").length - 1;
+    $.get("/Client/Rma/AddLineRow")
+        .done(function (html) {
+            $("#emptyLineRow").remove();
 
-    $.get("/Client/Rma/AddLineRow", function (html) {
+            html = html.replace(/__INDEX__/g, index);
 
-        $("#emptyLineRow").remove();
-
-        html = html.replace(/__INDEX__/g, index);
-
-        $("#LineTable tbody").append(html);
-    });
+            $("#LineTable tbody").append(html);
+        })
+        .fail(function () {
+            Swal.fire({
+                title: "Unable to add line",
+                icon: "error",
+                confirmButtonText: "OK"
+            });
+        });
 });
 $(document).on("click", ".btn-remove-rma-line", function () {
     $(this).closest("tr").remove();
-    reindexRows();
+    CalculateTotalRmaValue();
     if ($("#LineTable tbody tr").length === 0) {
         $("#LineTable tbody").append(`
             <tr id="emptyLineRow">
@@ -315,13 +323,13 @@ $(document).on("focus", ".quantity-input, .price-input, .unitcost-input", functi
 $(document).on("submit", "#newRmaForm", function () {
     if ($(this).find(".border-danger").length > 0) {
         e.preventDefault();
+
         Swal.fire({
-            title: 'Required information is missing',
-            text: 'Please complete all highlighted fields before submitting the RMA.',
-            icon: 'warning',
-            showCancelButton: false,
-            confirmButtonColor: '#0d6efd',
-            confirmButtonText: 'OK',
+            title: "Required information is missing",
+            text: "Please complete all highlighted fields before submitting the RMA.",
+            icon: "warning",
+            confirmButtonColor: "#0d6efd",
+            confirmButtonText: "OK"
         });
     }
 });
@@ -343,7 +351,20 @@ function InitializeForm() {
 
     UpdateVisibility();
 }
+function initializeNextRmaLineIndex() {
+    let maximumIndex = -1;
 
+    $("#LineTable [name]").each(function () {
+        const match = ($(this).attr("name") || "")
+            .match(/^Lines\[(\d+)\]\./);
+
+        if (match) {
+            maximumIndex = Math.max(maximumIndex, Number(match[1]));
+        }
+    });
+
+    nextRmaLineIndex = maximumIndex + 1;
+}
 function reindexRows() {
     $("#GeneratedRmaTable tbody tr").each(function (index) {
         $(this).find("input, select").each(function () {
