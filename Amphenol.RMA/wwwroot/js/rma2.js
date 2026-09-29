@@ -7,6 +7,7 @@ function Customer_complaint(data) {
     $("#Customer_complaintcontrol").html(data);
 }
 $(document).on("click", "#btnviewlines", function () {
+    console.log("Here");
     let id = $(this).data("id");
     $.ajax({
         url: '/Client/Rma/RmaModal',

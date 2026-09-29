@@ -66,6 +66,7 @@ namespace Amphenol.RMA.Controllers
         private readonly IEmailService _emailService;
         private readonly CustomerServiceManager _customerServiceManager;
         private readonly IEmailTemplateRenderer _templateRenderer;
+        private readonly ApprovalBypassSettings _bypassApprovalModule;
         const string rootE = @"E:\CSFiles\documents";
         //const string rootEC = @"E:\CSFiles\";
         private const double TwoStepAuthorizationThreshold = 20_000;
@@ -95,6 +96,7 @@ namespace Amphenol.RMA.Controllers
             _emailService = emailService;
             _customerServiceManager = customerServiceManager.Value;
             _reportService = reportService;
+            _bypassApprovalModule = configuration.GetSection("ApprovalBypass").Get<ApprovalBypassSettings>();
         }
         public IConfiguration Configuration { get; }
         public async Task crearcar(csexsw_car objDesdeDbt, int idCAR)
@@ -1018,7 +1020,7 @@ namespace Amphenol.RMA.Controllers
                 return View(rmaViewModel);
             }
 
-            string directory = Path.Combine(rootE,  "RMA", rma.Rmarequest.Trim(), "Attachments");
+            string directory = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments");
 
             rmaViewModel = new()
             {
@@ -1312,7 +1314,7 @@ namespace Amphenol.RMA.Controllers
                     .Where(x => x.RmaId == rma.Id)
                     .ToListAsync();
 
-            var directory = Path.Combine(rootE,  "RMA", rma.Rmarequest.Trim(), "Attachments");
+            var directory = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments");
 
             // Remove existing attachments marked for deletion
             foreach (var attachmentVm in attachments
@@ -3744,21 +3746,24 @@ namespace Amphenol.RMA.Controllers
 
             int userId = int.Parse(_contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim()));
 
-#if DEBUG
-            var info = _contenedorTrabajo.CSEXSW_Rma
-                .GetAll(a =>
-                     a.Status == RmaRequestStatus.Pending.ToDisplayString() &&
-                     a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString()
-                ).OrderByDescending(a => a.Date);
-
-#else
-            var info = _contenedorTrabajo.CSEXSW_Rma
-                .GetAll(a =>
-                     a.Status == RmaRequestStatus.Pending.ToDisplayString() &&
-                     a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString() &&
-                     a.res_id_approver == userId
-                ).OrderByDescending(a => a.Date);
-#endif
+            List<CSEXSW_Rma> info = [];
+            if (_bypassApprovalModule.Users.Any(u => u.Equals(usuario, StringComparison.OrdinalIgnoreCase)))
+            {
+                info.AddRange(_contenedorTrabajo.CSEXSW_Rma
+                   .GetAll(a =>
+                        a.Status == RmaRequestStatus.Pending.ToDisplayString() &&
+                        a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString()
+                   ).OrderByDescending(a => a.Date));
+            }
+            else
+            {
+                info.AddRange(_contenedorTrabajo.CSEXSW_Rma
+                   .GetAll(a =>
+                        a.Status == RmaRequestStatus.Pending.ToDisplayString() &&
+                        a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString() &&
+                        a.res_id_approver == userId
+                   ).OrderByDescending(a => a.Date));
+            }
 
             return Json(new { data = info });
 
