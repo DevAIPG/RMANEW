@@ -1486,14 +1486,21 @@ namespace Amphenol.RMA.AccesoDatos.Data
             return ApproveRma(rma, currentDate);
         }
 
-        private static void AddComment(CSEXSW_Rma rma, DateTime currentDate, CommentAction action, string comment)
+        private void AddComment(CSEXSW_Rma rma, DateTime currentDate, CommentAction action, string comment)
         {
-            var newComment =
-               $" • {rma.Approver} [{action}] {currentDate:MM/dd/yyyy h:mm tt}{Environment.NewLine}-{comment.Trim()}";
+            var approverName = _db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver)?.fullname ?? "";
 
-            rma.Comment = string.IsNullOrWhiteSpace(rma.Comment)
-                ? newComment
-                : $"{rma.Comment}{Environment.NewLine}{Environment.NewLine}{newComment}";
+            if (!string.IsNullOrWhiteSpace(comment))
+            {
+
+                var newComment =
+                   $" • {approverName} [{action}] {currentDate:MM/dd/yyyy hh:mm tt}{Environment.NewLine}-{comment.Trim()}";
+
+                rma.Comment = string.IsNullOrWhiteSpace(rma.Comment)
+                    ? newComment
+                    : $"{rma.Comment}{Environment.NewLine}{Environment.NewLine}{newComment}";
+            }
+
         }
 
         private double GetRmaExchangeRate(CSEXSW_Rma rma)
