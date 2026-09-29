@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 
 namespace Amphenol.RMA.AccesoDatos.Data
 {
-    public class DbContext100 : DbContext
+    public class DbContext500 : DbContext
     {
 
-        public DbContext100(DbContextOptions<DbContext100> options) : base(options)
+        public DbContext500(DbContextOptions<DbContext500> options) : base(options)
         {
 
         }

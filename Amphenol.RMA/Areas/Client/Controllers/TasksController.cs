@@ -16,7 +16,7 @@ namespace Amphenol.RMA.Controllers
         private readonly IContenedorTrabajo _contenedorTrabajo;
         private readonly DbContextM10 _context;
         private readonly IConfiguration _configuration;
-        public TasksController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, IWebHostEnvironment hostingEnvironmen, DbContextM10 context, DbContext100 context2)
+        public TasksController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, IWebHostEnvironment hostingEnvironmen, DbContextM10 context, DbContext500 context2)
         {
             _contenedorTrabajo = contenedorTrabajo;
             _context = context;

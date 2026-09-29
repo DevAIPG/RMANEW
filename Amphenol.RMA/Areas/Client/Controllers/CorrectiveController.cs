@@ -29,12 +29,12 @@ namespace Amphenol.RMA.Controllers
         private readonly IContenedorTrabajo _contenedorTrabajo;
         private readonly StoreProcedures _storeProcedures;
 
-        private readonly DbContext100 _context2;
+        private readonly DbContext500 _context2;
 
         private readonly DbContextM10 dbContext;
 
 
-        public CorrectiveController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContext100 context2, DbContextM10 dbContext, StoreProcedures storeProcedures)
+        public CorrectiveController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContext500 context2, DbContextM10 dbContext, StoreProcedures storeProcedures)
         {
 
             _configuration = configuration;
@@ -219,7 +219,7 @@ namespace Amphenol.RMA.Controllers
         public IActionResult GetAllInv2(string cus_no)
         {
             ArrayList objs = new ArrayList();
-            string connectionString = _configuration.GetConnectionString("Connection100").ToString();
+            string connectionString = _configuration.GetConnectionString("Connection500").ToString();
             var values = new List<Dictionary<string, object>>();
             using (SqlConnection cn = new SqlConnection(connectionString))
             {
@@ -255,7 +255,7 @@ namespace Amphenol.RMA.Controllers
         {
             cus_no = cus_no.Trim();
             ArrayList objs = new ArrayList();
-            string connectionString = ConnectionM10.Connection100;
+            string connectionString = _configuration.GetConnectionString("Connection500").ToString();
             var values = new List<Dictionary<string, object>>();
             using (SqlConnection cn = new SqlConnection(connectionString))
             {
@@ -325,7 +325,7 @@ namespace Amphenol.RMA.Controllers
             }
 
             ArrayList objs = new ArrayList();
-            string connectionString = _configuration.GetConnectionString("Connection100").ToString();
+            string connectionString = _configuration.GetConnectionString("Connection500").ToString();
             var values = new List<Dictionary<string, object>>();
             using (SqlConnection cn = new SqlConnection(connectionString))
             {

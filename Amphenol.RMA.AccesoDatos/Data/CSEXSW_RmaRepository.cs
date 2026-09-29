@@ -28,7 +28,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
     {
         private readonly string _systemId = "-4";
         private readonly DbContextM10 _db;
-        private readonly DbContext100 _db2;
+        private readonly DbContext500 _db2;
         private Approver _autoApprover = new()
         {
             Id = -4,
@@ -37,7 +37,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
         private const double TwoStepAuthorizationThreshold = 20_000;
         private readonly IConfiguration _configuration;
 
-        public CSEXSW_RmaRepository(DbContextM10 db, DbContext100 db2, IConfiguration configuration) : base(db)
+        public CSEXSW_RmaRepository(DbContextM10 db, DbContext500 db2, IConfiguration configuration) : base(db)
         {
             _db = db;
             _db2 = db2;

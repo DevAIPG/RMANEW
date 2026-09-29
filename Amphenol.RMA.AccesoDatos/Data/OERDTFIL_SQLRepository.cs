@@ -18,11 +18,11 @@ namespace Amphenol.RMA.AccesoDatos.Data
 {
     public class OERDTFIL_SQLRepository : Repository<OERDTFIL_SQL>, IOERDTFIL_SQLRepository
     {
-        private readonly DbContext100 _db;
+        private readonly DbContext500 _db;
         private readonly DbContextM10 _db3;
         private readonly IConfiguration _configuration;
 
-        public OERDTFIL_SQLRepository(DbContext100 db, DbContextM10 db3, IConfiguration configuration) : base(db)
+        public OERDTFIL_SQLRepository(DbContext500 db, DbContextM10 db3, IConfiguration configuration) : base(db)
         {
             _db = db;
             _db3 = db3;

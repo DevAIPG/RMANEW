@@ -58,8 +58,8 @@ namespace Amphenol.RMA
                 }));
             services.AddHangfireServer();
 
-            services.AddDbContext<DbContext100>(options =>
-                 options.UseSqlServer(Configuration.GetConnectionString("Connection100")));
+            services.AddDbContext<DbContext500>(options =>
+                 options.UseSqlServer(Configuration.GetConnectionString("Connection500")));
             services.AddDbContext<DbContextM10>(builder => builder
                .UseSqlServer(Configuration.GetConnectionString("ConnectionM10")));
             services.AddControllersWithViews();

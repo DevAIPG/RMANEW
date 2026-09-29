@@ -41,8 +41,8 @@ namespace Amphenol.RMA.Services.Reports
             }
 
             string connectionString =
-                _configuration.GetConnectionString("Connection100")
-                ?? throw new InvalidOperationException("Connection string 'Connection100' was not found.");
+                _configuration.GetConnectionString("Connection500")
+                ?? throw new InvalidOperationException("Connection string 'Connection500' was not found.");
 
             byte[] reportTemplate =
                 await File.ReadAllBytesAsync(reportPath);

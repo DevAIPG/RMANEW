@@ -22,9 +22,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
     public class DibujoRepository : Repository<csexsw_dibujo>, IDibujoRepository
     {
         private readonly DbContextM10 _db;
-        private readonly DbContext100 _db100;
+        private readonly DbContext500 _db100;
         private readonly IConfiguration _configuration;
-        public DibujoRepository(DbContextM10 db, DbContext100 db100, IConfiguration configuration) : base(db)
+        public DibujoRepository(DbContextM10 db, DbContext500 db100, IConfiguration configuration) : base(db)
         {
             _db = db;
             _db100 = db100;

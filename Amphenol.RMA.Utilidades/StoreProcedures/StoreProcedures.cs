@@ -12,10 +12,10 @@ namespace Amphenol.RMA.Utilidades
 {
     public class StoreProcedures
     {
-        private readonly string _m10ConnectionString;
+        private readonly string _500ConnectionString;
         public StoreProcedures(IConfiguration configuration)
         {
-            _m10ConnectionString = configuration.GetConnectionString("Connection100").ToString();
+            _500ConnectionString = configuration.GetConnectionString("Connection500").ToString();
         }
         #region CheckLists W/O Inspection
         public static string AddCheckListBody(string question, string username, int fkheader)
@@ -104,7 +104,7 @@ namespace Amphenol.RMA.Utilidades
         {
 
             var ships = new List<ShipViewModel>();
-            using (var conn = new SqlConnection(_m10ConnectionString))
+            using (var conn = new SqlConnection(_500ConnectionString))
             {
                 conn.Open();
                 using (var cmd = new SqlCommand("CS_SHIPS_BY_CUSTOMER", conn))
@@ -136,7 +136,7 @@ namespace Amphenol.RMA.Utilidades
         public  List<SquenceViewModel> GetSecuencias(string factura)
         {
             List<SquenceViewModel> secuencias = new List<SquenceViewModel>();
-            using (var conn = new SqlConnection(_m10ConnectionString))
+            using (var conn = new SqlConnection(_500ConnectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -172,7 +172,7 @@ namespace Amphenol.RMA.Utilidades
         public  List<ItemVM> GetItems()
         {
             List<ItemVM> items = new List<ItemVM>();
-            using (SqlConnection con = new SqlConnection(_m10ConnectionString))
+            using (SqlConnection con = new SqlConnection(_500ConnectionString))
             {
                 con.Open();
                 using (SqlCommand cmd = con.CreateCommand())

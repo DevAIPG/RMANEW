@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Amphenol.RMA.AccesoDatos.Migrations.SqlServerMigrations100
 {
-    [DbContext(typeof(DbContext100))]
+    [DbContext(typeof(DbContext500))]
     partial class DbContext100ModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

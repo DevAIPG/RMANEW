@@ -7,10 +7,10 @@ namespace Amphenol.RMA.AccesoDatos.Data
     {
 
         private readonly DbContextM10 _dbm10;
-        private readonly DbContext100 _db100;
+        private readonly DbContext500 _db100;
 
         private readonly IConfiguration _configuration;
-        public ContenedorTrabajo(IConfiguration configuration, DbContextM10 dbm10, DbContext100 db100)
+        public ContenedorTrabajo(IConfiguration configuration, DbContextM10 dbm10, DbContext500 db100)
         {
             _configuration = configuration;
 

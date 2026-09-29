@@ -74,6 +74,7 @@
 <!-- Modal -->
 <div class="modal fade bd-example-modal-lg" id="Aprobar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <form id="frmaprobar" method="post" asp-action="Aprobar">
+        @Html.AntiForgeryToken()
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -104,6 +105,7 @@
 <!-- Modal -->
 <div class="modal fade bd-example-modal-lg" id="Rechazar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <form id="frmrechazo" method="post" asp-action="Desaprobar">
+        @Html.AntiForgeryToken()
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -116,7 +118,7 @@
 
                     <div class="form-group row m-1">
                         <label for="commentt">Comments</label>
-                        <textarea name="comment" id="comment" class="form-control" rows="7">     </textarea>
+                        <textarea name="comment" id="comment" class="form-control" rows="7"></textarea>
                         <input type="hidden" name="ids" id="ids" />
                     </div>
 
