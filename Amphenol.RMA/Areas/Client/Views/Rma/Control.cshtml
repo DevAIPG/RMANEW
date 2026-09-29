@@ -62,7 +62,7 @@
     </div>
 </div>
 <!--view -->
-<div class="modal fade" id="meditrma" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+<div class="modal fade" id="viewRmaModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content">
             @* <partial name="RmaDetailsModalView" /> *@
@@ -70,238 +70,7 @@
     </div>
 </div>
 
-<!--part numbers-->
-<div id="mPN" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title lol" id="exampleModalLabel">Part numbers</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group row">
-                    <table id="tblPN" class="table table-striped table-bordered w-100" style="width:100%;">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>ITEM NO</th>
-                                <th>ITEM DESCRIPTION</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                    <div id="paginationPN"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-<!--sequences-->
-<div class="modal fade" id="mseq" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-        <div class="modal-content ">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLongTitle">Invoice No</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped w-100" id="tblseq">
-                        <thead>
-                            <tr>
-                                <th>Seq No</th>
-                                <th>Orden type</th>
-                                <th>Orden No</th>
-                                <th>Item No</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- invoices -->
-<div class="modal fade" id="minvoices" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-        <div class="modal-content ">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLongTitle">Invoice No</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped w-100" id="tblinvoices">
-                        <thead>
-                            <tr>
-                                <th>Invoice #</th>
-                                <th>Order #</th>
-                                <th>Customer #</th>
-                                <th>Order Type</th>
-                                <th>ord_dt</th>
-                                <th>cusAltAdrCd</th>
-                                <th>currTrxRt</th>
-                                <th>currCd</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Modal -->
-<div class="modal fade" id="documents" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title lol" id="exampleModalLabel">Attachmements</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group row">
-                    <table id="tblStandar" class="table table-striped table-bordered" style="width:100%;">
-                        <thead>
-                            <tr>
-                                <th>Documents name</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Modal -->
-<div class="modal fade bd-example-modal-lg" id="Comment" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group row">
-                    <div class="menu_nosotros">
-                        <nav>
-                            <a href="#D1">Description of requested change</a>
-                            <a href="#D2">Benefits as a Result of the Changes</a>
-                            <a href="#D3">Actual changes to be made</a>
-                        </nav>
-                    </div>
-                </div>
-                <div id="D3" class="ocultar">
-                </div>
-                <div id="D2" class="ocultar">
-                </div>
-                <div id="D1" class="ocultar">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Modal -->
-<div id="lineas" class="modal fade bd-example-modal-lg my-controller" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title lol" id="exampleModalLabel">Lines</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
-                <table id="tbllineas" class="table table-striped table-bordered table-hover responsive" style="width:100%;">
-                    <thead>
-                        <tr>
-                            <th>Invoice Num.</th>
-                            <th>Seq No.</th>
-                            <th>Part Number</th>
-                            <th>Authorized Qty</th>
-                            <th>Price</th>
-                            <th>Unit Cost</th>
-                            <th>Action</th>
-                            <th>Return</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Modal -->
-<div class="modal fade" id="documents" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title lol" id="exampleModalLabel">Attachments</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
 
-                <div class="form-group row">
-
-
-                    <table id="tblStandar" class="table table-striped table-bordered" style="width:100%;">
-                        <thead>
-                            <tr>
-
-                                <th>Documen name</th>
-                                <th></th>
-
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                        </tbody>
-
-
-                    </table>
-                </div>
-
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 <!-- Modal -->
 <div class="modal fade bd-example-modal-lg" id="Aprobar" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <form id="frmaprobar" method="post" asp-action="Aprobar">
@@ -361,6 +130,7 @@
         </div>
     </form>
 </div>
+
 <!-- Modal -->
 <div class="modal fade bd-example-modal-lg" id="RemarkModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <form method="post" asp-action="Remark">
@@ -369,11 +139,8 @@
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel">Remark Comments</h5>
                     <div class="d-flex">
-                        <button type="button" class="btn btn-secondary" onclick="$('#tblQm').modal('hide');" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" onclick="$('#RemarkModal').modal('hide');" data-dismiss="modal">Close</button>
                     </div>
-                    @*<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>*@
                 </div>
                 <div class="modal-body">
                     <div class="form-group row">
@@ -391,24 +158,6 @@
             </div>
         </div>
     </form>
-</div>
-<!--customarcomplain-->
-<div class="modal fade bd-example-modal-lg" id="Customer_complaint" tabindex="-1" aria-labelledby="customerComplaintTitle" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="customerComplaintTitle">Customer Complaint</h5>
-                <div class="d-flex">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div id="Customer_complaintcontrol"
-                     class="border rounded p-2 bg-light">
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
