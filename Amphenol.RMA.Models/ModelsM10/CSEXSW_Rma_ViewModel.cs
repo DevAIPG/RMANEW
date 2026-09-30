@@ -15,6 +15,7 @@ namespace Amphenol.RMA.Models.ModelsM10
         public int parts { get; set; }
         public string Rmarequest { get; set; }
         public string Date { get; set; }
+        public string CustomerName { get; set; }
         public string Customerpartno { get; set; }
         public string Customerpo { get; set; }
         public string Customercomplait { get; set; }

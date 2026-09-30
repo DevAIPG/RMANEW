@@ -255,6 +255,10 @@ function cargarDatatableRma() {
                     },
                     {
                         "width": "200px",
+                        "data": "customerName"
+                    },
+                    {
+                        "width": "200px",
                         "data": "customerpartno"
                     },
                     {

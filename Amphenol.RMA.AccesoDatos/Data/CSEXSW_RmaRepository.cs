@@ -116,60 +116,74 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     cn.Open();
 
                     string query = @"
-                    SELECT
-                        ISNULL(c.qty, 0) AS qty,
-                        ISNULL(c.parts, 0) AS parts,
-                        r.Id,
-                        r.Rmarequest,
-                        r.Date,
-                        COALESCE(customerParts.CoustumerList, r.Customerpartno) AS Customerpartno,
-                        r.Customerpo,
-                        r.Customercomplait,
-                        r.Description,
-                        r.Rmatypeofrequest,
-                        r.Totalrmavalues,
-                        r.Wherebuilt,
-                        r.Preparado,
-                        r.Sumbit,
-                        r.Status,
-                        r.turno,
-                        r.Approver,
-                        r.res_id,
-                        CONVERT(VARCHAR(10), r.date_approved, 101)
-                            AS formated_date_approved
-                    FROM CSEXSW_Rma AS r WITH (NOLOCK)
-                    LEFT JOIN
-                    (
-                        SELECT
-                            RmaId,
-                            SUM(ISNULL(Qty, 0)) AS qty,
-                            COUNT(DISTINCT Coustumer) AS parts
-                        FROM csexsw_coustumer WITH (NOLOCK)
-                        GROUP BY RmaId
-                    ) AS c
-                        ON r.Id = c.RmaId
-                    OUTER APPLY
-                    (
-                        SELECT STUFF
+                        ;WITH PerCustomer AS
                         (
-                            (
-                                SELECT '; ' + d.Coustumer
-                                FROM
+                            SELECT
+                                cc.RmaId,
+                                cc.Coustumer,
+                                SUM(ISNULL(cc.Qty, 0)) AS qty
+                            FROM dbo.csexsw_coustumer AS cc
+                            GROUP BY
+                                cc.RmaId,
+                                cc.Coustumer
+                        ),
+                        CustomerSummary AS
+                        (
+                            SELECT
+                                pc.RmaId,
+                                SUM(pc.qty) AS qty,
+                                COUNT(pc.Coustumer) AS parts
+                            FROM PerCustomer AS pc
+                            GROUP BY pc.RmaId
+                        )
+                        SELECT
+                            ISNULL(cs.qty, 0) AS qty,
+                            ISNULL(cs.parts, 0) AS parts,
+                            r.Id,
+                            r.Rmarequest,
+                            r.[Date],
+                            d.cus_name,
+                            COALESCE(customerParts.CustomerList, r.Customerpartno)
+                                AS Customerpartno,
+                            r.Customerpo,
+                            r.Customercomplait,
+                            r.[Description],
+                            r.Rmatypeofrequest,
+                            r.Totalrmavalues,
+                            r.Wherebuilt,
+                            r.Preparado,
+                            r.Sumbit,
+                            r.[Status],
+                            r.turno,
+                            r.Approver,
+                            r.res_id,
+                            CONVERT(char(10), r.date_approved, 101)
+                                AS formatted_date_approved
+                        FROM dbo.CSEXSW_Rma AS r
+                        LEFT JOIN CustomerSummary AS cs
+                            ON cs.RmaId = r.Id
+                        OUTER APPLY
+                        (
+                            SELECT
+                                STUFF
                                 (
-                                    SELECT DISTINCT cc.Coustumer
-                                    FROM csexsw_coustumer AS cc WITH (NOLOCK)
-                                    WHERE cc.RmaId = r.Id
-                                      AND cc.Coustumer IS NOT NULL
-                                ) AS d
-                                ORDER BY d.Coustumer
-                                FOR XML PATH(''), TYPE
-                            ).value('.', 'nvarchar(max)'),
-                            1,
-                            1,
-                            ''
-                        ) AS CoustumerList
-                    ) AS customerParts
-                    ORDER BY r.Rmarequest DESC;";
+                                    (
+                                        SELECT
+                                            N'; ' + pc2.Coustumer
+                                        FROM PerCustomer AS pc2
+                                        WHERE pc2.RmaId = r.Id
+                                          AND pc2.Coustumer IS NOT NULL
+                                        ORDER BY pc2.Coustumer
+                                        FOR XML PATH(''), TYPE
+                                    ).value('.', 'nvarchar(max)'),
+                                    1,
+                                    2,
+                                    N''
+                                ) AS CustomerList
+                        ) AS customerParts
+                        INNER JOIN [500].[dbo].[arcusfil_sql] AS d
+                            ON LTRIM(RTRIM(d.cus_no)) = r.Customer
+                        ORDER BY r.Rmarequest DESC;";
 
                     using SqlCommand cmd = new(query, cn);
                     using SqlDataReader rdr = cmd.ExecuteReader();
@@ -183,14 +197,13 @@ namespace Amphenol.RMA.AccesoDatos.Data
                             parts = Convert.ToInt32(rdr["parts"]),
                             Rmarequest = rdr["Rmarequest"]?.ToString(),
                             Date = rdr["Date"]?.ToString(),
+                            CustomerName = rdr["cus_name"].ToString(),
                             Customerpartno = rdr["Customerpartno"]?.ToString(),
                             Customerpo = rdr["Customerpo"]?.ToString(),
                             Customercomplait = rdr["Customercomplait"]?.ToString(),
                             Description = rdr["Description"]?.ToString(),
                             Rmatypeofrequest = rdr["Rmatypeofrequest"]?.ToString(),
-                            Totalrmavalues = rdr["Totalrmavalues"] == DBNull.Value
-                                ? 0
-                                : Convert.ToDouble(rdr["Totalrmavalues"]),
+                            Totalrmavalues = rdr["Totalrmavalues"] == DBNull.Value ? 0 : Convert.ToDouble(rdr["Totalrmavalues"]),
                             Wherebuilt = rdr["Wherebuilt"]?.ToString(),
                             Preparado = rdr["Preparado"]?.ToString(),
                             Sumbit = rdr["Sumbit"]?.ToString(),
@@ -200,7 +213,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                             res_id = rdr["res_id"] == DBNull.Value
                                 ? 0
                                 : Convert.ToInt32(rdr["res_id"]),
-                            formated_date_approved = rdr["formated_date_approved"]?.ToString()
+                            formated_date_approved = rdr["formatted_date_approved"]?.ToString()
                         });
                     }
                 }
