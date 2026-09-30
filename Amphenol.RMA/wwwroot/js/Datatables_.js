@@ -79,7 +79,8 @@ function cargarDatatableRma() {
                         className: 'btn btn-success btn-sm',
                         title: 'RMA Requests',
                         exportOptions: {
-                            columns: ':not(:first-child)'
+                            columns: ':not(:first-child)',
+                            modifier: { search: 'applied', page: 'all', selected: null }
                         }
                     },
                     {
@@ -90,7 +91,8 @@ function cargarDatatableRma() {
                         orientation: 'landscape',
                         pageSize: 'A4',
                         exportOptions: {
-                            columns: ':not(:first-child)'
+                            columns: ':not(:first-child)',
+                            modifier: { search: 'applied', page: 'all', selected: null }
                         },
                         customize: function (doc) {
                             doc.pageMargins = [20, 20, 20, 20];
