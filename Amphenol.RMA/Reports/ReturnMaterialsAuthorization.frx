@@ -177,8 +177,16 @@ namespace FastReport
         </ChildBand>
       </ChildBand>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="410.4" Width="718.2" Height="18.9">
+    <PageFooterBand Name="PageFooter1" Top="410.4" Width="718.2" Height="144">
       <LineObject Name="Line4" Top="9.6" Width="720" Border.Color="227, 238, 240" Border.Width="3"/>
+      <ShapeObject Name="ReturnTermsBackground" Top="19.2" Width="718.2" Height="19.2" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
+      <TextObject Name="ReturnTermsTitle" Left="9.6" Top="19.2" Width="699" Height="19.2" Text="RMA Return Instructions &amp; Warranty Conditions" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
+      <TextObject Name="ReturnTermsVisit" Left="9.6" Top="38.4" Width="28.8" Height="19.2" Text="( visit" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="ReturnTermsLink" Left="38.4" Top="38.4" Width="240" Height="19.2" Text="https://amphenol-industrial.com/terms-conditions/" VertAlign="Center" WordWrap="false" Font="Arial, 7pt, style=Underline" TextFill.Color="Blue" Hyperlink.Kind="URL" Hyperlink.Value="https://amphenol-industrial.com/terms-conditions/"/>
+      <TextObject Name="ReturnTermsVisitEnd" Left="278.4" Top="38.4" Width="19.2" Height="19.2" Text=")" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="ReturnTermsPackaging" Left="9.6" Top="57.6" Width="699" Height="38.4" Text="• &lt;b&gt;Proper Packaging:&lt;/b&gt; You must package the items in their &lt;b&gt;original shipping cartons&lt;/b&gt; or a functional equivalent. You bear the risk of loss or damage during transit, so we highly recommend insuring the shipment." Font="Arial, 7pt" TextRenderType="HtmlTags"/>
+      <TextObject Name="ReturnTermsWindow" Left="9.6" Top="96" Width="699" Height="19.2" Text="• &lt;b&gt;Return Window:&lt;/b&gt; Items must be shipped to us within &lt;b&gt;30 days&lt;/b&gt; of your initial defect notification." Font="Arial, 7pt" TextRenderType="HtmlTags"/>
+      <TextObject Name="ReturnTermsExclusions" Left="9.6" Top="115.2" Width="699" Height="19.2" Text="• &lt;b&gt;Exclusions:&lt;/b&gt; The warranty is void if the product failure was caused by the use of non-Amphenol components." Font="Arial, 7pt" TextRenderType="HtmlTags"/>
     </PageFooterBand>
   </ReportPage>
   <ReportPage Name="Company" PaperWidth="101.6" PaperHeight="25.4" LeftMargin="0" TopMargin="0" RightMargin="0" BottomMargin="0" Guides="384,0" Watermark.Font="Arial, 60pt" TitleBeforeHeader="false">

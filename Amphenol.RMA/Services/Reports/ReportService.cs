@@ -3,6 +3,7 @@ using FastReport;
 using FastReport.Data;
 using FastReport.Export.PdfSimple;
 using FastReport.Utils;
+using iTextSharp.text.pdf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Office.Interop.Excel;
 using System;
@@ -86,9 +87,46 @@ namespace Amphenol.RMA.Services.Reports
             return new ReportDownloadDto
             {
                 ContentType = PdfContentType,
-                Data = output.ToArray(),
+                Data = AddReturnTermsLinks(report, output.ToArray()),
                 FileName = $"RMA_{rma}.pdf"
             };
+        }
+
+        private static byte[] AddReturnTermsLinks(Report report, byte[] pdf)
+        {
+            // PDFSimpleExport draws each page as an image, so template hyperlinks
+            // need PDF annotations to remain clickable in the downloaded file.
+            using var reader = new PdfReader(pdf);
+            using var output = new MemoryStream();
+            using (var stamper = new PdfStamper(reader, output))
+            {
+                for (int pageIndex = 0; pageIndex < report.PreparedPages.Count; pageIndex++)
+                {
+                    using var page = report.PreparedPages.GetPage(pageIndex);
+                    var link = page.AllObjects.OfType<TextObject>()
+                        .FirstOrDefault(item => item.Name == "ReturnTermsLink");
+
+                    if (link == null || string.IsNullOrWhiteSpace(link.Hyperlink.Value))
+                        continue;
+
+                    // FastReport uses pixels (96/inch), relative to the page margins.
+                    // PDF uses points (72/inch) with its origin at the bottom left.
+                    const float pointsPerPixel = 72f / 96f;
+                    float left = (page.LeftMargin * Units.Millimeters + link.AbsLeft) * pointsPerPixel;
+                    float top = reader.GetPageSize(pageIndex + 1).Height
+                        - (page.TopMargin * Units.Millimeters + link.AbsTop) * pointsPerPixel;
+                    var bounds = new iTextSharp.text.Rectangle(
+                        left, top - link.Height * pointsPerPixel,
+                        left + link.Width * pointsPerPixel, top);
+
+                    var annotation = PdfAnnotation.CreateLink(stamper.Writer, bounds,
+                        PdfAnnotation.HIGHLIGHT_INVERT, new PdfAction(link.Hyperlink.Value));
+                    annotation.Border = new PdfBorderArray(0, 0, 0);
+                    stamper.AddAnnotation(annotation, pageIndex + 1);
+                }
+            }
+
+            return output.ToArray();
         }
     }
 }
