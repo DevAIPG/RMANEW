@@ -53,11 +53,18 @@
     $('#GeneratedRmaTable').on('init.dt.rmaFilters', function (event, settings) {
         if (settings.nTable !== this) return;
         table = new $.fn.dataTable.Api(settings);
+        $('#rmaFilterToggle').insertAfter(table.buttons().container());
         var rows = table.rows().data().toArray();
         populateOptions('rmaApprover', 'approver', rows);
         populateOptions('rmaRequestType', 'rmatypeofrequest', rows);
         table.search.fixed('rmaFilters', matchesRow);
         table.draw();
+    });
+
+    $('#GeneratedRmaTable').on('destroy.dt.rmaFilters', function (event, settings) {
+        if (settings.nTable !== this) return;
+        // Preserve the button and its handler when the table is rebuilt.
+        $('#rmaFilterToggle').appendTo('#rmaFilterButtonHost');
     });
 
     $('#rmaFilterToggle').on('click', function () {
