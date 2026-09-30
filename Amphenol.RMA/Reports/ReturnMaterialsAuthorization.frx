@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="08/20/2026 19:06:17" ReportInfo.Modified="08/27/2026 14:11:49" ReportInfo.CreatorVersion="2022.3.11.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="08/20/2026 19:06:17" ReportInfo.Modified="09/30/2026 17:16:09" ReportInfo.CreatorVersion="2022.3.11.0">
   <ScriptText>using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,7 +45,7 @@ namespace FastReport
 }
 </ScriptText>
   <Dictionary>
-    <MsSqlDataConnection Name="MacolaConnection" ConnectionString="rijcmlqrPNqCqb8Ip3feUjqqdl2DhMaKpBUkHW8zrb4OBwdGcylHl6Pzlj5bxSi6KEJM1vdbanfngpV4tA+CxIrN4vb5IqLpRQG2oVGfhay5+7ZeJjfme5ZVSFi9F4MJcq1jfLNcIn3+qT9yfiT5g70h21jgS1RCM+tegwFaHYECOHe9IcjRAVrl2kswrl5ApzwQxD8">
+    <MsSqlDataConnection Name="MacolaConnection" ConnectionString="rijcmlqrPNqCqb8Ip3feUjqqdl2DhMaKpBUkHW8zrb4OBwdGcylHl6Pzlj5bxSi6KEJM1vdbanfngpV4tA+CxIrN4vb5IqLpRQG2oVGfhay5+7ZeJjfme5ZVSFi9F4MJcq1jfLNcIn3+qT9yfiT5g70h21jgS1RCM+tegwFaHYECOHe9IfC7dQamBvuAbtkn6Y5JjpF">
       <TableDataSource Name="Table" Alias="HeaderSection" DataType="System.Int32" Enabled="true" SelectCommand="WITH RmaInformation AS (&#13;&#10;	SELECT&#13;&#10;		A.rma_no,&#13;&#10;		A.rma_dt_entered,&#13;&#10;		A.bill_to_name,&#13;&#10;		ISNULL(A.bill_to_addr_1,'') AS bill_to_addr_1,&#13;&#10;		A.bill_to_addr_2,&#13;&#10;		A.bill_to_addr_3,&#13;&#10;		A.bill_to_addr_4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.bill_to_Country))&lt;&gt; 'US' THEN  B.oms60_0 ELSE RTRIM(LTRIM(A.bill_to_Country)) END AS bill_to_Country,&#13;&#10;		A.ship_to_name,&#13;&#10;		ISNULL(A.ship_to_addr_1,'') AS ship_to_addr_1,&#13;&#10;		A.ship_to_addr_2,&#13;&#10;		A.ship_to_addr_3,&#13;&#10;		A.ship_to_addr_4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.ship_to_country))&lt;&gt; 'US' THEN  C.oms60_0 ELSE RTRIM(LTRIM(A.ship_to_country)) END AS ship_to_country,&#13;&#10;		A.cus_no,&#13;&#10;		A.contact,&#13;&#10;		A.slspsn_no AS sales_rep,&#13;&#10;		D.code_desc AS ship_via,&#13;&#10;		ISNULL(A.job_no,'') AS job_no,&#13;&#10;		A.exp_rec_date,&#13;&#10;		A.rma_cmt AS comment,&#13;&#10;		ISNULL(A.ship_instruction_1,'') AS ship_instruction_1,&#13;&#10;		ISNULL(A.ship_instruction_2,'') AS ship_instruction_2&#13;&#10;	FROM oerhdfil_sql AS A&#13;&#10;	INNER JOIN land AS B ON B.landcode = A.bill_to_Country&#13;&#10;	INNER JOIN land AS C on C.landcode = A.ship_to_country	&#10;	LEFT JOIN sycdefil_sql AS D ON D.sy_code = A.ship_via_cd&#13;&#10;	WHERE RTRIM(LTRIM(A.rma_no)) = @rma_no&#13;&#10;),&#13;&#10;CompanyInformation AS (&#13;&#10;	SELECT&#13;&#10;		bedrnm AS CompanyName,&#13;&#10;		adr AS AddressLine1,&#13;&#10;		adres2 AS AddressLine2,&#13;&#10;		adres3 AS AddressLine3,&#13;&#10;		CONCAT(RTRIM(LTRIM(woonpl)),', ',RTRIM(LTRIM(region)), ' ',RTRIM(LTRIM(pstcd)),' ',RTRIM(LTRIM(A.landcode))) AS AddressLine4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.landcode))&lt;&gt; 'US' THEN  B.oms60_0 ELSE RTRIM(LTRIM(A.landcode)) END AS Country,&#13;&#10;		telnr AS  PhoneNumber,&#13;&#10;		faxnr AS FaxNumber&#13;&#10;	FROM bedryf AS A&#13;&#10;	INNER JOIN land AS B ON B.landcode = A.landcode&#13;&#10;)&#13;&#10;SELECT&#13;&#10;*&#13;&#10;FROM CompanyInformation,RmaInformation">
         <Column Name="CompanyName" DataType="System.String"/>
         <Column Name="AddressLine1" DataType="System.String"/>
@@ -177,16 +177,14 @@ namespace FastReport
         </ChildBand>
       </ChildBand>
     </DataBand>
-    <PageFooterBand Name="PageFooter1" Top="410.4" Width="718.2" Height="144">
+    <PageFooterBand Name="PageFooter1" Top="410.4" Width="718.2" Height="115.2">
       <LineObject Name="Line4" Top="9.6" Width="720" Border.Color="227, 238, 240" Border.Width="3"/>
       <ShapeObject Name="ReturnTermsBackground" Top="19.2" Width="718.2" Height="19.2" Border.Color="Transparent" Border.Width="0" Fill.Color="227, 238, 240"/>
       <TextObject Name="ReturnTermsTitle" Left="9.6" Top="19.2" Width="699" Height="19.2" Text="RMA Return Instructions &amp; Warranty Conditions" VertAlign="Center" Font="Verdana, 7pt, style=Bold"/>
-      <TextObject Name="ReturnTermsVisit" Left="9.6" Top="38.4" Width="28.8" Height="19.2" Text="( visit" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="ReturnTermsLink" Left="38.4" Top="38.4" Width="240" Height="19.2" Text="https://amphenol-industrial.com/terms-conditions/" VertAlign="Center" WordWrap="false" Font="Arial, 7pt, style=Underline" TextFill.Color="Blue" Hyperlink.Kind="URL" Hyperlink.Value="https://amphenol-industrial.com/terms-conditions/"/>
-      <TextObject Name="ReturnTermsVisitEnd" Left="278.4" Top="38.4" Width="19.2" Height="19.2" Text=")" VertAlign="Center" Font="Arial, 7pt"/>
-      <TextObject Name="ReturnTermsPackaging" Left="9.6" Top="57.6" Width="699" Height="38.4" Text="• &lt;b&gt;Proper Packaging:&lt;/b&gt; You must package the items in their &lt;b&gt;original shipping cartons&lt;/b&gt; or a functional equivalent. You bear the risk of loss or damage during transit, so we highly recommend insuring the shipment." Font="Arial, 7pt" TextRenderType="HtmlTags"/>
-      <TextObject Name="ReturnTermsWindow" Left="9.6" Top="96" Width="699" Height="19.2" Text="• &lt;b&gt;Return Window:&lt;/b&gt; Items must be shipped to us within &lt;b&gt;30 days&lt;/b&gt; of your initial defect notification." Font="Arial, 7pt" TextRenderType="HtmlTags"/>
-      <TextObject Name="ReturnTermsExclusions" Left="9.6" Top="115.2" Width="699" Height="19.2" Text="• &lt;b&gt;Exclusions:&lt;/b&gt; The warranty is void if the product failure was caused by the use of non-Amphenol components." Font="Arial, 7pt" TextRenderType="HtmlTags"/>
+      <TextObject Name="ReturnTermsVisit" Left="268.8" Top="19.2" Width="38.4" Height="19.2" Text="( visit" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="ReturnTermsLink" Left="297.6" Top="19.2" Width="240" Height="19.2" Hyperlink.Value="https://amphenol-industrial.com/terms-conditions/" Text="https://amphenol-industrial.com/terms-conditions/" VertAlign="Center" WordWrap="false" Font="Arial, 7pt, style=Underline" TextFill.Color="Blue"/>
+      <TextObject Name="ReturnTermsVisitEnd" Left="508.8" Top="19.2" Width="76.8" Height="19.2" Text=")" VertAlign="Center" Font="Arial, 7pt"/>
+      <TextObject Name="ReturnTermsPackaging" Left="9.6" Top="48" Width="699" Height="67.2" Text="• &lt;b&gt;Proper Packaging:&lt;/b&gt; You must package the items in their &lt;b&gt;original shipping cartons&lt;/b&gt; or a functional equivalent. You bear the risk of loss or damage during transit, so we highly recommend insuring the shipment.&#13;&#10;&#13;&#10;• &lt;b&gt;Return Window:&lt;/b&gt; Items must be shipped to us within &lt;b&gt;30 days&lt;/b&gt; of your initial defect notification.&#13;&#10;&#13;&#10;• &lt;b&gt;Exclusions:&lt;/b&gt; The warranty is void if the product failure was caused by the use of non-Amphenol components." Font="Arial, 7pt" TextRenderType="HtmlTags"/>
     </PageFooterBand>
   </ReportPage>
   <ReportPage Name="Company" PaperWidth="101.6" PaperHeight="25.4" LeftMargin="0" TopMargin="0" RightMargin="0" BottomMargin="0" Guides="384,0" Watermark.Font="Arial, 60pt" TitleBeforeHeader="false">
