@@ -33,6 +33,7 @@
             if (date === null || (filters.from && date < filters.from) || (filters.to && date > filters.to)) return false;
         }
         return (!filters.part || text(row.customerpartno).toLowerCase().includes(filters.part)) &&
+            (!filters.customer || text(row.customerName) === filters.customer) &&
             (!filters.approver || text(row.approver) === filters.approver) &&
             (!filters.type || text(row.rmatypeofrequest) === filters.type);
     }
@@ -55,6 +56,7 @@
         table = new $.fn.dataTable.Api(settings);
         $('#rmaFilterToggle').insertAfter(table.buttons().container());
         var rows = table.rows().data().toArray();
+        populateOptions('rmaCustomerName', 'customerName', rows);
         populateOptions('rmaApprover', 'approver', rows);
         populateOptions('rmaRequestType', 'rmatypeofrequest', rows);
         table.search.fixed('rmaFilters', matchesRow);
@@ -84,11 +86,12 @@
             from: dateKey(from.value),
             to: dateKey(to.value),
             part: text($('#rmaPartNumber').val()).toLowerCase(),
+            customer: $('#rmaCustomerName').val(),
             approver: $('#rmaApprover').val(),
             type: $('#rmaRequestType').val()
         };
         var count = Number(!!(filters.from || filters.to)) + Number(!!filters.part) +
-            Number(!!filters.approver) + Number(!!filters.type);
+            Number(!!filters.customer) + Number(!!filters.approver) + Number(!!filters.type);
         $('#rmaFilterCount').text(count).prop('hidden', count === 0);
         if (table) table.draw();
     }
