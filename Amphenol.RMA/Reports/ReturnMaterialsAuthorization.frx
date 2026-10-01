@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Report ScriptLanguage="CSharp" ReportInfo.Created="08/20/2026 19:06:17" ReportInfo.Modified="09/30/2026 17:16:09" ReportInfo.CreatorVersion="2022.3.11.0">
+<Report ScriptLanguage="CSharp" ReportInfo.Created="08/20/2026 19:06:17" ReportInfo.Modified="10/01/2026 15:39:25" ReportInfo.CreatorVersion="2026.2.0.0">
   <ScriptText>using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,7 +45,7 @@ namespace FastReport
 }
 </ScriptText>
   <Dictionary>
-    <MsSqlDataConnection Name="MacolaConnection" ConnectionString="rijcmlqrPNqCqb8Ip3feUjqqdl2DhMaKpBUkHW8zrb4OBwdGcylHl6Pzlj5bxSi6KEJM1vdbanfngpV4tA+CxIrN4vb5IqLpRQG2oVGfhay5+7ZeJjfme5ZVSFi9F4MJcq1jfLNcIn3+qT9yfiT5g70h21jgS1RCM+tegwFaHYECOHe9IfC7dQamBvuAbtkn6Y5JjpF">
+    <MsSqlDataConnection Name="MacolaConnection" ConnectionString="rijcmlqrPNqCqb8Ip3feUjqqdl2DhMaKpBUkHW8zrb4OBwdGcylHl6Pzlj5bxSi6KEJM1vdbanfngpV4tA+CxIrN4vb5IqLpRQG2oVGfhay5+7ZeJjfme5ZVSFi9F4MJcq1jfLNcIn3+qT9yfiT5g70h21jgS1RCM+tegwFaHYECOHe9IcXuLdzf4j0oK8mTTS3DyWt">
       <TableDataSource Name="Table" Alias="HeaderSection" DataType="System.Int32" Enabled="true" SelectCommand="WITH RmaInformation AS (&#13;&#10;	SELECT&#13;&#10;		A.rma_no,&#13;&#10;		A.rma_dt_entered,&#13;&#10;		A.bill_to_name,&#13;&#10;		ISNULL(A.bill_to_addr_1,'') AS bill_to_addr_1,&#13;&#10;		A.bill_to_addr_2,&#13;&#10;		A.bill_to_addr_3,&#13;&#10;		A.bill_to_addr_4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.bill_to_Country))&lt;&gt; 'US' THEN  B.oms60_0 ELSE RTRIM(LTRIM(A.bill_to_Country)) END AS bill_to_Country,&#13;&#10;		A.ship_to_name,&#13;&#10;		ISNULL(A.ship_to_addr_1,'') AS ship_to_addr_1,&#13;&#10;		A.ship_to_addr_2,&#13;&#10;		A.ship_to_addr_3,&#13;&#10;		A.ship_to_addr_4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.ship_to_country))&lt;&gt; 'US' THEN  C.oms60_0 ELSE RTRIM(LTRIM(A.ship_to_country)) END AS ship_to_country,&#13;&#10;		A.cus_no,&#13;&#10;		A.contact,&#13;&#10;		A.slspsn_no AS sales_rep,&#13;&#10;		D.code_desc AS ship_via,&#13;&#10;		ISNULL(A.job_no,'') AS job_no,&#13;&#10;		A.exp_rec_date,&#13;&#10;		A.rma_cmt AS comment,&#13;&#10;		ISNULL(A.ship_instruction_1,'') AS ship_instruction_1,&#13;&#10;		ISNULL(A.ship_instruction_2,'') AS ship_instruction_2&#13;&#10;	FROM oerhdfil_sql AS A&#13;&#10;	INNER JOIN land AS B ON B.landcode = A.bill_to_Country&#13;&#10;	INNER JOIN land AS C on C.landcode = A.ship_to_country	&#10;	LEFT JOIN sycdefil_sql AS D ON D.sy_code = A.ship_via_cd&#13;&#10;	WHERE RTRIM(LTRIM(A.rma_no)) = @rma_no&#13;&#10;),&#13;&#10;CompanyInformation AS (&#13;&#10;	SELECT&#13;&#10;		bedrnm AS CompanyName,&#13;&#10;		adr AS AddressLine1,&#13;&#10;		adres2 AS AddressLine2,&#13;&#10;		adres3 AS AddressLine3,&#13;&#10;		CONCAT(RTRIM(LTRIM(woonpl)),', ',RTRIM(LTRIM(region)), ' ',RTRIM(LTRIM(pstcd)),' ',RTRIM(LTRIM(A.landcode))) AS AddressLine4,&#13;&#10;		CASE WHEN RTRIM(LTRIM(A.landcode))&lt;&gt; 'US' THEN  B.oms60_0 ELSE RTRIM(LTRIM(A.landcode)) END AS Country,&#13;&#10;		telnr AS  PhoneNumber,&#13;&#10;		faxnr AS FaxNumber&#13;&#10;	FROM bedryf AS A&#13;&#10;	INNER JOIN land AS B ON B.landcode = A.landcode&#13;&#10;)&#13;&#10;SELECT&#13;&#10;*&#13;&#10;FROM CompanyInformation,RmaInformation">
         <Column Name="CompanyName" DataType="System.String"/>
         <Column Name="AddressLine1" DataType="System.String"/>
@@ -84,7 +84,7 @@ namespace FastReport
         <Column Name="cmt" DataType="System.String"/>
         <CommandParameter Name="@rma_no" DataType="22" Expression="[@rma_no]"/>
       </TableDataSource>
-      <TableDataSource Name="Table2" Alias="LineItemSection" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;A.rma_seq_no,&#13;&#10;A.item_no,&#13;&#10;ISNULL(A.item_desc_1,'') AS item_desc_1,&#13;&#10;ISNULL(A.item_desc_2,'') AS item_desc_2,&#13;&#10;A.rma_qty_rtn_auth,&#13;&#10;A.uom,&#13;&#10;B.ord_no,&#13;&#10;A.apply_to_invc_no,&#13;&#10;B.oe_po_no,&#13;&#10;CASE WHEN RTRIM(LTRIM(A.[action])) = '' THEN 'Pending'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'N' THEN 'New Order'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'R' THEN 'Reship'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'C' THEN 'Credit'&#13;&#10;	 ELSE '-' END AS [action]&#13;&#10;FROM oerdtfil_sql AS A&#13;&#10;INNER JOIN oehdrhst_sql AS B ON B.inv_no = A.apply_to_invc_no&#13;&#10;WHERE RTRIM(LTRIM(A.rma_no)) = @rma_no&#13;&#10;ORDER BY A.rma_seq_no&#13;&#10;">
+      <TableDataSource Name="Table2" Alias="LineItemSection" DataType="System.Int32" Enabled="true" SelectCommand="SELECT &#13;&#10;A.rma_seq_no,&#13;&#10;A.item_no,&#13;&#10;ISNULL(A.item_desc_1,'') AS item_desc_1,&#13;&#10;ISNULL(A.item_desc_2,'') AS item_desc_2,&#13;&#10;A.rma_qty_rtn_auth,&#13;&#10;A.uom,&#13;&#10;B.ord_no,&#13;&#10;A.apply_to_invc_no,&#13;&#10;B.oe_po_no,&#13;&#10;CASE WHEN RTRIM(LTRIM(A.[action])) = '' THEN 'Pending'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'N' THEN 'New Order'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'R' THEN 'Reship'&#13;&#10;	 WHEN RTRIM(LTRIM(A.[action])) = 'C' THEN 'Credit'&#13;&#10;	 ELSE '-' END AS [action]&#13;&#10;FROM oerdtfil_sql AS A&#13;&#10;LEFT JOIN oehdrhst_sql AS B ON B.inv_no = A.apply_to_invc_no&#13;&#10;WHERE RTRIM(LTRIM(A.rma_no)) = @rma_no&#13;&#10;ORDER BY A.rma_seq_no&#13;&#10;">
         <Column Name="rma_seq_no" DataType="System.Int16"/>
         <Column Name="item_no" DataType="System.String"/>
         <Column Name="item_desc_1" DataType="System.String"/>
@@ -103,7 +103,7 @@ namespace FastReport
         <CommandParameter Name="@line_no" DataType="22" Expression="[LineItemSection.rma_seq_no]"/>
       </TableDataSource>
     </MsSqlDataConnection>
-    <Parameter Name="@rma_no" DataType="System.Int32"/>
+    <Parameter Name="@rma_no" DataType="System.Int32" AsString="601770"/>
   </Dictionary>
   <ReportPage Name="Main" Guides="384,0,163.2" Watermark.Font="Arial, 60pt">
     <PageHeaderBand Name="PageHeader1" Width="718.2" Height="38.4">
