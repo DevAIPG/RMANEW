@@ -12,6 +12,10 @@ across app instances. The ERP counter row uses UPDLOCK, HOLDLOCK to serialize
 different requests. Already-approved requests return without another RMA, CAR
 job, or notification. Historical partial assignments require reconciliation.
 First-stage approval still hands off to the GM without creating an ERP RMA.
+Users listed in `ApprovalBypass.Users` can approve a request assigned to someone
+else, including its director stage. The repository verifies that list against
+the employee's M10 `usr_id`; bypass approval still follows the two-stage handoff,
+transaction, and duplicate-approval checks.
 
 The controller runs CAR enqueue, report generation, and approval notifications
 only after Updateaprobar returns Approved. The transaction scope is disposed and
@@ -60,6 +64,11 @@ Set RMA_TEST_ROLLBACK_ID, RMA_TEST_M10_FAILURE_ID,
 RMA_TEST_VALIDATION_FAILURE_ID, and RMA_TEST_CONCURRENT_ID to four distinct
 pending requests below $20,000 with valid approvers, lines, and ERP master data
 (use USD fixtures). Confirm INVALID-TEST-ITEM is absent from ERP item master.
+Also set `RMA_TEST_BYPASS_ID` to another pending USD request below $20,000 and
+`RMA_TEST_BYPASS_DIRECTOR_ID` to a pending USD request at or above $20,000 assigned
+to the quality director. These fixtures must have valid ERP data and employee
+accounts other than their assigned approvers, with nonblank `usr_id` values;
+the director fixture also needs the configured director and GM roles.
 Run:
 
     dotnet test tests/Amphenol.RMA.ApprovalTests/Amphenol.RMA.ApprovalTests.csproj
@@ -69,6 +78,10 @@ The suite checks:
 - A failed M10 save causes no ERP SaveChanges calls and leaves ERP unchanged.
 - An invalid later line prevents writes and counter movement.
 - Concurrent approvals create one RMA and advance the counter once.
+- An unconfigured non-approver is denied; a configured bypass user can approve
+  the request and repeat the action without generating another RMA.
+- A configured bypass user can act at both director and GM stages while retaining
+  the handoff between them.
 
 Tests modify the clones and consume fixtures; restore clones before rerunning.
 Without connection variables, tests are explicitly skipped. They have not been

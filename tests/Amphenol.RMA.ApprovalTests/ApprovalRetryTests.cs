@@ -24,6 +24,59 @@ public sealed class ApprovalSqlFactAttribute : FactAttribute
 public class ApprovalRetryTests
 {
     [ApprovalSqlFact]
+    public void ConfiguredBypassUserCanApproveAnotherUsersRequestWithoutDuplicateApproval()
+    {
+        var id = FixtureId("RMA_TEST_BYPASS_ID");
+        using var m10 = M10();
+        using var erp = Erp();
+        var request = PendingRequest(m10, id);
+        var bypassUser = m10.humres.AsNoTracking().First(x => x.res_id > 0
+            && x.res_id != request.res_id_approver && x.usr_id != null && x.usr_id.Trim() != "");
+        var before = Snapshot(erp);
+
+        // The same account must be denied when it is not on the configured list.
+        Assert.Equal(string.Empty, Repository(m10, erp)
+            .Updateaprobar(id, "Not configured", bypassUser.res_id.ToString()));
+        Assert.Equal(before, Snapshot(erp));
+
+        var repository = BypassRepository(m10, erp, bypassUser.usr_id);
+        Assert.Equal("Approved", repository.Updateaprobar(id, "Bypass approval", bypassUser.res_id.ToString()));
+        AssertCompleted(m10, erp, id);
+        var committed = Snapshot(erp);
+        Assert.Equal("AlreadyApproved", repository.Updateaprobar(id, "Repeated bypass", bypassUser.res_id.ToString()));
+        Assert.Equal(committed, Snapshot(erp));
+    }
+
+    [ApprovalSqlFact]
+    public void ConfiguredBypassUserCanApproveBothStagesWithoutSkippingTheGmHandoff()
+    {
+        var id = FixtureId("RMA_TEST_BYPASS_DIRECTOR_ID");
+        using var m10 = M10();
+        using var erp = Erp();
+        var request = m10.CSEXSW_Rma.Single(x => x.Id == id);
+        var directorId = m10.HRRoles.Single(x => x.RoleID == 100031).EmpID;
+        var generalManagerId = m10.HRRoles.Single(x => x.RoleID == 100032).EmpID;
+        Assert.Equal(directorId, request.res_id_approver);
+        Assert.NotEqual("Approved", request.Status);
+        Assert.True(string.IsNullOrWhiteSpace(request.turno));
+        Assert.True(request.Totalrmavalues >= 20000);
+        var bypassUser = m10.humres.AsNoTracking().First(x => x.res_id > 0
+            && x.res_id != directorId && x.res_id != generalManagerId
+            && x.usr_id != null && x.usr_id.Trim() != "");
+        var repository = BypassRepository(m10, erp, bypassUser.usr_id);
+        var before = Snapshot(erp);
+
+        Assert.Equal("Pending", repository.Updateaprobar(id, "Director stage bypass", bypassUser.res_id.ToString()));
+        m10.Entry(request).Reload();
+        Assert.Equal(generalManagerId, request.res_id_approver);
+        Assert.Equal(before, Snapshot(erp));
+        Assert.True(string.IsNullOrWhiteSpace(request.turno));
+
+        Assert.Equal("Approved", repository.Updateaprobar(id, "GM stage bypass", bypassUser.res_id.ToString()));
+        AssertCompleted(m10, erp, id);
+    }
+
+    [ApprovalSqlFact]
     public void ErpFailureRollsBackBothDatabasesAndCounter()
     {
         var id = FixtureId("RMA_TEST_ROLLBACK_ID");
@@ -204,6 +257,16 @@ public class ApprovalRetryTests
 
     private static CSEXSW_RmaRepository Repository(DbContextM10 m10, DbContext500 erp) =>
         new(m10, erp, new ConfigurationBuilder().Build());
+
+    private static CSEXSW_RmaRepository BypassRepository(DbContextM10 m10, DbContext500 erp, string username)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string>
+            {
+                ["ApprovalBypass:Users:0"] = "  " + username.Trim().ToUpperInvariant() + "  "
+            }).Build();
+        return new CSEXSW_RmaRepository(m10, erp, configuration);
+    }
 
     private sealed class InjectedFailure : Exception { }
 

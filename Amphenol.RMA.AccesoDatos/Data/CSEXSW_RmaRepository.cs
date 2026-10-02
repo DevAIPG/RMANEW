@@ -1001,7 +1001,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
             // The controller may already be tracking a stale copy from before
             // another approval acquired the lock.
             _m10Db.Entry(rma).Reload();
-            if (currentUserId != rma.res_id_approver && currentUserId != _autoApprover.Id)
+            var canBypassApproval = CanBypassApproval(currentUserId);
+            if (currentUserId != rma.res_id_approver && currentUserId != _autoApprover.Id
+                && !canBypassApproval)
             {
                 return string.Empty;
             }
@@ -1025,10 +1027,26 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             if (exchangeRate >= TwoStepAuthorizationThreshold)
             {
-                return ProcessTwoStepApproval(rma, currentUserId, currentDate, comment);
+                return ProcessTwoStepApproval(rma, currentUserId, currentDate, comment, canBypassApproval);
             }
 
             return ApproveRma(rma, currentDate, comment);
+        }
+
+        private bool CanBypassApproval(int currentUserId)
+        {
+            var username = _m10Db.humres
+                .Where(x => x.res_id == currentUserId)
+                .Select(x => x.usr_id)
+                .FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return false;
+            }
+
+            return _configuration.GetSection("ApprovalBypass:Users").GetChildren()
+                .Any(user => string.Equals(user.Value?.Trim(), username.Trim(),
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         private void AddComment(CSEXSW_Rma rma, DateTime currentDate, CommentAction action, string comment)
@@ -1082,7 +1100,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
             return Convert.ToDouble(rma.Totalrmavalues) / Convert.ToDouble(latestRate.RateExchange);
         }
 
-        private string ProcessTwoStepApproval(CSEXSW_Rma rma, int currentUserId, DateTime currentDate, string comment)
+        private string ProcessTwoStepApproval(CSEXSW_Rma rma, int currentUserId, DateTime currentDate,
+            string comment, bool canBypassApproval)
         {
             var qualityDirector = GetEmployeeByRole(100031);
             var generalManager = GetEmployeeByRole(100032);
@@ -1096,7 +1115,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
             if (rma.res_id_approver == qualityDirector.Id)
             {
                 if (currentUserId != qualityDirector.Id &&
-                    currentUserId != _autoApprover.Id)
+                    currentUserId != _autoApprover.Id && !canBypassApproval)
                 {
                     return string.Empty;
                 }
