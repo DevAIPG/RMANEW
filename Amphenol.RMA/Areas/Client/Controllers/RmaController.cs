@@ -59,8 +59,8 @@ namespace Amphenol.RMA.Controllers
     {
 
         private readonly IContenedorTrabajo _contenedorTrabajo;
-        private readonly DbContextM10 _m10DbCcontext;
-        private readonly DbContext500 _500DbContext;
+        private readonly DbContextM10 _m10Db;
+        private readonly DbContext500 _500Db;
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
@@ -81,14 +81,14 @@ namespace Amphenol.RMA.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor;
 
 
-        public RmaController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContextM10 context2,
-                             DbContext500 context, IWebHostEnvironment hostingEnvironmen,
+        public RmaController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContextM10 m10Db,
+                             DbContext500 db500, IWebHostEnvironment hostingEnvironmen,
                              IHttpContextAccessor httpContextAccessor, IEmailService emailService,
                              IOptions<CustomerServiceManager> customerServiceManager, ReportService reportService)
         {
             _contenedorTrabajo = contenedorTrabajo;
-            _m10DbCcontext = context2;
-            _500DbContext = context;
+            _m10Db = m10Db;
+            _500Db = db500;
             _configuration = configuration;
             _hostingEnvironment = hostingEnvironmen;
             Configuration = configuration;
@@ -124,36 +124,36 @@ namespace Amphenol.RMA.Controllers
         public IActionResult approvers()
         {
 
-            string QM = _m10DbCcontext.CSEXSW_Approver.Where(a => a.Rango == "QM").Select(a => a.Approver).FirstOrDefault();
-            string QD = _m10DbCcontext.CSEXSW_Approver.Where(a => a.Rango == "QD").Select(a => a.Approver).FirstOrDefault();
-            string GM = _m10DbCcontext.CSEXSW_Approver.Where(a => a.Rango == "GM").Select(a => a.Approver).FirstOrDefault();
+            string QM = _m10Db.CSEXSW_Approver.Where(a => a.Rango == "QM").Select(a => a.Approver).FirstOrDefault();
+            string QD = _m10Db.CSEXSW_Approver.Where(a => a.Rango == "QD").Select(a => a.Approver).FirstOrDefault();
+            string GM = _m10Db.CSEXSW_Approver.Where(a => a.Rango == "GM").Select(a => a.Approver).FirstOrDefault();
 
-            ViewData["QM"] = new SelectList(_m10DbCcontext.humres, "fullname", "fullname", QM);
-            ViewData["QD"] = new SelectList(_m10DbCcontext.humres, "fullname", "fullname", QD);
-            ViewData["GM"] = new SelectList(_m10DbCcontext.humres, "fullname", "fullname", GM);
-
-
-
-
-            ViewBag.mail1 = _m10DbCcontext.humres.Where(a => a.fullname == QM).Select(a => a.mail).FirstOrDefault();
-            ViewBag.mail2 = _m10DbCcontext.humres.Where(a => a.fullname == QD).Select(a => a.mail).FirstOrDefault();
-            ViewBag.mail3 = _m10DbCcontext.humres.Where(a => a.fullname == GM).Select(a => a.mail).FirstOrDefault();
-
-
-            string Dee = _m10DbCcontext.CSEXSW_Approver.Where(a => a.Rango == "Dee").Select(a => a.Approver).FirstOrDefault();
-            string Controller = _m10DbCcontext.CSEXSW_Approver.Where(a => a.Rango == "Controller").Select(a => a.Approver).FirstOrDefault();
-            string CSM = _m10DbCcontext.CSEXSW_Approver.Where(a => a.Rango == "CSM ").Select(a => a.Approver).FirstOrDefault();
-
-            ViewData["Dee"] = new SelectList(_m10DbCcontext.humres, "fullname", "fullname", Dee);
-            ViewData["Controller"] = new SelectList(_m10DbCcontext.humres, "fullname", "fullname", Controller);
-            ViewData["CSM"] = new SelectList(_m10DbCcontext.humres, "fullname", "fullname", CSM);
+            ViewData["QM"] = new SelectList(_m10Db.humres, "fullname", "fullname", QM);
+            ViewData["QD"] = new SelectList(_m10Db.humres, "fullname", "fullname", QD);
+            ViewData["GM"] = new SelectList(_m10Db.humres, "fullname", "fullname", GM);
 
 
 
 
-            ViewBag.mail4 = _m10DbCcontext.humres.Where(a => a.fullname == Dee).Select(a => a.mail).FirstOrDefault();
-            ViewBag.mail5 = _m10DbCcontext.humres.Where(a => a.fullname == Controller).Select(a => a.mail).FirstOrDefault();
-            ViewBag.mail6 = _m10DbCcontext.humres.Where(a => a.fullname == CSM).Select(a => a.mail).FirstOrDefault();
+            ViewBag.mail1 = _m10Db.humres.Where(a => a.fullname == QM).Select(a => a.mail).FirstOrDefault();
+            ViewBag.mail2 = _m10Db.humres.Where(a => a.fullname == QD).Select(a => a.mail).FirstOrDefault();
+            ViewBag.mail3 = _m10Db.humres.Where(a => a.fullname == GM).Select(a => a.mail).FirstOrDefault();
+
+
+            string Dee = _m10Db.CSEXSW_Approver.Where(a => a.Rango == "Dee").Select(a => a.Approver).FirstOrDefault();
+            string Controller = _m10Db.CSEXSW_Approver.Where(a => a.Rango == "Controller").Select(a => a.Approver).FirstOrDefault();
+            string CSM = _m10Db.CSEXSW_Approver.Where(a => a.Rango == "CSM ").Select(a => a.Approver).FirstOrDefault();
+
+            ViewData["Dee"] = new SelectList(_m10Db.humres, "fullname", "fullname", Dee);
+            ViewData["Controller"] = new SelectList(_m10Db.humres, "fullname", "fullname", Controller);
+            ViewData["CSM"] = new SelectList(_m10Db.humres, "fullname", "fullname", CSM);
+
+
+
+
+            ViewBag.mail4 = _m10Db.humres.Where(a => a.fullname == Dee).Select(a => a.mail).FirstOrDefault();
+            ViewBag.mail5 = _m10Db.humres.Where(a => a.fullname == Controller).Select(a => a.mail).FirstOrDefault();
+            ViewBag.mail6 = _m10Db.humres.Where(a => a.fullname == CSM).Select(a => a.mail).FirstOrDefault();
 
 
             return View();
@@ -161,7 +161,7 @@ namespace Amphenol.RMA.Controllers
         [HttpPost]
         public IActionResult DoneRemark(int id)
         {
-            var rma = _m10DbCcontext.CSEXSW_Rma
+            var rma = _m10Db.CSEXSW_Rma
                 .FirstOrDefault(x => x.Id == id);
 
             if (rma == null) NotFound();
@@ -179,7 +179,7 @@ namespace Amphenol.RMA.Controllers
             }
             rma.Status = RmaRequestStatus.Pending.ToDisplayString();
 
-            _m10DbCcontext.SaveChanges();
+            _m10Db.SaveChanges();
 
             return RedirectToAction(nameof(Index));
         }
@@ -204,15 +204,15 @@ namespace Amphenol.RMA.Controllers
 
             try
             {
-                var rma = _m10DbCcontext.CSEXSW_Rma.FirstOrDefault(s => s.Id == rmaId);
+                var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(s => s.Id == rmaId);
                 if (rma == null)
                     return NotFound($"RMA with id {id} not found");
 
-                var humres = _m10DbCcontext.humres.FirstOrDefault(s => s.res_id == rma.res_id);
+                var humres = _m10Db.humres.FirstOrDefault(s => s.res_id == rma.res_id);
                 if (humres == null)
                     return NotFound("User not found for given RMA");
 
-                var idProcess = _m10DbCcontext.csexsw_coustumer.Where(s => s.RmaId == rmaId).Count();
+                var idProcess = _m10Db.csexsw_coustumer.Where(s => s.RmaId == rmaId).Count();
 
 
                 var createOrder = new CreateOrder
@@ -242,7 +242,7 @@ namespace Amphenol.RMA.Controllers
 
             try
             {
-                using var conn = _500DbContext.Database.GetDbConnection();
+                using var conn = _500Db.Database.GetDbConnection();
                 await conn.OpenAsync();
 
                 using var cmd = conn.CreateCommand();
@@ -276,7 +276,7 @@ namespace Amphenol.RMA.Controllers
                 var rmaNo = request.rmaNo.Trim().PadLeft(8, ' ');
                 var paddedOrderNumber = newOrderNumber.Trim().PadLeft(8, ' ');
 
-                var comments = await _500DbContext.OELINCMT_SQL
+                var comments = await _500Db.OELINCMT_SQL
                     .AsNoTracking()
                     .Where(c => c.OrdType == "R" && c.OrdNo == rmaNo)
                     .OrderBy(c => c.LineSeqNo)
@@ -314,9 +314,9 @@ namespace Amphenol.RMA.Controllers
                         Filler0001 = c.Filler0001
                     }).ToList();
 
-                    _500DbContext.OELINCMT_SQL.AddRange(commentsToInsert);
+                    _500Db.OELINCMT_SQL.AddRange(commentsToInsert);
 
-                    await _500DbContext.SaveChangesAsync();
+                    await _500Db.SaveChangesAsync();
                 }
                 return Ok(new { success = true, message = $"Order #<b>{newOrderNumber}</b> created successfully." });
             }
@@ -455,10 +455,10 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult resubmitrechazo(int id)
         {
-            var rma = _m10DbCcontext.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+            var rma = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
             rma.Status = RmaRequestStatus.Pending.ToDisplayString();
-            _m10DbCcontext.Entry(rma).State = EntityState.Modified;
-            _m10DbCcontext.SaveChanges();
+            _m10Db.Entry(rma).State = EntityState.Modified;
+            _m10Db.SaveChanges();
             return Json(true);
 
         }
@@ -477,14 +477,14 @@ namespace Amphenol.RMA.Controllers
             _contenedorTrabajo.CSEXSW_Rma.Updatedesaprobar(ids, comment, var);
             _contenedorTrabajo.Save();
 
-            var rma = _m10DbCcontext.CSEXSW_Rma.FirstOrDefault(x => x.Id == ids);
+            var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == ids);
 
             if (rma != null)
             {
-                var requester = _m10DbCcontext.humres.FirstOrDefault(x => x.res_id == rma.res_id);
+                var requester = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id);
                 var firstName = requester.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Requester";
 
-                var approver = _m10DbCcontext.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
+                var approver = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
 
 
                 await _emailService.SendRejectNotification(
@@ -517,26 +517,29 @@ namespace Amphenol.RMA.Controllers
 
             string userId = isAutoApproved ? _autoApprover.Id.ToString() : _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
 
-            var rma = _m10DbCcontext.CSEXSW_Rma.FirstOrDefault(x => x.Id == idsa);
+            var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == idsa);
             var originalApprover = rma.Approver;
-            //OERHDFIL_SQL
+            // Updateaprobar returns "Approved" only after M10 and ERP commit.
+            // No CAR jobs, reports, or approval notifications run before then.
             string retorno = _contenedorTrabajo.CSEXSW_Rma.Updateaprobar(idsa, commentt, userId);
 
-            _contenedorTrabajo.Save();
+            if (retorno != "Approved" && retorno != "Pending")
+            {
+                return isAutoApproved ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Control));
+            }
 
             if (retorno == "Approved")
             {
-                int idCAR = await _m10DbCcontext.csexsw_car.MaxAsync(x => (int?)x.Id) ?? 0;
+                int idCAR = await _m10Db.csexsw_car.MaxAsync(x => (int?)x.Id) ?? 0;
 
-                var objDesdeDblinea = _m10DbCcontext.csexsw_coustumer.Where(s => s.RmaId == idsa).ToList();
-                var checkcars = _m10DbCcontext.csexsw_coustumer.Count(r => r.RmaId == idsa && r.Car == true);
+                var objDesdeDblinea = _m10Db.csexsw_coustumer.Where(s => s.RmaId == idsa).ToList();
+                var checkcars = _m10Db.csexsw_coustumer.Count(r => r.RmaId == idsa && r.Car == true);
                 if (checkcars > 0)
                 {
-                    var objDesdeDb = _m10DbCcontext.CSEXSW_Rma.FirstOrDefault(s => s.Id == idsa);
+                    var objDesdeDb = _m10Db.CSEXSW_Rma.FirstOrDefault(s => s.Id == idsa);
 
 
-                    _500DbContext.SaveChanges();
-                    string Client = (from c in _500DbContext.arcusfil_sql
+                    string Client = (from c in _500Db.arcusfil_sql
                                      where c.cus_no.Contains(objDesdeDb.Customer)
                                      select c.cus_name).First();
                     var objDesdeDbt = new csexsw_car();
@@ -561,7 +564,7 @@ namespace Amphenol.RMA.Controllers
                 var report = await _reportService.GenerateReturnMaterialsAuthorizationPDF(rma.turno.Trim().ToString());
                 var attachment = new EmailAttachment(report.FileName, report.ContentType, report.Data);
 
-                var custormerServiceRepresentative = _m10DbCcontext.humres.FirstOrDefault(x => x.res_id == rma.res_id);
+                var custormerServiceRepresentative = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id);
 
                 //Notify Amphenol Team
                 await _emailService.SendApproveNotification(
@@ -607,7 +610,7 @@ namespace Amphenol.RMA.Controllers
             }
             else
             {
-                var newApprover = _m10DbCcontext.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
+                var newApprover = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
                 var approverFirstname = newApprover.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
 
                 if (rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString())
@@ -710,7 +713,7 @@ namespace Amphenol.RMA.Controllers
 
             string requesterUserId = _contenedorTrabajo.csexsw_dibujo.usuario(requester);
 
-            string requesterFullname = _m10DbCcontext.humres.First(x => x.res_id == int.Parse(requesterUserId)).fullname;
+            string requesterFullname = _m10Db.humres.First(x => x.res_id == int.Parse(requesterUserId)).fullname;
 
             var submitStatus = string.Equals(submitAction, "submit", StringComparison.OrdinalIgnoreCase) ?
                 RmaSubmitStatus.Submitted : RmaSubmitStatus.NotSubmitted;
@@ -794,12 +797,12 @@ namespace Amphenol.RMA.Controllers
                 }
             }
 
-            await using var transaction = await _m10DbCcontext.Database.BeginTransactionAsync();
+            await using var transaction = await _m10Db.Database.BeginTransactionAsync();
 
             try
             {
-                await _m10DbCcontext.CSEXSW_Rma.AddAsync(rma);
-                await _m10DbCcontext.SaveChangesAsync();
+                await _m10Db.CSEXSW_Rma.AddAsync(rma);
+                await _m10Db.SaveChangesAsync();
 
                 await SaveLines(rma.Id, vm.Lines);
                 await SaveAttachments(rma, vm.UploadedFiles);
@@ -869,9 +872,9 @@ namespace Amphenol.RMA.Controllers
                 rma_seq_no = index + 1
             });
 
-            await _m10DbCcontext.csexsw_coustumer.AddRangeAsync(lines);
+            await _m10Db.csexsw_coustumer.AddRangeAsync(lines);
 
-            await _m10DbCcontext.SaveChangesAsync();
+            await _m10Db.SaveChangesAsync();
         }
         private async Task SaveAttachments(CSEXSW_Rma rma, List<IFormFile> attachments)
         {
@@ -896,14 +899,14 @@ namespace Amphenol.RMA.Controllers
                 await using var stream = new FileStream(fullPath, FileMode.Create);
                 await file.CopyToAsync(stream);
 
-                await _m10DbCcontext.CSEXSW_Attachmentrma.AddAsync(new CSEXSW_Attachmentrma
+                await _m10Db.CSEXSW_Attachmentrma.AddAsync(new CSEXSW_Attachmentrma
                 {
                     Documento = storedFileName,
                     RmaId = rma.Id
                 });
             }
 
-            await _m10DbCcontext.SaveChangesAsync();
+            await _m10Db.SaveChangesAsync();
         }
         private Approver GetApproverInformation(humres employee)
         {
@@ -934,7 +937,7 @@ namespace Amphenol.RMA.Controllers
                 return View(rmaViewModel);
             }
 
-            var rma = await _m10DbCcontext.CSEXSW_Rma
+            var rma = await _m10Db.CSEXSW_Rma
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == requestId);
 
@@ -995,7 +998,7 @@ namespace Amphenol.RMA.Controllers
 
             rmaViewModel = new()
             {
-                Attachments = await _m10DbCcontext.CSEXSW_Attachmentrma
+                Attachments = await _m10Db.CSEXSW_Attachmentrma
                      .AsNoTracking()
                      .Where(x => x.RmaId == rma.Id)
                      .Select(x => new RmaAttachmentViewModel
@@ -1014,7 +1017,7 @@ namespace Amphenol.RMA.Controllers
                 Description = rma.Description,
                 ExtensionNumber = rma.Ext,
                 Fax = rma.Fax,
-                Lines = await _m10DbCcontext.csexsw_coustumer
+                Lines = await _m10Db.csexsw_coustumer
                      .AsNoTracking()
                      .Where(x => x.CSEXSW_Rma == rma)
                      .Select(x => new RmaLineViewModel
@@ -1071,7 +1074,7 @@ namespace Amphenol.RMA.Controllers
 
             string customerPartNumber = vm.Lines.FirstOrDefault().PartNumber ?? "";
 
-            var rma = await _m10DbCcontext.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == vm.RequestId);
+            var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == vm.RequestId);
 
             if (rma is null)
             {
@@ -1148,7 +1151,7 @@ namespace Amphenol.RMA.Controllers
             var filesToDelete = new List<string>();
             var newlyCreatedFiles = new List<string>();
 
-            await using var transaction = await _m10DbCcontext.Database.BeginTransactionAsync();
+            await using var transaction = await _m10Db.Database.BeginTransactionAsync();
 
             try
             {
@@ -1160,7 +1163,7 @@ namespace Amphenol.RMA.Controllers
                 filesToDelete = attachmentResult.FilesToDelete;
                 newlyCreatedFiles = attachmentResult.NewlyCreatedFiles;
 
-                await _m10DbCcontext.SaveChangesAsync();
+                await _m10Db.SaveChangesAsync();
 
                 await transaction.CommitAsync();
             }
@@ -1205,7 +1208,7 @@ namespace Amphenol.RMA.Controllers
         }
         private async Task UpdateLines(int rmaId, List<RmaLineViewModel> vmLines)
         {
-            var existingLines = await _m10DbCcontext.csexsw_coustumer
+            var existingLines = await _m10Db.csexsw_coustumer
                 .Where(x => x.RmaId == rmaId)
                 .ToListAsync();
 
@@ -1221,7 +1224,7 @@ namespace Amphenol.RMA.Controllers
 
             if (linesToDelete.Count > 0)
             {
-                _m10DbCcontext.csexsw_coustumer.RemoveRange(linesToDelete);
+                _m10Db.csexsw_coustumer.RemoveRange(linesToDelete);
             }
 
             // Update existing lines / insert new lines
@@ -1270,7 +1273,7 @@ namespace Amphenol.RMA.Controllers
                         rma_seq_no = i + 1
                     };
 
-                    await _m10DbCcontext.csexsw_coustumer.AddAsync(newLine);
+                    await _m10Db.csexsw_coustumer.AddAsync(newLine);
                 }
             }
         }
@@ -1281,7 +1284,7 @@ namespace Amphenol.RMA.Controllers
             var filesToDelete = new List<string>();
 
             var existingAttachments =
-                await _m10DbCcontext.CSEXSW_Attachmentrma
+                await _m10Db.CSEXSW_Attachmentrma
                     .Where(x => x.RmaId == rma.Id)
                     .ToListAsync();
 
@@ -1303,7 +1306,7 @@ namespace Amphenol.RMA.Controllers
 
                 result.FilesToDelete.Add(filePath);
 
-                _m10DbCcontext.CSEXSW_Attachmentrma.Remove(attachment);
+                _m10Db.CSEXSW_Attachmentrma.Remove(attachment);
             }
 
             // Add new uploads
@@ -1326,7 +1329,7 @@ namespace Amphenol.RMA.Controllers
 
                 result.NewlyCreatedFiles.Add(filePath);
 
-                await _m10DbCcontext.CSEXSW_Attachmentrma.AddAsync(
+                await _m10Db.CSEXSW_Attachmentrma.AddAsync(
                     new CSEXSW_Attachmentrma
                     {
                         Documento = storedFileName,
@@ -1382,7 +1385,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public async Task<IActionResult> ViewAttachment(int id)
         {
-            var attachment = await _m10DbCcontext.CSEXSW_Attachmentrma.FirstAsync(x => x.Id == id);
+            var attachment = await _m10Db.CSEXSW_Attachmentrma.FirstAsync(x => x.Id == id);
 
             if (attachment == null)
                 return NotFound();
@@ -1399,7 +1402,7 @@ namespace Amphenol.RMA.Controllers
 
         private double GetRmaTotal(double total, string client)
         {
-            var customer = _500DbContext.arcusfil_sql
+            var customer = _500Db.arcusfil_sql
                 .FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
 
             if (customer == null)
@@ -1408,7 +1411,7 @@ namespace Amphenol.RMA.Controllers
             if (customer.curr_cd != "CNY")
                 return total;
 
-            var rate = _500DbContext.Rate
+            var rate = _500Db.Rate
                 .OrderByDescending(x => x.DateL)
                 .FirstOrDefault(x => x.SourceCurrency == "USD");
 
@@ -1422,7 +1425,7 @@ namespace Amphenol.RMA.Controllers
                                                  string phone, string ext, string fax, string contactEmail, string companyEmail, string comment, string rmaDate, string reason,
                                                  string whereBuilt, double total)
         {
-            var customerItem = _500DbContext.oecusitm_sql.FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
+            var customerItem = _500Db.oecusitm_sql.FirstOrDefault(x => x.cus_no.Trim() == client.Trim());
 
             string customerPart = customerItem?.cus_item_no?.Trim() ?? "";
 
@@ -1430,7 +1433,7 @@ namespace Amphenol.RMA.Controllers
 
             string resId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario);
 
-            string fullname = _m10DbCcontext.humres.First(x => x.res_id == int.Parse(resId)).fullname;
+            string fullname = _m10Db.humres.First(x => x.res_id == int.Parse(resId)).fullname;
 
             return new csexsw_coustumerVM
             {
@@ -1465,11 +1468,11 @@ namespace Amphenol.RMA.Controllers
 
         private Approver GetEmployeeByRole(int roleId)
         {
-            var role = _m10DbCcontext.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
+            var role = _m10Db.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
 
             if (role == null) return null;
 
-            var employee = _m10DbCcontext.humres.FirstOrDefault(x => x.res_id == role.EmpID);
+            var employee = _m10Db.humres.FirstOrDefault(x => x.res_id == role.EmpID);
             return new Approver
             {
                 Id = employee.res_id,
@@ -1492,9 +1495,9 @@ namespace Amphenol.RMA.Controllers
         public async Task SendRmaCreationNotification(int rmaId, RmaApprovalFlow approvalFlow)
         {
 
-            var rma = _m10DbCcontext.CSEXSW_Rma.FirstOrDefault(x => x.Id == rmaId);
+            var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == rmaId);
 
-            var lines = _m10DbCcontext.csexsw_coustumer.Where(x => x.RmaId == rmaId).OrderBy(x => x.rma_seq_no).ToList();
+            var lines = _m10Db.csexsw_coustumer.Where(x => x.RmaId == rmaId).OrderBy(x => x.rma_seq_no).ToList();
 
 
             var subject = $"RMA request {rma.Rmarequest.Trim()} generated";
@@ -1621,7 +1624,7 @@ namespace Amphenol.RMA.Controllers
             string[] valores = cadena.Split(delimitador);
             string usuario = valores[1];
             string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            var fullname = _m10DbCcontext.humres.Where(s => s.res_id == int.Parse(var)).FirstOrDefault().fullname;
+            var fullname = _m10Db.humres.Where(s => s.res_id == int.Parse(var)).FirstOrDefault().fullname;
             rma.CSEXSW_Rma.Preparado = fullname;
             rma.CSEXSW_Rma.res_id = int.Parse(getResId());
             rma.CSEXSW_Rma.Status = "Pending";
@@ -1684,10 +1687,10 @@ namespace Amphenol.RMA.Controllers
             //actualizar res id de approver
             if (!string.IsNullOrEmpty(rma.CSEXSW_Rma.Approver))
             {
-                var residapprover = _m10DbCcontext.humres.Where(s => s.fullname == rma.CSEXSW_Rma.Approver).FirstOrDefault().res_id;
+                var residapprover = _m10Db.humres.Where(s => s.fullname == rma.CSEXSW_Rma.Approver).FirstOrDefault().res_id;
                 rma.CSEXSW_Rma.res_id_approver = residapprover;
-                _m10DbCcontext.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
-                _m10DbCcontext.SaveChanges();
+                _m10Db.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
+                _m10Db.SaveChanges();
             }
             if (finalizado != true)
             {
@@ -1890,12 +1893,12 @@ namespace Amphenol.RMA.Controllers
 
             int idRMA = rma.CSEXSW_Rma.Id;
             string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            string fullname = _m10DbCcontext.humres.Where(s => s.usr_id == usuario.Trim()).FirstOrDefault().fullname;
+            string fullname = _m10Db.humres.Where(s => s.usr_id == usuario.Trim()).FirstOrDefault().fullname;
 
             rma.CSEXSW_Rma.Preparado = fullname;
             rma.CSEXSW_Rma.res_id = int.Parse(resid);
-            _m10DbCcontext.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
-            _m10DbCcontext.SaveChanges();
+            _m10Db.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
+            _m10Db.SaveChanges();
             //_contenedorTrabajo.Save();
             if (inicio == true)
             {
@@ -1970,9 +1973,9 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult DeleteLinea(int id)
         {
-            var d = _m10DbCcontext.csexsw_coustumer.Where(s => s.Id == id).FirstOrDefault();
-            _m10DbCcontext.csexsw_coustumer.Remove(d);
-            var r = _m10DbCcontext.SaveChanges();
+            var d = _m10Db.csexsw_coustumer.Where(s => s.Id == id).FirstOrDefault();
+            _m10Db.csexsw_coustumer.Remove(d);
+            var r = _m10Db.SaveChanges();
             return Json(r > 0 ? true : false);
         }
         [HttpGet]
@@ -1980,17 +1983,17 @@ namespace Amphenol.RMA.Controllers
         {
 
             var l = JsonConvert.DeserializeObject<csexsw_coustumer>(line);
-            _m10DbCcontext.csexsw_coustumer.Add(l);
-            var result = _m10DbCcontext.SaveChanges();
+            _m10Db.csexsw_coustumer.Add(l);
+            var result = _m10Db.SaveChanges();
             return Json(result > 0 ? true : false);
         }
 
         [HttpGet]
         public IActionResult GetRmaInfo(int id)
         {
-            var rma = _m10DbCcontext.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
-            var lineas = _m10DbCcontext.csexsw_coustumer.OrderByDescending(s => s.Id).Where(r => r.RmaId == rma.Id).ToList();
-            var attachments = _m10DbCcontext.CSEXSW_Attachmentrma.OrderByDescending(g => g.Id).Where(r => r.RmaId == rma.Id).ToList();
+            var rma = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+            var lineas = _m10Db.csexsw_coustumer.OrderByDescending(s => s.Id).Where(r => r.RmaId == rma.Id).ToList();
+            var attachments = _m10Db.CSEXSW_Attachmentrma.OrderByDescending(g => g.Id).Where(r => r.RmaId == rma.Id).ToList();
 
             return Json(new { rma = rma, lines = lineas, files = attachments });
         }
@@ -2013,15 +2016,15 @@ namespace Amphenol.RMA.Controllers
 
             }
 
-            var rmaS = _m10DbCcontext.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+            var rmaS = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
 
             var arcusfil_sql = new arcusfil_sql();
 
             double tipo_cambio = rmaS.Totalrmavalues;
-            arcusfil_sql = _500DbContext.arcusfil_sql.Where(a => a.cus_no.Trim() == rmaS.Customer.Trim()).FirstOrDefault();
+            arcusfil_sql = _500Db.arcusfil_sql.Where(a => a.cus_no.Trim() == rmaS.Customer.Trim()).FirstOrDefault();
 
             var moneda = arcusfil_sql.curr_cd;
-            var rate = _500DbContext.Rate.Where(a => a.DateL == _500DbContext.Rate.Max(a => a.DateL) && a.SourceCurrency == "USD").FirstOrDefault();
+            var rate = _500Db.Rate.Where(a => a.DateL == _500Db.Rate.Max(a => a.DateL) && a.SourceCurrency == "USD").FirstOrDefault();
 
 
             if (moneda == "CNY")
@@ -2039,7 +2042,7 @@ namespace Amphenol.RMA.Controllers
             string[] valores = cadena.Split(delimitador);
             string usuario = valores[1];
             string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            var fullname = _m10DbCcontext.humres.Where(s => s.res_id == int.Parse(var)).FirstOrDefault().fullname;
+            var fullname = _m10Db.humres.Where(s => s.res_id == int.Parse(var)).FirstOrDefault().fullname;
             rma.CSEXSW_Rma.Preparado = fullname;
             rma.CSEXSW_Rma.res_id = int.Parse(getResId());
             rma.CSEXSW_Rma.Status = "Pending";
@@ -2058,10 +2061,10 @@ namespace Amphenol.RMA.Controllers
                     if (rma.CSEXSW_Rma.Wherebuilt == "Nogales")
                     {
                         //QM Quality Manager NOG)
-                        var QMM10 = _m10DbCcontext.HRRoles.Where(s => s.RoleID == 100030).FirstOrDefault();
+                        var QMM10 = _m10Db.HRRoles.Where(s => s.RoleID == 100030).FirstOrDefault();
                         if (QMM10 != null)
                         {
-                            empQM = _m10DbCcontext.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
+                            empQM = _m10Db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
                             QM = empQM.fullname;
                         }
                     }
@@ -2069,10 +2072,10 @@ namespace Amphenol.RMA.Controllers
                     {
                         //Mesa
                         //QM Quality Manager Mesa)
-                        var QMM10 = _m10DbCcontext.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
+                        var QMM10 = _m10Db.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
                         if (QMM10 != null)
                         {
-                            empQM = _m10DbCcontext.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
+                            empQM = _m10Db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
                             QM = empQM.fullname;
                         }
                     }
@@ -2080,30 +2083,30 @@ namespace Amphenol.RMA.Controllers
                     {
                         //Endicot
                         //QM Quality Manager END)
-                        var QMM10 = _m10DbCcontext.HRRoles.Where(s => s.RoleID == 100039).FirstOrDefault();
+                        var QMM10 = _m10Db.HRRoles.Where(s => s.RoleID == 100039).FirstOrDefault();
                         if (QMM10 != null)
                         {
-                            empQM = _m10DbCcontext.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
+                            empQM = _m10Db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
                             QM = empQM.fullname;
                         }
                     }
 
                     //QD (Quality Director)
-                    var QDM10 = _m10DbCcontext.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
+                    var QDM10 = _m10Db.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
                     string QD = "";
                     humres empQD = null;
                     if (QDM10 != null)
                     {
-                        empQD = _m10DbCcontext.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
+                        empQD = _m10Db.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
                         QD = empQD.fullname;
                     }
                     //GM (General Manager)
-                    var GMM10 = _m10DbCcontext.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
+                    var GMM10 = _m10Db.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
                     humres empGM = null;
                     string GM = "";
                     if (GMM10 != null)
                     {
-                        empGM = _m10DbCcontext.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
+                        empGM = _m10Db.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
                         GM = empGM.fullname;
                     }
                     string mail1 = "";
@@ -2146,10 +2149,10 @@ namespace Amphenol.RMA.Controllers
                         //actualizar res id de approver
                         if (!string.IsNullOrEmpty(rma.CSEXSW_Rma.Approver))
                         {
-                            var residapprover = _m10DbCcontext.humres.Where(s => s.fullname == rma.CSEXSW_Rma.Approver).FirstOrDefault().res_id;
+                            var residapprover = _m10Db.humres.Where(s => s.fullname == rma.CSEXSW_Rma.Approver).FirstOrDefault().res_id;
                             rma.CSEXSW_Rma.res_id_approver = residapprover;
-                            _m10DbCcontext.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
-                            _m10DbCcontext.SaveChanges();
+                            _m10Db.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
+                            _m10Db.SaveChanges();
                         }
 
                         if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
@@ -2252,18 +2255,18 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult LoadFilesByRMA(int rmaid)
         {
-            var files = _m10DbCcontext.CSEXSW_Attachmentrma.Where(s => s.RmaId == rmaid).OrderByDescending(r => r.Id).ToList();
+            var files = _m10Db.CSEXSW_Attachmentrma.Where(s => s.RmaId == rmaid).OrderByDescending(r => r.Id).ToList();
             return Json(files);
         }
         [HttpGet]
         public IActionResult DeleteFileRMA(int id, string rma, string filename)
         {
             var directoryfile = Path.Combine(rootE, "RMA", rma, "Attachments", filename);
-            if (_m10DbCcontext.CSEXSW_Attachmentrma.Any(s => s.Id == id))
+            if (_m10Db.CSEXSW_Attachmentrma.Any(s => s.Id == id))
             {
-                var file = _m10DbCcontext.CSEXSW_Attachmentrma.Where(S => S.Id == id).FirstOrDefault();
-                _m10DbCcontext.CSEXSW_Attachmentrma.Remove(file);
-                var deleted = _m10DbCcontext.SaveChanges();
+                var file = _m10Db.CSEXSW_Attachmentrma.Where(S => S.Id == id).FirstOrDefault();
+                _m10Db.CSEXSW_Attachmentrma.Remove(file);
+                var deleted = _m10Db.SaveChanges();
                 if (deleted > 0)
                 {
                     if (System.IO.File.Exists(directoryfile))
@@ -2288,7 +2291,7 @@ namespace Amphenol.RMA.Controllers
                 string fname = Request.Form["file"];
                 var directoryrma = Path.Combine(rootE, "RMA", rmano, "Attachments");
 
-                int idrma = _m10DbCcontext.CSEXSW_Rma.Where(s => s.Rmarequest.Trim() == rmano.Trim()).FirstOrDefault().Id;
+                int idrma = _m10Db.CSEXSW_Rma.Where(s => s.Rmarequest.Trim() == rmano.Trim()).FirstOrDefault().Id;
 
                 if (!Directory.Exists(directoryrma))
                 {
@@ -2300,12 +2303,12 @@ namespace Amphenol.RMA.Controllers
                     using (var fs = new FileStream(Path.Combine(directoryrma, nombrearchivo), FileMode.Create))
                     {
                         files[i].CopyTo(fs);
-                        _m10DbCcontext.CSEXSW_Attachmentrma.Add(new CSEXSW_Attachmentrma()
+                        _m10Db.CSEXSW_Attachmentrma.Add(new CSEXSW_Attachmentrma()
                         {
                             Documento = nombrearchivo,
                             RmaId = idrma
                         });
-                        _m10DbCcontext.SaveChanges();
+                        _m10Db.SaveChanges();
                     }
                 }
                 inserted = true;
@@ -3426,9 +3429,9 @@ namespace Amphenol.RMA.Controllers
         public string get_cus_name(string id)
         {
             string cli = string.Empty;
-            if (_500DbContext.arcusfil_sql.Any(s => s.cus_no.Trim() == id.Trim()))
+            if (_500Db.arcusfil_sql.Any(s => s.cus_no.Trim() == id.Trim()))
             {
-                cli = _500DbContext.arcusfil_sql.Where(s => s.cus_no.Trim() == id.Trim()).FirstOrDefault().cus_name.Trim();
+                cli = _500Db.arcusfil_sql.Where(s => s.cus_no.Trim() == id.Trim()).FirstOrDefault().cus_name.Trim();
             }
             return cli;
         }
@@ -3440,7 +3443,7 @@ namespace Amphenol.RMA.Controllers
 
             //var productos = _context2.CSEXSW_Rma.Select(x => new { Rma_request = x.Rmarequest,Customer= x.Customer, x.Car,Approved=x.date_approved.Value.ToString("MM/dd/yy"), RMA = x.turno, Where_built = x.Wherebuilt, Total_rma_values = x.Totalrmavalues, x.Sumbit, x.Status, Rma_type_of_request = x.Rmatypeofrequest, x.Preparado, x.Date, x.Description, Customer_po = x.Customerpo, Customer_complait = x.Customercomplait, x.Approver }).AsNoTracking().ToList();
             //var productos = _context2.CSEXSW_Rma.Select(x => new { Rma_request = x.Rmarequest, x.Car, RMA = x.turno, Where_built = x.Wherebuilt, Total_rma_values = x.Totalrmavalues, x.Sumbit, x.Status, Rma_type_of_request = x.Rmatypeofrequest, x.Preparado, x.Date, x.Description, Customer_po = x.Customerpo, Customer_complait = x.Customercomplait, x.Customer, x.Approver }).AsNoTracking().ToList();
-            var productos = _m10DbCcontext.csexsw_coustumer.Include(r => r.CSEXSW_Rma).Select(x => new { Rma_request = x.CSEXSW_Rma.Rmarequest, Part_Number = x.Coustumer, Qty = x.Qty, Valor = x.Qty * x.Unit, cus_no = x.CSEXSW_Rma.Customer, x.Car, Approved = x.CSEXSW_Rma.date_approved.Value.ToString("MM/dd/yy"), RMA = x.CSEXSW_Rma.turno, Where_built = x.CSEXSW_Rma.Wherebuilt, Total_rma_values = x.CSEXSW_Rma.Totalrmavalues, x.CSEXSW_Rma.Sumbit, x.CSEXSW_Rma.Status, Rma_type_of_request = x.CSEXSW_Rma.Rmatypeofrequest, x.CSEXSW_Rma.Preparado, x.CSEXSW_Rma.Date, x.CSEXSW_Rma.Description, Customer_po = x.CSEXSW_Rma.Customerpo, Customer_complait = x.CSEXSW_Rma.Customercomplait, x.CSEXSW_Rma.Approver }).ToList();
+            var productos = _m10Db.csexsw_coustumer.Include(r => r.CSEXSW_Rma).Select(x => new { Rma_request = x.CSEXSW_Rma.Rmarequest, Part_Number = x.Coustumer, Qty = x.Qty, Valor = x.Qty * x.Unit, cus_no = x.CSEXSW_Rma.Customer, x.Car, Approved = x.CSEXSW_Rma.date_approved.Value.ToString("MM/dd/yy"), RMA = x.CSEXSW_Rma.turno, Where_built = x.CSEXSW_Rma.Wherebuilt, Total_rma_values = x.CSEXSW_Rma.Totalrmavalues, x.CSEXSW_Rma.Sumbit, x.CSEXSW_Rma.Status, Rma_type_of_request = x.CSEXSW_Rma.Rmatypeofrequest, x.CSEXSW_Rma.Preparado, x.CSEXSW_Rma.Date, x.CSEXSW_Rma.Description, Customer_po = x.CSEXSW_Rma.Customerpo, Customer_complait = x.CSEXSW_Rma.Customercomplait, x.CSEXSW_Rma.Approver }).ToList();
             productos = productos.OrderByDescending(r => r.Date).ToList();
 
 
@@ -3479,7 +3482,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult UpdateLinea(int id, string actionn, string loc, decimal qty, decimal price, decimal unitcost, string rcode, bool car)
         {
-            var linea = _m10DbCcontext.csexsw_coustumer.Where(s => s.Id == id).FirstOrDefault();
+            var linea = _m10Db.csexsw_coustumer.Where(s => s.Id == id).FirstOrDefault();
             linea.Action = actionn;
             linea.Loc = loc;
             linea.Qty = qty;
@@ -3488,15 +3491,15 @@ namespace Amphenol.RMA.Controllers
             linea.Retur = rcode;
             linea.Car = car;
             int result = 0;
-            _m10DbCcontext.Entry(linea).State = EntityState.Modified;
-            result = _m10DbCcontext.SaveChanges();
+            _m10Db.Entry(linea).State = EntityState.Modified;
+            result = _m10Db.SaveChanges();
             return Json(result > 0 ? true : false);
 
         }
         [HttpGet]
         public IActionResult UpdateRMA(int id, string where, string desc, string phone, string ext, string fax, float totalrma, string po, string contact, string type, string email, string comments, string reason)
         {
-            var rma = _m10DbCcontext.CSEXSW_Rma.Where(S => S.Id == id).FirstOrDefault();
+            var rma = _m10Db.CSEXSW_Rma.Where(S => S.Id == id).FirstOrDefault();
             rma.Wherebuilt = where;
             rma.Description = desc;
             rma.Phone = phone;
@@ -3509,8 +3512,8 @@ namespace Amphenol.RMA.Controllers
             rma.Email = email;
             rma.Comment = comments;
             rma.reason = reason;
-            _m10DbCcontext.Entry(rma).State = EntityState.Modified;
-            var result = _m10DbCcontext.SaveChanges();
+            _m10Db.Entry(rma).State = EntityState.Modified;
+            var result = _m10Db.SaveChanges();
             return Json(result > 0 ? true : false);
 
         }
@@ -3524,7 +3527,7 @@ namespace Amphenol.RMA.Controllers
                 return PartialView(partialView, new RmaViewModel());
             }
 
-            var rma = _m10DbCcontext.CSEXSW_Rma
+            var rma = _m10Db.CSEXSW_Rma
                 .AsNoTracking()
                 .FirstOrDefault(x => x.Id == id);
 
@@ -3537,7 +3540,7 @@ namespace Amphenol.RMA.Controllers
 
             var viewModel = new RmaViewModel
             {
-                Attachments = await _m10DbCcontext.CSEXSW_Attachmentrma
+                Attachments = await _m10Db.CSEXSW_Attachmentrma
                      .AsNoTracking()
                      .Where(x => x.RmaId == rma.Id)
                      .Select(x => new RmaAttachmentViewModel
@@ -3555,7 +3558,7 @@ namespace Amphenol.RMA.Controllers
                 Description = rma.Description,
                 ExtensionNumber = rma.Ext,
                 Fax = rma.Fax,
-                Lines = await _m10DbCcontext.csexsw_coustumer
+                Lines = await _m10Db.csexsw_coustumer
                      .AsNoTracking()
                      .Where(x => x.CSEXSW_Rma == rma)
                      .Select(x => new RmaLineViewModel
@@ -3591,7 +3594,7 @@ namespace Amphenol.RMA.Controllers
         public async Task<IActionResult> DownloadAttachment(int id)
         {
 
-            var attachment = await _m10DbCcontext.CSEXSW_Attachmentrma
+            var attachment = await _m10Db.CSEXSW_Attachmentrma
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id);
 
@@ -3600,7 +3603,7 @@ namespace Amphenol.RMA.Controllers
                 return NotFound();
             }
 
-            var rma = await _m10DbCcontext.CSEXSW_Rma
+            var rma = await _m10Db.CSEXSW_Rma
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == attachment.RmaId);
 
@@ -3751,9 +3754,9 @@ namespace Amphenol.RMA.Controllers
         public IActionResult GetDocument(int id, string fecha)
         {
             string rmano = string.Empty;
-            if (_m10DbCcontext.CSEXSW_Rma.Any(s => s.Id == id))
+            if (_m10Db.CSEXSW_Rma.Any(s => s.Id == id))
             {
-                rmano = _m10DbCcontext.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault().Rmarequest;
+                rmano = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault().Rmarequest;
             }
 
             return Json(new { data = _contenedorTrabajo.CSEXSW_Attachmentrma.GetAll(a => a.RmaId == id), rmano = rmano });
@@ -3770,7 +3773,7 @@ namespace Amphenol.RMA.Controllers
         {
 
 
-            return Json(new { data = _500DbContext.imitmidx_sql });
+            return Json(new { data = _500Db.imitmidx_sql });
         }
 
         [HttpDelete]
@@ -3817,13 +3820,13 @@ namespace Amphenol.RMA.Controllers
         {
             try
             {
-                if (id <= 0 || !_m10DbCcontext.CSEXSW_Rma.Any(s => s.Id == id))
+                if (id <= 0 || !_m10Db.CSEXSW_Rma.Any(s => s.Id == id))
                 {
                     return Json(new { message = "Could not find record", orderNumber = "", wasSuccessful = false });
                 }
-                var rmano = _m10DbCcontext.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault().turno;
+                var rmano = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault().turno;
 
-                var existingOrder = _500DbContext.OEORDHDR_SQL
+                var existingOrder = _500Db.OEORDHDR_SQL
                     .AsNoTracking()
                     .Where(o => o.RmaNo.Trim() == rmano.Trim())
                     .FirstOrDefault();

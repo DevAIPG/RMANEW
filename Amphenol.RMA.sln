@@ -11,12 +11,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Amphenol.RMA.Models", "Amph
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Amphenol.RMA.Utilidades", "Amphenol.RMA.Utilidades\Amphenol.RMA.Utilidades.csproj", "{F18474C6-B0BA-DE17-9AA3-A06F2576B92F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Amphenol.RMA.ApprovalTests", "tests\Amphenol.RMA.ApprovalTests\Amphenol.RMA.ApprovalTests.csproj", "{76BD54A8-98A1-4747-9D36-D0B0D54854D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{76BD54A8-98A1-4747-9D36-D0B0D54854D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76BD54A8-98A1-4747-9D36-D0B0D54854D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76BD54A8-98A1-4747-9D36-D0B0D54854D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76BD54A8-98A1-4747-9D36-D0B0D54854D1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{70476CD3-C6A4-BD6B-BEB0-2CBE2C9159A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{70476CD3-C6A4-BD6B-BEB0-2CBE2C9159A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70476CD3-C6A4-BD6B-BEB0-2CBE2C9159A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
