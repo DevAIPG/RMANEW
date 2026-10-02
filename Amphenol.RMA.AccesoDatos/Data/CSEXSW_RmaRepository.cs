@@ -1191,8 +1191,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
                         if (!property.Metadata.IsNullable && property.CurrentValue == null)
                             throw new InvalidOperationException($"ERP field {property.Metadata.Name} cannot be null.");
                         if (property.CurrentValue is string value
-                            && property.Metadata.GetMaxLength() is int maxLength && value.Length > maxLength)
-                            throw new InvalidOperationException($"ERP field {property.Metadata.Name} exceeds {maxLength} characters.");
+                            && property.Metadata.GetMaxLength() is int maxLength)
+                            ErpFieldValidator.ValidateTextLength(property.Metadata.Name, value, maxLength);
                     }
                 }
 
