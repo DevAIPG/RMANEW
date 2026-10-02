@@ -38,7 +38,7 @@ namespace Amphenol.RMA.Models
         [StringLength(25)]
         public string oe_po_no { get; set; }
         [Column("bill_to_name")]
-        [StringLength(40)]
+        [StringLength(50)]
         public string bill_to_name { get; set; }
         [Column("bill_to_addr_1")]
         [StringLength(40)]
