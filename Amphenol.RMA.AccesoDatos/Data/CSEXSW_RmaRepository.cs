@@ -22,6 +22,7 @@ using System.Linq;
 using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace Amphenol.RMA.AccesoDatos.Data
 {
