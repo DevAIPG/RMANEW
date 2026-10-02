@@ -1,0 +1,13 @@
+#globalErrorModal {
+    border: 0;
+    border-radius: .5rem;
+    padding: 1.5rem;
+    width: calc(100% - 2rem);
+    max-width: 34rem;
+    box-shadow: 0 .5rem 2rem rgba(0, 0, 0, .25);
+    overflow-wrap: anywhere;
+}
+
+#globalErrorModal::backdrop { background: rgba(0, 0, 0, .5); }
+#globalErrorTitle { font-size: 1.4rem; }
+#globalErrorModal form { text-align: right; }

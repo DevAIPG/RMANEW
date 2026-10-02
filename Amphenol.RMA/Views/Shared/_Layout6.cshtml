@@ -89,6 +89,7 @@
             margin-top: 15px !important;
         }
     </style>
+    <link rel="stylesheet" href="~/css/global-errors.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
@@ -132,7 +133,10 @@
 
 
 
+    @await Html.PartialAsync("~/Views/Shared/_GlobalErrorModal.cshtml")
+    <script src="~/js/global-errors.js" asp-append-version="true"></script>
     <script src="~/lib/jquery/dist/jquery.min.js?1"></script>
+    <script>window.RmaErrors.attachAjaxHandler();</script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js?1"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js?1" asp-append-version="true"></script>
 

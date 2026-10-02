@@ -1,8 +1,21 @@
 # Atomic RMA approval across M10 and ERP
 
 Approval validates the request and prepares the full ERP header, every line,
-and any new inventory locations in memory before writing ERP data. It saves
-the M10 approval first, then updates the ERP number counter and saves ERP records.
+and any new inventory locations in memory before writing ERP data.
+
+Customer names are copied without trimming or truncation. The `bill_to_name`
+model limit is 50 to match the reported ERP column change. `ship_to_name` remains
+40 as shown in the supplied model; it must be updated separately if that SQL
+column is also widened. Length validation reads EF model metadata, not live SQL
+column sizes. Rebuild the solution and restart/redeploy the application after
+changing model annotations so it loads the updated Models assembly and EF model.
+Length validation ignores trailing ASCII space padding without changing the
+original value. This permits a three-character manufacturing location supplied
+from the four-character customer address field with one trailing space. Actual
+four-character codes remain invalid for the three-character `mfg_loc` column.
+Leading spaces, tabs, and other whitespace still count toward the field limit.
+
+It saves the M10 approval first, then updates the ERP number counter and saves ERP records.
 Both databases participate in one coordinated transaction. They commit together;
 a validation error, M10 save error, ERP save error, or transaction abort rolls
 back the approval and counter. No number is reserved or consumed separately.

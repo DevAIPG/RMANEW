@@ -80,14 +80,9 @@ namespace Amphenol.RMA
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             app.Use(async (context, next) => { context.Response.Headers.Remove("X-Frame-Options"); await next(); });
-            if (env.IsDevelopment())
+            app.UseExceptionHandler("/Error");
+            if (!env.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                app.UseExceptionHandler("/Error");
-
                 app.UseHsts();
             }
 
