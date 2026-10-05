@@ -48,7 +48,7 @@ public class RmaManualLineTests
     }
 
     [Fact]
-    public void ManualLineStillRequiresPartReturnCodeAndAmounts()
+    public void ManualLineStillRequiresPartReturnCodeAndQuantity()
     {
         var line = ValidLine();
         line.NoInvoice = true;
@@ -61,8 +61,24 @@ public class RmaManualLineTests
         Assert.Contains(nameof(line.PartNumber), errors);
         Assert.Contains(nameof(line.ReturnCode), errors);
         Assert.Contains(nameof(line.AuthorizedQuantity), errors);
-        Assert.Contains(nameof(line.Price), errors);
-        Assert.Contains(nameof(line.UnitCost), errors);
+
+    }
+
+    [Theory]
+    [InlineData(true, 0, 0, true)]
+    [InlineData(true, 10, 0, true)]
+    [InlineData(false, 0, 0, false)]
+    [InlineData(false, 10, 0, false)]
+    [InlineData(true, -1, 0, false)]
+    [InlineData(true, 0, -1, false)]
+    [InlineData(true, 5, 5, false)]
+    public void ZeroAmountsAreAllowedOnlyForManualLines(bool manual, int price, int cost, bool valid)
+    {
+        var line = ValidLine();
+        line.NoInvoice = manual;
+        line.Price = price;
+        line.UnitCost = cost;
+        Assert.Equal(valid, Validate(line).Count == 0);
     }
 
     private static RmaLineViewModel ValidLine() => new()

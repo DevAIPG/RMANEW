@@ -763,7 +763,8 @@ namespace Amphenol.RMA.Controllers
             {
                 if (rma.Totalrmavalues < 5000 && !vm.HasLineOverThreshold)
                 {
-                    rma.SetApprover(_autoApprover);
+                    approver = _autoApprover;
+                    rma.SetApprover(approver);
                     if (!string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase))
                     {
                         rma.ChangeRequestStatus(RmaRequestStatus.AutoApprove);
@@ -779,7 +780,7 @@ namespace Amphenol.RMA.Controllers
             {
                 switch (rma.Totalrmavalues)
                 {
-                    case > 0 and < 5000:
+                    case >= 0 and < 5000:
                         approver = qualityManager;
                         rma.SetApprover(approver);
                         break;
@@ -1155,7 +1156,7 @@ namespace Amphenol.RMA.Controllers
             {
                 switch (rma.Totalrmavalues)
                 {
-                    case > 0 and < 5000:
+                    case >= 0 and < 5000:
                         rma.SetApprover(qualityManager);
                         break;
                     case >= 5000 and < 20000:

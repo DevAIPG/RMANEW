@@ -5,6 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 function run() {
+    const handlers = {};
     const source = fs.readFileSync(path.join(__dirname, '../Amphenol.RMA/wwwroot/js/RmaRequest.js'), 'utf8');
     function collection(elements) {
         return {
@@ -27,7 +28,11 @@ function run() {
                 names.split(' ').forEach(name => this.toggleClass(name, false)); return this;
             },
             attr(name, value) { elements.forEach(x => { x[name] = value; }); return this; },
-            empty() { return this; }, trigger() { return this; }, ready() { return this; }, on() { return this; }
+            each(callback) { elements.forEach(x => callback.call(x)); return this; },
+            rules(operation, rules) { elements.forEach(x => { x.rules = rules; }); return this; },
+            closest() { return elements[0].ownerRow; },
+            empty() { return this; }, trigger() { return this; }, ready() { return this; },
+            on(event, selector, callback) { handlers[selector] = callback; return this; }
         };
     }
     function row(manual) {
@@ -38,15 +43,18 @@ function run() {
             fields[name] = { value: '', checked: false, classes: new Set() };
         }
         fields['no-invoice-input'].checked = manual;
-        return {
+        const result = {
             fields,
             find(selector) { return collection(selector.split(',').map(x => fields[x.trim().replace(/^\./, '')]).filter(Boolean)); }
         };
+        Object.values(fields).forEach(field => { field.ownerRow = result; });
+        return result;
     }
-    const $ = () => collection([]);
+    const $ = value => value && value.ownerRow ? collection([value]) : collection([]);
     let request;
     $.ajax = options => { request = options; };
-    const context = vm.createContext({ $, document: {}, DataTransfer: class {}, console });
+    let priceWarnings = 0;
+    const context = vm.createContext({ $, document: {}, DataTransfer: class {}, console, Swal: { fire: () => { priceWarnings++; } } });
     vm.runInContext(source, context);
     context.CalculateTotalRmaValue = () => {};
 
@@ -97,7 +105,20 @@ function run() {
     invoiceLine.fields['price-input'].value = '20';
     request.success([{ price: 10, std: 5, loc: 'MRM' }]);
     assert.equal(invoiceLine.fields['price-input'].value, '20');
-    return 'Passed 5 manual RMA line browser scenarios';
+    assert.equal(manual.fields['price-input'].min, 0);
+    assert.equal(switched.fields['price-input'].min, 0.01);
+    assert.equal(manual.fields['unitcost-input'].rules.min, 0);
+    manual.fields['price-input'].value = '0';
+    manual.fields['unitcost-input'].value = '0';
+    handlers['.price-input, .unitcost-input'].call(manual.fields['price-input']);
+    assert.equal(priceWarnings, 0);
+    assert.ok(!manual.fields['price-input'].classes.has('border-danger'));
+    switched.fields['price-input'].value = '0';
+    switched.fields['unitcost-input'].value = '0';
+    handlers['.price-input, .unitcost-input'].call(switched.fields['price-input']);
+    assert.equal(priceWarnings, 1);
+    assert.ok(switched.fields['price-input'].classes.has('border-danger'));
+    return 'Passed 6 manual RMA line browser scenarios';
 }
 
 module.exports = run;

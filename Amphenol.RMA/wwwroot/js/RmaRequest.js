@@ -203,7 +203,7 @@ $(document).on('input', '.price-input, .unitcost-input', function () {
     var unitPrice = parseFloat(unitPriceInput.val()).toFixed(2);
     var unitCost = parseFloat(unitCostInput.val());
 
-    if (unitPrice > unitCost) {
+    if (unitPrice > unitCost || (IsManualLine(selectedLineRow) && Number(unitPrice) === 0 && unitCost === 0)) {
         unitPriceInput.removeClass("border-danger");
         unitCostInput.removeClass("border-danger");
         CalculateTotalRmaValue();
@@ -361,10 +361,16 @@ function RefreshLineValidation() {
     const form = $('#LineTable').closest('form');
     form.removeData('validator').removeData('unobtrusiveValidation');
     $.validator.unobtrusive.parse(form);
+    $("#LineTable tbody tr").each(function () { ApplyInvoiceMode($(this), false); });
 }
 function ApplyInvoiceMode(row, reset) {
     if (!row.find('.no-invoice-input').length) return;
     const manual = IsManualLine(row);
+    const minimumAmount = manual ? 0 : 0.01;
+    row.find(".price-input, .unitcost-input").attr("min", minimumAmount);
+    row.find(".price-input, .unitcost-input").each(function () {
+        $(this).rules("add", { min: minimumAmount });
+    });
     if (reset) {
         row.find('.invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input')
             .val('').removeClass('border-danger input-validation-error');
