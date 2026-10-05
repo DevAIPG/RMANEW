@@ -13,4 +13,8 @@
     <ProjectReference Include="../../Amphenol.RMA.AccesoDatos/Amphenol.RMA.AccesoDatos.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../../Amphenol.RMA/appsettings*.json" Link="ApplicationSettings/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

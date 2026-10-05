@@ -10,20 +10,10 @@ using Xunit;
 [CollectionDefinition("Approval SQL", DisableParallelization = true)]
 public class ApprovalSqlCollection { }
 
-public sealed class ApprovalSqlFactAttribute : FactAttribute
-{
-    public ApprovalSqlFactAttribute()
-    {
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RMA_TEST_M10"))
-            || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RMA_TEST_ERP")))
-            Skip = "Set RMA_TEST_M10 and RMA_TEST_ERP to isolated SQL test clones.";
-    }
-}
-
 [Collection("Approval SQL")]
 public class ApprovalRetryTests
 {
-    [ApprovalSqlFact]
+    [Fact]
     public void ReturnedRequestCanBeEditedAndResubmissionLocksHeaderLinesAndAttachments()
     {
         var id = FixtureId("RMA_TEST_EDIT_LIFECYCLE_ID");
@@ -63,7 +53,7 @@ public class ApprovalRetryTests
         Assert.Equal(before, Snapshot(erp));
     }
 
-    [ApprovalSqlFact]
+    [Fact]
     public void StaleLegacyEditCannotEraseACommittedApprovalOrCreateAnotherRma()
     {
         var id = FixtureId("RMA_TEST_EDIT_PROTECTION_ID");
@@ -93,7 +83,7 @@ public class ApprovalRetryTests
         AssertCompleted(approvalM10, approvalErp, id);
     }
 
-    [ApprovalSqlFact]
+    [Fact]
     public void ConfiguredBypassUserCanApproveAnotherUsersRequestWithoutDuplicateApproval()
     {
         var id = FixtureId("RMA_TEST_BYPASS_ID");
@@ -117,7 +107,7 @@ public class ApprovalRetryTests
         Assert.Equal(committed, Snapshot(erp));
     }
 
-    [ApprovalSqlFact]
+    [Fact]
     public void ConfiguredBypassUserCanApproveBothStagesWithoutSkippingTheGmHandoff()
     {
         var id = FixtureId("RMA_TEST_BYPASS_DIRECTOR_ID");
@@ -148,7 +138,7 @@ public class ApprovalRetryTests
         AssertCompleted(m10, erp, id);
     }
 
-    [ApprovalSqlFact]
+    [Fact]
     public void ErpFailureRollsBackBothDatabasesAndCounter()
     {
         var id = FixtureId("RMA_TEST_ROLLBACK_ID");
@@ -176,7 +166,7 @@ public class ApprovalRetryTests
         Assert.Equal(int.Parse(before.Item1) + 1, int.Parse(Counter(retryErp)));
     }
 
-    [ApprovalSqlFact]
+    [Fact]
     public void M10SaveFailureLeavesErpUntouched()
     {
         var id = FixtureId("RMA_TEST_M10_FAILURE_ID");
@@ -197,7 +187,7 @@ public class ApprovalRetryTests
         Assert.True(string.IsNullOrWhiteSpace(failed.turno));
     }
 
-    [ApprovalSqlFact]
+    [Fact]
     public void InvalidLaterLinePreventsM10AndErpWrites()
     {
         var id = FixtureId("RMA_TEST_VALIDATION_FAILURE_ID");
@@ -230,7 +220,7 @@ public class ApprovalRetryTests
         }
     }
 
-    [ApprovalSqlFact]
+    [Fact]
     public async Task ConcurrentApprovalsCreateOneRmaAndOneApprovalResult()
     {
         var id = FixtureId("RMA_TEST_CONCURRENT_ID");
@@ -302,17 +292,10 @@ public class ApprovalRetryTests
         Environment.GetEnvironmentVariable(name)
         ?? throw new InvalidOperationException($"Set {name} to a fresh pending request ID."));
 
-    private static string TestConnection(string name)
-    {
-        var value = Environment.GetEnvironmentVariable(name)
-            ?? throw new InvalidOperationException($"Set {name}.");
-        return ApprovalTestConnection.Validate(value);
-    }
-
     private static DbContextM10 M10(SaveChangesInterceptor interceptor = null)
     {
         var options = new DbContextOptionsBuilder<DbContextM10>()
-            .UseSqlServer(TestConnection("RMA_TEST_M10"));
+            .UseSqlServer(ApprovalTestConfiguration.M10);
         if (interceptor != null) options.AddInterceptors(interceptor);
         return new DbContextM10(options.Options);
     }
@@ -320,7 +303,7 @@ public class ApprovalRetryTests
     private static DbContext500 Erp(SaveChangesInterceptor interceptor = null)
     {
         var options = new DbContextOptionsBuilder<DbContext500>()
-            .UseSqlServer(TestConnection("RMA_TEST_ERP"));
+            .UseSqlServer(ApprovalTestConfiguration.ERP);
         if (interceptor != null) options.AddInterceptors(interceptor);
         return new DbContext500(options.Options);
     }

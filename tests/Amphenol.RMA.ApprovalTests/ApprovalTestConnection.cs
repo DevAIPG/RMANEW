@@ -1,7 +1,16 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 internal static class ApprovalTestConnection
 {
+    public static (string M10, string ERP) ReadConfiguredConnections(IConfiguration configuration)
+    {
+        string Read(string name) => configuration.GetConnectionString(name)
+            ?? throw new InvalidOperationException($"Missing application connection string: {name}.");
+        // Validate both destinations before allowing either database to be used.
+        return (Validate(Read("ConnectionM10")), Validate(Read("Connection500")));
+    }
+
     public static string Validate(string connectionString)
     {
         var builder = new SqlConnectionStringBuilder(connectionString);

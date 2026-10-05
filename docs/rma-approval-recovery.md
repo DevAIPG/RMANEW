@@ -107,21 +107,31 @@ Build with the .NET 8 SDK:
 
     dotnet build Amphenol.RMA.sln
 
-Use the test M10/ERP databases and a Windows test host with working MSDTC. Set
-RMA_TEST_M10 and RMA_TEST_ERP to their connection strings. Each connection must
+Use the test M10/ERP databases and a Windows test host with working MSDTC.
+Integration tests read the application's `ConnectionStrings:ConnectionM10`
+and `ConnectionStrings:Connection500` settings. Each connection must
 target `AIO-POS` or `M10TestNA01` (case-insensitive); those are the approved test
 servers. Named instances and TCP ports on those hosts are accepted. Database
 names remain unchanged; no `_RmaApprovalTests` suffix is required. Other server
 names, IP addresses, and unlisted fully qualified names are rejected even if
 the database has the old suffix. No schema scripts are needed.
 
-Both variables must be present in the process running the tests; changing this
-server guard does not stop tests from skipping when a variable is missing.
-For example, set them in PowerShell and run the tests from that same terminal:
+The application `appsettings*.json` files are copied into the test output's
+`ApplicationSettings` directory at build time. Tests load the base settings,
+then settings for `DOTNET_ENVIRONMENT` / `ASPNETCORE_ENVIRONMENT` (default:
+Development), development user secrets from the application assembly, and
+environment variable overrides. The application and its background services
+are not started to load these settings. Both database destinations are validated
+before either test connection can be used. Missing settings or an unapproved
+server fail the tests rather than silently skipping them.
+
+No `RMA_TEST_M10` or `RMA_TEST_ERP` variables are needed. If the application
+settings already point to the approved test servers, use those settings directly.
+To override the connections for a test run without editing application files:
 
 ```powershell
-$env:RMA_TEST_M10 = 'Server=<APPROVED_TEST_SERVER>;Database=<M10_DATABASE>;Integrated Security=True;'
-$env:RMA_TEST_ERP = 'Server=<APPROVED_TEST_SERVER>;Database=<ERP_DATABASE>;Integrated Security=True;'
+$env:ConnectionStrings__ConnectionM10 = 'Server=<APPROVED_TEST_SERVER>;Database=<M10_DATABASE>;Integrated Security=True;'
+$env:ConnectionStrings__Connection500 = 'Server=<APPROVED_TEST_SERVER>;Database=<ERP_DATABASE>;Integrated Security=True;'
 ```
 
 Replace each placeholder with the correct test server/database and use the
@@ -160,8 +170,9 @@ The suite checks:
   the handoff between them.
 
 Tests modify the clones and consume fixtures; restore clones before rerunning.
-Without connection variables, tests are explicitly skipped. They have not been
-run on this workstation because it has .NET runtimes but no SDK.
+Integration tests no longer skip based on connection environment variables.
+They have not been run on this workstation because it has .NET runtimes but
+no SDK. Fixture request IDs are still required for the data-changing tests.
 
 `ApprovalProtectionTests` additionally checks finalized/partial assignment
 protection, the public approval action's identity parameters, and legacy writers

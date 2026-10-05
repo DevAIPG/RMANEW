@@ -1,7 +1,42 @@
 using Xunit;
+using Microsoft.Extensions.Configuration;
 
 public class ApprovalTestConnectionTests
 {
+    [Fact]
+    public void ReadsTheSameConnectionNamesAsTheApplication()
+    {
+        var m10 = "Server=M10TestNA01;Database=M10;Integrated Security=True;";
+        var erp = "Server=AIO-POS;Database=500;Integrated Security=True;";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["ConnectionStrings:ConnectionM10"] = m10,
+            ["ConnectionStrings:Connection500"] = erp
+        }).Build();
+        Assert.Equal((m10, erp), ApprovalTestConnection.ReadConfiguredConnections(configuration));
+    }
+
+    [Theory]
+    [InlineData("PRODUCTION", "AIO-POS")]
+    [InlineData("M10TestNA01", "PRODUCTION")]
+    public void EitherUnapprovedDestinationRejectsTheEntireConnectionPair(string m10Server, string erpServer)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["ConnectionStrings:ConnectionM10"] = $"Server={m10Server};Database=M10;Integrated Security=True;",
+            ["ConnectionStrings:Connection500"] = $"Server={erpServer};Database=500;Integrated Security=True;"
+        }).Build();
+        Assert.Throws<InvalidOperationException>(() => ApprovalTestConnection.ReadConfiguredConnections(configuration));
+    }
+
+    [Fact]
+    public void MissingApplicationSettingsFailInsteadOfSkipping()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            ApprovalTestConnection.ReadConfiguredConnections(new ConfigurationBuilder().Build()));
+        Assert.Contains("ConnectionM10", error.Message);
+    }
+
     [Theory]
     [InlineData("AIO-POS")]
     [InlineData("M10TestNA01")]
