@@ -174,6 +174,39 @@ Integration tests no longer skip based on connection environment variables.
 They have not been run on this workstation because it has .NET runtimes but
 no SDK. Fixture request IDs are still required for the data-changing tests.
 
+### Diagnosing fixture setup failures
+
+The latest configuration change enables the eight SQL tests that previously
+skipped; a missing fixture is a setup failure before approval runs. Each SQL
+test now prints the selected M10 and ERP server/database names without exposing
+credentials. Fixture variables refer to the internal `CSEXSW_Rma.Id`, not the
+displayed `Rmarequest` or ERP RMA number. If a fixture was selected on the other
+test server, change the test connection override or select a request in the
+database actually shown in test output.
+
+To find candidate fixtures, run this read-only query in the selected M10 test
+database. Confirm the customer's currency is USD and ERP master data is valid
+before choosing a fixture. Use different fresh IDs for each test.
+
+```sql
+SELECT TOP (20) r.Id, r.Rmarequest, r.Customer, r.Status, r.Sumbit,
+    r.turno, r.Totalrmavalues, r.res_id_approver
+FROM dbo.CSEXSW_Rma AS r
+WHERE r.Status = 'Pending'
+    AND r.Sumbit = 'Submitted'
+    AND (r.turno IS NULL OR LTRIM(RTRIM(r.turno)) = '')
+    AND r.Totalrmavalues >= 0 AND r.Totalrmavalues < 20000
+    AND r.res_id_approver > 0
+    AND EXISTS (SELECT 1 FROM dbo.csexsw_coustumer AS l WHERE l.RmaId = r.Id)
+ORDER BY r.Id DESC;
+```
+
+Set `RMA_TEST_CONCURRENT_ID` to one of those internal IDs and rerun the concurrency
+test. A successful run approves the fixture; restore the test data or choose a
+different fresh request before rerunning. Missing requests, already-approved
+fixtures, absent lines, and missing ERP counter setup now produce explicit
+messages rather than an unexplained `Sequence contains no elements` error.
+
 `ApprovalProtectionTests` additionally checks finalized/partial assignment
 protection, the public approval action's identity parameters, and legacy writers
 failing without opening SQL connections. These tests do not require database

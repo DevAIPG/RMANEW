@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Xunit;
+using Xunit.Abstractions;
 
 // These integration tests intentionally require isolated SQL Server clones.
 // Fixtures are consumed, so restore the clones before repeating the suite.
@@ -13,6 +14,15 @@ public class ApprovalSqlCollection { }
 [Collection("Approval SQL")]
 public class ApprovalRetryTests
 {
+    public ApprovalRetryTests(ITestOutputHelper output)
+    {
+        // Log destinations only, never credentials or full connection strings.
+        var m10 = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(ApprovalTestConfiguration.M10);
+        var erp = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(ApprovalTestConfiguration.ERP);
+        output.WriteLine($"M10 test destination: {m10.DataSource} / {m10.InitialCatalog}");
+        output.WriteLine($"ERP test destination: {erp.DataSource} / {erp.InitialCatalog}");
+    }
+
     [Fact]
     public void ReturnedRequestCanBeEditedAndResubmissionLocksHeaderLinesAndAttachments()
     {
@@ -113,7 +123,7 @@ public class ApprovalRetryTests
         var id = FixtureId("RMA_TEST_BYPASS_DIRECTOR_ID");
         using var m10 = M10();
         using var erp = Erp();
-        var request = m10.CSEXSW_Rma.Single(x => x.Id == id);
+        var request = RequireRequest(m10, id);
         var directorId = m10.HRRoles.Single(x => x.RoleID == 100031).EmpID;
         var generalManagerId = m10.HRRoles.Single(x => x.RoleID == 100032).EmpID;
         Assert.Equal(directorId, request.res_id_approver);
@@ -240,7 +250,7 @@ public class ApprovalRetryTests
             using var m10 = M10();
             using var erp = Erp();
             // Match the controller's pre-lock read to exercise stale tracking.
-            m10.CSEXSW_Rma.Single(x => x.Id == id);
+            RequireRequest(m10, id);
             ready.Signal();
             if (!start.Wait(TimeSpan.FromSeconds(15))) throw new TimeoutException();
             return Repository(m10, erp).Updateaprobar(id, "Concurrent test", userId);
@@ -262,15 +272,28 @@ public class ApprovalRetryTests
 
     private static CSEXSW_Rma PendingRequest(DbContextM10 m10, int id)
     {
-        var request = m10.CSEXSW_Rma.Single(x => x.Id == id);
-        Assert.Equal("Pending", request.Status);
-        Assert.Equal("Submitted", request.Sumbit);
-        Assert.True(string.IsNullOrWhiteSpace(request.turno));
+        var request = RequireRequest(m10, id);
+        Assert.True(request.Status == "Pending" && request.Sumbit == "Submitted",
+            $"Fixture Id={id} is not waiting for approval: Status='{request.Status}', Sumbit='{request.Sumbit}'. Select a fresh submitted pending request.");
+        Assert.True(string.IsNullOrWhiteSpace(request.turno),
+            $"Fixture Id={id} already has ERP RMA '{request.turno}'. Select a fresh request; successful approval tests consume their fixtures.");
         // Use fixtures below the two-stage threshold with valid ERP master data.
-        Assert.InRange(request.Totalrmavalues, 0, 19999);
-        Assert.True(request.res_id_approver > 0);
-        Assert.True(m10.csexsw_coustumer.Any(x => x.RmaId == id));
+        Assert.True(double.IsFinite(request.Totalrmavalues) && request.Totalrmavalues >= 0 && request.Totalrmavalues < 20000,
+            $"Fixture Id={id} must be a USD request below $20,000 for this test.");
+        Assert.True(request.res_id_approver > 0, $"Fixture Id={id} needs an assigned employee approver.");
+        Assert.True(m10.csexsw_coustumer.Any(x => x.RmaId == id), $"Fixture Id={id} has no request lines.");
         return request;
+    }
+
+    private static CSEXSW_Rma RequireRequest(DbContextM10 m10, int id)
+    {
+        var request = m10.CSEXSW_Rma.SingleOrDefault(x => x.Id == id);
+        if (request != null) return request;
+        var connection = m10.Database.GetDbConnection();
+        throw new InvalidOperationException(
+            $"No CSEXSW_Rma row with Id={id} exists in '{connection.Database}' on '{connection.DataSource}'. " +
+            "Set the fixture variable to an existing CSEXSW_Rma.Id in this test database, not the displayed Rmarequest or ERP RMA number. " +
+            "If this request exists on another test server, check the ConnectionM10 setting selected by the test environment.");
     }
 
     private static void AssertCompleted(DbContextM10 m10, DbContext500 erp, int id)
@@ -282,15 +305,29 @@ public class ApprovalRetryTests
             erp.OERDTFIL_SQL.Count(x => x.rma_no == request.turno));
     }
 
-    private static string Counter(DbContext500 erp) =>
-        erp.OERMACTL_SQL.AsNoTracking().Single(x => x.ID == 1).ctl_next_order_no;
+    private static string Counter(DbContext500 erp)
+    {
+        var counter = erp.OERMACTL_SQL.AsNoTracking().SingleOrDefault(x => x.ID == 1);
+        if (counter == null)
+        {
+            var connection = erp.Database.GetDbConnection();
+            throw new InvalidOperationException(
+                $"ERP test database '{connection.Database}' on '{connection.DataSource}' has no OERMACTL_SQL row with ID=1. Check Connection500 and test ERP setup.");
+        }
+        return counter.ctl_next_order_no;
+    }
 
     private static (string, int, int, int) Snapshot(DbContext500 erp) =>
         (Counter(erp), erp.OERHDFIL_SQL.Count(), erp.OERDTFIL_SQL.Count(), erp.iminvloc_sql.Count());
 
-    private static int FixtureId(string name) => int.Parse(
-        Environment.GetEnvironmentVariable(name)
-        ?? throw new InvalidOperationException($"Set {name} to a fresh pending request ID."));
+    private static int FixtureId(string name)
+    {
+        if (!int.TryParse(Environment.GetEnvironmentVariable(name), out var id) || id <= 0)
+            throw new InvalidOperationException(
+                $"Set {name} to a positive, existing CSEXSW_Rma.Id in the selected M10 test database. " +
+                "Use a fresh submitted pending request, not its displayed Rmarequest or ERP RMA number.");
+        return id;
+    }
 
     private static DbContextM10 M10(SaveChangesInterceptor interceptor = null)
     {
