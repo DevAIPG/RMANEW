@@ -13,7 +13,7 @@
         <label class="sr-only" for="Line_@(index)_NoInvoice">No invoice for this line</label>
     </td>
     <td>
-        <span class="no-invoice-placeholder text-muted d-none">Not applicable</span>
+        <span class="no-invoice-placeholder text-muted d-none font-weight-bold align-middle">N/A</span>
         <div class="input-group invoice-selection">
             <input class="form-control  invoice-input" type="text" readonly asp-for="InvoiceNumber" id="Line_@(index)_InvoiceNumber"
                    name="Lines[@(index)].InvoiceNumber" />
@@ -22,7 +22,7 @@
         <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
     </td>
     <td>
-        <span class="no-invoice-placeholder text-muted d-none">Not applicable</span>
+        <span class="no-invoice-placeholder text-muted d-none font-weight-bold align-middle">N/A</span>
         <div class="input-group sequence-selection">
             <input class="form-control  sequence-input" type="text" readonly asp-for="SequenceNumber" id="Line_@(index)_SequenceNumber"
                    name="Lines[@(index)].SequenceNumber" />
@@ -36,7 +36,6 @@
                    name="Lines[@(index)].PartNumber" />
             <button type="button" class="btn btn-sm btn-outline-secondary btn-search-partnumber d-none" title="Search ERP parts" aria-label="Search ERP parts"><i class="fa fa-search"></i></button>
         </div>
-        <small class="manual-line-help text-muted d-none">Select an ERP part, then enter the remaining fields.</small>
         <span class="manual-part-error text-danger d-none">Part number not found in ERP.</span>
         <span asp-validation-for="PartNumber" class="text-danger"></span>
     </td>
