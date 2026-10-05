@@ -671,6 +671,7 @@ namespace Amphenol.RMA.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(RmaViewModel vm, string submitAction)
         {
+            await ValidateManualRmaLines(vm.Lines);
             if (!vm.Lines.Any())
             {
                 ModelState.AddModelError(nameof(vm.Lines), "At least one line is required.");
@@ -842,6 +843,26 @@ namespace Amphenol.RMA.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+        private async Task ValidateManualRmaLines(List<RmaLineViewModel> lines)
+        {
+            if (lines == null) return;
+            var indexes = Request.Form["Lines.Index"].ToArray();
+            for (var index = 0; index < lines.Count; index++)
+            {
+                var line = lines[index];
+                if (!line.NoInvoice || string.IsNullOrWhiteSpace(line.PartNumber)) continue;
+                var part = line.PartNumber.Trim();
+                var item = await _500DbContext.imitmidx_sql.AsNoTracking()
+                    .Where(x => x.item_no.Trim() == part).Select(x => x.item_no).FirstOrDefaultAsync();
+                if (item == null)
+                {
+                    var formIndex = index < indexes.Length ? indexes[index] : index.ToString();
+                    ModelState.AddModelError($"Lines[{formIndex}].PartNumber", "Part number not found in ERP. Select an existing part.");
+                }
+                else line.PartNumber = item.Trim();
+            }
+        }
+
         private async Task SaveLines(int rmaId, List<RmaLineViewModel> vmLines)
         {
             if (rmaId is <= 0)
@@ -855,9 +876,9 @@ namespace Amphenol.RMA.Controllers
 
             var lines = vmLines.Select((line, index) => new csexsw_coustumer
             {
-                Invoice = line.InvoiceNumber ?? string.Empty,
+                Invoice = line.StoredInvoiceNumber,
                 Qty = decimal.Round(line.AuthorizedQuantity, 4),
-                Seq = (short)line.SequenceNumber,
+                Seq = line.GetStoredSequenceNumber(),
                 Car = line.GenerateCAR,
                 Coustumer = line.PartNumber ?? string.Empty,
                 Retur = line.ReturnCode ?? string.Empty,
@@ -1023,6 +1044,7 @@ namespace Amphenol.RMA.Controllers
                          AuthorizedQuantity = (int)x.Qty,
                          GenerateCAR = x.Car,
                          InvoiceNumber = x.Invoice,
+                         NoInvoice = x.Invoice == null || x.Invoice.Trim() == "" || x.Invoice.Trim() == "0",
                          PartNumber = x.Coustumer,
                          Price = x.Unit,
                          ReturnCode = x.Retur,
@@ -1052,6 +1074,7 @@ namespace Amphenol.RMA.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(RmaViewModel vm, string submitAction)
         {
+            await ValidateManualRmaLines(vm.Lines);
             if (!vm.Lines.Any())
             {
                 ModelState.AddModelError(nameof(vm.Lines), "At least one line is required.");
@@ -1238,9 +1261,9 @@ namespace Amphenol.RMA.Controllers
                         throw new InvalidOperationException($"RMA line {vmLine.Id} does not belong to RMA {rmaId}.");
                     }
 
-                    existingLine.Invoice = vmLine.InvoiceNumber ?? string.Empty;
+                    existingLine.Invoice = vmLine.StoredInvoiceNumber;
                     existingLine.Qty = decimal.Round(vmLine.AuthorizedQuantity, 4);
-                    existingLine.Seq = (short)vmLine.SequenceNumber;
+                    existingLine.Seq = vmLine.GetStoredSequenceNumber();
                     existingLine.Car = vmLine.GenerateCAR;
                     existingLine.Coustumer = vmLine.PartNumber ?? string.Empty;
                     existingLine.Retur = vmLine.ReturnCode ?? string.Empty;
@@ -1256,9 +1279,9 @@ namespace Amphenol.RMA.Controllers
                 {
                     var newLine = new csexsw_coustumer
                     {
-                        Invoice = vmLine.InvoiceNumber ?? string.Empty,
+                        Invoice = vmLine.StoredInvoiceNumber,
                         Qty = decimal.Round(vmLine.AuthorizedQuantity, 4),
-                        Seq = (short)vmLine.SequenceNumber,
+                        Seq = vmLine.GetStoredSequenceNumber(),
                         Car = vmLine.GenerateCAR,
                         Coustumer = vmLine.PartNumber ?? string.Empty,
                         Retur = vmLine.ReturnCode ?? string.Empty,
@@ -3564,6 +3587,7 @@ namespace Amphenol.RMA.Controllers
                          AuthorizedQuantity = (int)x.Qty,
                          GenerateCAR = x.Car,
                          InvoiceNumber = x.Invoice,
+                         NoInvoice = x.Invoice == null || x.Invoice.Trim() == "" || x.Invoice.Trim() == "0",
                          PartNumber = x.Coustumer,
                          Price = x.Unit,
                          ReturnCode = x.Retur,

@@ -10,11 +10,14 @@ namespace Amphenol.RMA.ViewModels
 
         [Required]
         public int RmaRequestId { get; set; }
-        [Required]
+        public bool NoInvoice { get; set; }
+        [StringLength(8)]
         public string InvoiceNumber { get; set; }
+        public int? SequenceNumber { get; set; }
+        public string StoredInvoiceNumber => NoInvoice ? "0" : InvoiceNumber?.Trim();
+        public short GetStoredSequenceNumber() => NoInvoice ? (short)0 : checked((short)(SequenceNumber ?? 0));
         [Required]
-        public int SequenceNumber { get; set; }
-        [Required]
+        [StringLength(20)]
         public string PartNumber { get; set; }
         public List<SelectableStringOption> Actions { get; } = [];
         [Required]
@@ -28,6 +31,7 @@ namespace Amphenol.RMA.ViewModels
         public decimal Price { get; set; }
         [Range(typeof(decimal), "0.01", "999999999.99", ErrorMessage = "Unit Cost must be greater than 0.")]
         public decimal UnitCost { get; set; }
+        [Required]
         public string ReturnCode { get; set; }
         public bool GenerateCAR { get; set; }
 
@@ -38,6 +42,13 @@ namespace Amphenol.RMA.ViewModels
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
+            if (!NoInvoice)
+            {
+                if (string.IsNullOrWhiteSpace(InvoiceNumber) || InvoiceNumber.Trim() == "0")
+                    yield return new ValidationResult("Select an invoice or choose No invoice.", [nameof(InvoiceNumber)]);
+                if (!SequenceNumber.HasValue || SequenceNumber <= 0 || SequenceNumber > short.MaxValue)
+                    yield return new ValidationResult("Select a valid invoice sequence.", [nameof(SequenceNumber)]);
+            }
             if (Price <= UnitCost)
             {
                 yield return new ValidationResult("Price must be greater than Unit Cost.", [nameof(Price)]);

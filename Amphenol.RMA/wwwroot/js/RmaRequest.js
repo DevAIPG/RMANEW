@@ -4,11 +4,13 @@ let sequenceTable = null;
 let selectedLineRow = null;
 let invoices = [];
 let nextRmaLineIndex = 0;
+let knownRmaParts = null;
 const attachmentStore = new DataTransfer();
 
 $(document).ready(function () {
     InitializeForm();
     initializeNextRmaLineIndex();
+    $("#LineTable tbody tr").each(function () { ApplyInvoiceMode($(this), false); });
 });
 $(document).on("click", ".btn-add-rma-line", function () {
     const index = nextRmaLineIndex++;
@@ -20,6 +22,8 @@ $(document).on("click", ".btn-add-rma-line", function () {
             html = html.replace(/__INDEX__/g, index);
 
             $("#LineTable tbody").append(html);
+            RefreshLineValidation();
+            ApplyInvoiceMode($("#LineTable tbody tr").last(), false);
         })
         .fail(function () {
             Swal.fire({
@@ -83,11 +87,12 @@ $(document).on('input', '#inputShipTo', function () {
 });
 $(document).on('click', '.btn-search-invoice', function () {
     selectedLineRow = $(this).closest('tr');
+    if (IsManualLine(selectedLineRow)) return;
     $("#InvoiceModal").modal("show");
 });
 $(document).on('input', '.invoice-input', function () {
     selectedLineRow = $(this).closest('tr');
-    if (!selectedLineRow) {
+    if (!selectedLineRow || IsManualLine(selectedLineRow)) {
         return;
     }
     var invoiceInput = selectedLineRow.find('.invoice-input');
@@ -102,6 +107,7 @@ $(document).on('input', '.invoice-input', function () {
 });
 $(document).on('click', '.btn-search-sequence', function () {
     selectedLineRow = $(this).closest('tr');
+    if (IsManualLine(selectedLineRow)) return;
     var invoice = selectedLineRow.find('.invoice-input').val();
     if (!invoice || invoice.trim() == '') {
         return;
@@ -117,7 +123,7 @@ $(document).on('click', '.select-sequence', function () {
     var table = $("#SequenceTable").DataTable();
     table.search('').draw();
 
-    if (!selectedLineRow) {
+    if (!selectedLineRow || IsManualLine(selectedLineRow)) {
         return;
     }
 
@@ -141,18 +147,21 @@ $(document).on('input', '.sequence-input', function () {
 });
 $(document).on('click', '.btn-search-partnumber', function () {
     selectedLineRow = $(this).closest('tr');
-    var invoice = selectedLineRow.find('.invoice-input').val();
-    var sequence = selectedLineRow.find('.sequence-input').val();
-    if ((!invoice || invoice.trim() == '') || (!sequence || sequence.trim() == '')) {
-        return;
-    }
+    if (!IsManualLine(selectedLineRow)) return;
     $("#PartNumberModal").modal("show");
+});
+$(document).on('change', '.no-invoice-input', function () {
+    ApplyInvoiceMode($(this).closest('tr'), true);
+});
+$(document).on('blur', '.partnumber-input', function () {
+    ValidateManualPart($(this).closest('tr'));
 });
 $(document).on('input', '.partnumber-input', function () {
     selectedLineRow = $(this).closest('tr');
     var partnumberInput = selectedLineRow.find('.partnumber-input');
 
     var partnumber = partnumberInput.val().trim();
+    selectedLineRow.find('.manual-part-error').addClass('d-none');
 
     $(this).valid();
 
@@ -320,19 +329,64 @@ $(document).on("input change", ".customer-input, .contact-input, .phone-input, .
 $(document).on("focus", ".quantity-input, .price-input, .unitcost-input", function () {
     $(this).trigger("select");
 });
-$(document).on("submit", "#newRmaForm", function () {
-    if ($(this).find(".border-danger").length > 0) {
-        e.preventDefault();
-
-        Swal.fire({
-            title: "Required information is missing",
-            text: "Please complete all highlighted fields before submitting the RMA.",
-            icon: "warning",
-            confirmButtonColor: "#0d6efd",
-            confirmButtonText: "OK"
-        });
+$(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
+    let valid = true;
+    $("#LineTable tbody tr").each(function () {
+        const row = $(this);
+        if (!row.find('.no-invoice-input').length) return;
+        if (IsManualLine(row)) {
+            if (!ValidateManualPart(row)) valid = false;
+        } else {
+            const invoice = (row.find('.invoice-input').val() || '').trim();
+            const sequence = Number(row.find('.sequence-input').val());
+            const invoiceValid = invoice.length > 0 && invoice !== '0';
+            const sequenceValid = Number.isInteger(sequence) && sequence > 0 && sequence <= 32767;
+            row.find('.invoice-input').toggleClass('border-danger', !invoiceValid);
+            row.find('.sequence-input').toggleClass('border-danger', !sequenceValid);
+            row.find('[data-valmsg-for$=".InvoiceNumber"]').text(invoiceValid ? '' : 'Select an invoice or choose No invoice.');
+            row.find('[data-valmsg-for$=".SequenceNumber"]').text(sequenceValid ? '' : 'Select an invoice sequence.');
+            valid = valid && invoiceValid && sequenceValid;
+        }
+    });
+    if (!valid || $(this).find('.border-danger:not(:disabled)').length > 0) {
+        event.preventDefault();
+        $(this).find('.border-danger:not(:disabled)').first().trigger('focus');
     }
 });
+
+function IsManualLine(row) {
+    return row.find('.no-invoice-input').prop('checked') === true;
+}
+function RefreshLineValidation() {
+    const form = $('#LineTable').closest('form');
+    form.removeData('validator').removeData('unobtrusiveValidation');
+    $.validator.unobtrusive.parse(form);
+}
+function ApplyInvoiceMode(row, reset) {
+    if (!row.find('.no-invoice-input').length) return;
+    const manual = IsManualLine(row);
+    if (reset) {
+        row.find('.invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input')
+            .val('').removeClass('border-danger input-validation-error');
+        row.find('[data-valmsg-for]').empty();
+        row.find('.manual-part-error').addClass('d-none');
+        CalculateTotalRmaValue();
+    }
+    row.find('.invoice-selection, .sequence-selection').toggleClass('d-none', manual);
+    row.find('.invoice-input, .sequence-input').prop('disabled', manual).removeClass('border-danger');
+    row.find('.no-invoice-placeholder, .manual-line-help, .btn-search-partnumber').toggleClass('d-none', !manual);
+    row.find('.partnumber-input').prop('readonly', !manual).attr('placeholder', manual ? 'Enter or search part number' : '');
+    if (manual && reset) row.find('.partnumber-input').trigger('focus');
+}
+function ValidateManualPart(row) {
+    if (!IsManualLine(row)) return true;
+    const part = (row.find('.partnumber-input').val() || '').trim();
+    const valid = part.length > 0 && (!knownRmaParts || knownRmaParts.has(part.toUpperCase()));
+    row.find('.partnumber-input').toggleClass('border-danger', !valid);
+    row.find('.manual-part-error').toggleClass('d-none', valid || part.length === 0);
+    return valid;
+}
+
 
 
 function InitializeForm() {
@@ -649,7 +703,7 @@ function SetInvoiceModalResult(invoice) {
     var table = $("#InvoiceTable").DataTable();
     table.search('').draw();
 
-    if (!selectedLineRow) {
+    if (!selectedLineRow || IsManualLine(selectedLineRow)) {
         return;
     }
 
@@ -710,6 +764,9 @@ function LoadSequenceTable(invoice) {
 
 //}
 function SetValuesBasedOnInvoice(invoice) {
+    const targetRow = selectedLineRow;
+    const targetSequence = targetRow && targetRow.find(".sequence-input").val();
+    if (!targetRow || IsManualLine(targetRow)) return;
     if (!invoice || invoice.trim() == '') {
         return;
     }
@@ -724,6 +781,8 @@ function SetValuesBasedOnInvoice(invoice) {
         async: true,
         cache: true,
         success: function (data) {
+            if (IsManualLine(targetRow) || targetRow.find(".invoice-input").val() !== invoice
+                || targetRow.find(".sequence-input").val() !== targetSequence) return;
             if (data[0] !== undefined) {
 
                 //$("#msgloc" + linea).fadeOut();
@@ -733,8 +792,8 @@ function SetValuesBasedOnInvoice(invoice) {
                 var unitPrice = parseFloat(data[0].price).toFixed(2);
                 var unitCost = parseFloat(data[0].std);
 
-                var unitPriceInput = selectedLineRow.find(".price-input");
-                var unitCostInput = selectedLineRow.find(".unitcost-input");
+                var unitPriceInput = targetRow.find(".price-input");
+                var unitCostInput = targetRow.find(".unitcost-input");
 
                 unitPriceInput.val(unitPrice);
                 unitCostInput.val(unitCost);
@@ -755,6 +814,7 @@ function LoadPartNumberTable() {
         cache: true,
         async: true,
         success: function success(data) {
+            knownRmaParts = new Set(data.data.map(item => item.item_no.trim().toUpperCase()));
             var table = $("#PartNumberTable").DataTable({
                 destroy: true,
                 deferRender: true,
@@ -790,7 +850,9 @@ function SetPartNumberModalResult(partnumber) {
         return;
     }
 
-    selectedLineRow.find('.partnumber-input').val(partnumber).trigger("input");
+    if (!IsManualLine(selectedLineRow)) return;
+    selectedLineRow.find('.partnumber-input').val(partnumber.trim()).trigger("input");
+    ValidateManualPart(selectedLineRow);
 
     $("#PartNumberModal").modal("hide");
 }
