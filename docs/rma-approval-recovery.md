@@ -107,9 +107,25 @@ Build with the .NET 8 SDK:
 
     dotnet build Amphenol.RMA.sln
 
-Use isolated M10/ERP clones and a Windows test host with working MSDTC. Set
-RMA_TEST_M10 and RMA_TEST_ERP to the clone connection strings. Both database
-names must end with _RmaApprovalTests. No schema scripts are needed.
+Use the test M10/ERP databases and a Windows test host with working MSDTC. Set
+RMA_TEST_M10 and RMA_TEST_ERP to their connection strings. Each connection must
+target `AIO-POS` or `M10TestNA01` (case-insensitive); those are the approved test
+servers. Named instances and TCP ports on those hosts are accepted. Database
+names remain unchanged; no `_RmaApprovalTests` suffix is required. Other server
+names, IP addresses, and unlisted fully qualified names are rejected even if
+the database has the old suffix. No schema scripts are needed.
+
+Both variables must be present in the process running the tests; changing this
+server guard does not stop tests from skipping when a variable is missing.
+For example, set them in PowerShell and run the tests from that same terminal:
+
+```powershell
+$env:RMA_TEST_M10 = 'Server=<APPROVED_TEST_SERVER>;Database=<M10_DATABASE>;Integrated Security=True;'
+$env:RMA_TEST_ERP = 'Server=<APPROVED_TEST_SERVER>;Database=<ERP_DATABASE>;Integrated Security=True;'
+```
+
+Replace each placeholder with the correct test server/database and use the
+authentication settings appropriate for those servers.
 Set RMA_TEST_ROLLBACK_ID, RMA_TEST_M10_FAILURE_ID,
 RMA_TEST_VALIDATION_FAILURE_ID, and RMA_TEST_CONCURRENT_ID to four distinct
 pending requests below $20,000 with valid approvers, lines, and ERP master data

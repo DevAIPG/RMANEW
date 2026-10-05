@@ -306,10 +306,7 @@ public class ApprovalRetryTests
     {
         var value = Environment.GetEnvironmentVariable(name)
             ?? throw new InvalidOperationException($"Set {name}.");
-        var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(value);
-        if (!builder.InitialCatalog.EndsWith("_RmaApprovalTests", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Test database names must end with _RmaApprovalTests.");
-        return value;
+        return ApprovalTestConnection.Validate(value);
     }
 
     private static DbContextM10 M10(SaveChangesInterceptor interceptor = null)
