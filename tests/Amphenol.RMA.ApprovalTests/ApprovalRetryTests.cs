@@ -7,15 +7,19 @@ using Xunit;
 using Xunit.Abstractions;
 
 // These integration tests intentionally require isolated SQL Server clones.
-// Fixtures are consumed, so restore the clones before repeating the suite.
+// Automatic selection uses distinct eligible requests; successful approvals consume them.
 [CollectionDefinition("Approval SQL", DisableParallelization = true)]
 public class ApprovalSqlCollection { }
 
 [Collection("Approval SQL")]
 public class ApprovalRetryTests
 {
+    private static readonly ApprovalFixtureSelector Fixtures = new(FindFixtureCandidates, Environment.GetEnvironmentVariable);
+    private readonly ITestOutputHelper _output;
+
     public ApprovalRetryTests(ITestOutputHelper output)
     {
+        _output = output;
         // Log destinations only, never credentials or full connection strings.
         var m10 = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(ApprovalTestConfiguration.M10);
         var erp = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(ApprovalTestConfiguration.ERP);
@@ -320,13 +324,57 @@ public class ApprovalRetryTests
     private static (string, int, int, int) Snapshot(DbContext500 erp) =>
         (Counter(erp), erp.OERHDFIL_SQL.Count(), erp.OERDTFIL_SQL.Count(), erp.iminvloc_sql.Count());
 
-    private static int FixtureId(string name)
+    private int FixtureId(string name)
     {
-        if (!int.TryParse(Environment.GetEnvironmentVariable(name), out var id) || id <= 0)
-            throw new InvalidOperationException(
-                $"Set {name} to a positive, existing CSEXSW_Rma.Id in the selected M10 test database. " +
-                "Use a fresh submitted pending request, not its displayed Rmarequest or ERP RMA number.");
+        var id = Fixtures.Select(name);
+        _output.WriteLine($"Fixture {name}: CSEXSW_Rma.Id={id} ({(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)) ? "automatically selected" : "manual override")})");
         return id;
+    }
+
+    private static IEnumerable<int> FindFixtureCandidates(string name, IReadOnlyCollection<int> excluded)
+    {
+        // Context creation validates BOTH connection destinations before querying.
+        using var m10 = M10();
+        using var erp = Erp();
+        var idsToExclude = excluded.ToArray();
+        var requests = m10.CSEXSW_Rma.AsNoTracking().Where(x =>
+            x.Status == "Pending" && x.Sumbit == "Submitted"
+            && (x.turno == null || x.turno.Trim() == "")
+            && x.res_id_approver > 0
+            && m10.csexsw_coustumer.Any(line => line.RmaId == x.Id)
+            && m10.humres.Any(employee => employee.res_id == x.res_id_approver));
+        if (idsToExclude.Length > 0)
+            requests = requests.Where(x => !idsToExclude.Contains(x.Id));
+
+        int directorId = 0, managerId = 0;
+        if (name == "RMA_TEST_BYPASS_DIRECTOR_ID")
+        {
+            var director = m10.HRRoles.SingleOrDefault(x => x.RoleID == 100031);
+            var manager = m10.HRRoles.SingleOrDefault(x => x.RoleID == 100032);
+            if (director == null || manager == null || director.EmpID <= 0 || manager.EmpID <= 0
+                || !m10.humres.Any(x => x.res_id == manager.EmpID))
+                throw new InvalidOperationException("The director-stage test requires quality director role 100031 and GM role 100032 in M10.");
+            directorId = director.EmpID;
+            managerId = manager.EmpID;
+            requests = requests.Where(x => x.Totalrmavalues >= 20000 && x.res_id_approver == directorId);
+        }
+        else
+            requests = requests.Where(x => x.Totalrmavalues >= 0 && x.Totalrmavalues < 20000);
+
+        foreach (var request in requests.OrderByDescending(x => x.Id).ToList())
+        {
+            var customerCode = request.Customer?.Trim();
+            if (string.IsNullOrWhiteSpace(customerCode) || !erp.arcusfil_sql.Any(x =>
+                x.cus_no.Trim() == customerCode && x.curr_cd.Trim() == "USD")) continue;
+            var lines = m10.csexsw_coustumer.AsNoTracking().Where(x => x.RmaId == request.Id).ToList();
+            if (lines.Count > short.MaxValue || lines.Any(line => string.IsNullOrWhiteSpace(line.Coustumer)
+                || !erp.imitmidx_sql.Any(item => item.item_no == line.Coustumer))) continue;
+            if (name == "RMA_TEST_BYPASS_ID" && !m10.humres.Any(x => x.res_id > 0
+                && x.res_id != request.res_id_approver && x.usr_id != null && x.usr_id.Trim() != "")) continue;
+            if (name == "RMA_TEST_BYPASS_DIRECTOR_ID" && !m10.humres.Any(x => x.res_id > 0
+                && x.res_id != directorId && x.res_id != managerId && x.usr_id != null && x.usr_id.Trim() != "")) continue;
+            yield return request.Id;
+        }
     }
 
     private static DbContextM10 M10(SaveChangesInterceptor interceptor = null)
