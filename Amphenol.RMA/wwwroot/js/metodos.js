@@ -128,7 +128,7 @@ function comprobarxmlHttpRequest() {
         }
     }
     if (!request)
-        alert("Error inicializando XMLHttpRequest!");
+        window.RmaErrors.show("Error inicializando XMLHttpRequest!");
 }
 function focusin() {
     $(document).on('focusin', function (e) {

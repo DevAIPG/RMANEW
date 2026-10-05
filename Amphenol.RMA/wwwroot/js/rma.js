@@ -155,11 +155,7 @@ function GenerateOrder(id) {
         },
         error: function (xhr) {
 
-            var err = xhr.responseJSON?.Error;
-
-            console.error('Error fetching RMA data:', err);
-
-            alert('Error: ' + err);
+            window.RmaErrors.showRequestError(xhr);
         }
     });
 }

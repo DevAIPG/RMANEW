@@ -595,7 +595,7 @@ function cargarDatatableRma() {
                 $('#meditrma').modal('show');
             },
             error: function (xhr) {
-                alert('Unable to load RMA details.');
+                window.RmaErrors.showRequestError(xhr);
             }
         });
 
@@ -888,7 +888,7 @@ function cargarDatatableRma() {
                 }
             },
             error: function (xhr) {
-                alert('Unable to load RMA details.');
+                window.RmaErrors.showRequestError(xhr);
             }
         });
         //$.ajax({
@@ -1659,10 +1659,6 @@ function reloadLineasControl() {
             });
 
 
-            $(document).on("click", "#btnsavelinea", function () {
-
-                alert("yes");
-            });
 
         }
 
@@ -1960,10 +1956,6 @@ function cargarDatatableRma2() {
                 });
 
 
-                $(document).on("click", "#btnsavelinea", function () {
-                    let id = $(this).data("id");
-                    alert(id);
-                });
                 //control open file 
 
                 $("#tblfiles").DataTable({

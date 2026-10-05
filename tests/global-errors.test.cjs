@@ -45,6 +45,28 @@ async function run() {
     aborted.listeners.unhandledrejection({ reason: { name: 'AbortError' } });
     assert.ok(!aborted.elements.globalErrorModal.open);
 
+    const handled = setup();
+    handled.window.RmaErrors.showRequestError({ status: 500, responseJSON: problem }, 'error');
+    handled.fail({ status: 500, responseJSON: problem }, 'error');
+    assert.equal(handled.elements.globalErrorReference.textContent, 'ref-123');
+    assert.equal(handled.elements.globalErrorMessage.textContent, problem.detail);
+
+    const handledAbort = setup();
+    handledAbort.window.RmaErrors.showRequestError({ status: 0, statusText: 'abort' });
+    assert.ok(!handledAbort.elements.globalErrorModal.open);
+
+    const tableError = setup();
+    const tableExtension = { errMode: 'alert' };
+    const warnings = [];
+    tableError.window.jQuery.fn = { dataTable: { ext: tableExtension } };
+    tableError.window.console = { error: (...args) => warnings.push(args) };
+    tableError.window.RmaErrors.attachDataTablesHandler();
+    tableExtension.errMode({}, 7, 'Technical table failure');
+    assert.ok(tableError.elements.globalErrorModal.open);
+    assert.ok(tableError.elements.globalErrorMessage.textContent.includes('table data'));
+    assert.ok(!tableError.elements.globalErrorMessage.textContent.includes('Technical'));
+    assert.equal(warnings[0][1], 'Technical table failure');
+
     const raw = setup();
     raw.fail({ status: 500, responseText: '<script>private exception</script>' }, 'error');
     assert.ok(raw.elements.globalErrorModal.open);
@@ -69,7 +91,7 @@ async function run() {
     scriptError.listeners.unhandledrejection({ reason: new Error('secret') });
     assert.ok(scriptError.elements.globalErrorModal.open);
     assert.ok(!scriptError.elements.globalErrorMessage.textContent.includes('secret'));
-    return 'Passed 7 global error modal scenarios';
+    return 'Passed 10 global error modal scenarios';
 }
 
 module.exports = run;

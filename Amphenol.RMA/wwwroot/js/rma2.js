@@ -21,7 +21,7 @@ $(document).on("click", "#btnviewlines", function () {
             $('#viewRmaModal').modal('show');
         },
         error: function (xhr) {
-            alert('Unable to load RMA details.');
+            window.RmaErrors.showRequestError(xhr);
         }
     });
 });

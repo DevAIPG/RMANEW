@@ -677,7 +677,6 @@ function loadPartNumbers(currentPage) {
 
         },
         complete: function () {
-            alert("complete");
             //$('body').loadingModal('hide');
             //$('body').loadingModal('destroy');
         },

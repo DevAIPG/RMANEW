@@ -617,7 +617,6 @@ function    cargarDatatableRma() {
                     let rcode = $("#rcodenew").val();
                     let id = $("#rmaid").val();
                     var actionselected = $("#sactions option:selected").val();
-                    alert(actionselected);
                     let linea = {
                         Invoice: invoice,
                         Coustumer: pn,
@@ -743,10 +742,6 @@ function    cargarDatatableRma() {
                 });
 
 
-                $(document).on("click", ".btnsavelinea", function () {
-                    let id = $(this).data("id");
-                    alert(id);
-                });
 
 
                 $("#tblfiles").DataTable({
@@ -771,8 +766,6 @@ function    cargarDatatableRma() {
                     let rma = $("#rmanumber").val();
                     let fname = $(this).text();
 
-                    alert(rma);
-                    alert(fname);
 
                     $(this).prop("href", "/Client/rma/OpenFileRMA?rmano=" + rma + "&filename=" + fname);
 
@@ -1562,10 +1555,6 @@ function reloadLineasControl() {
             });
 
 
-            $(document).on("click", "#btnsavelinea", function () {
-
-                alert("yes");
-            });
 
         }
 

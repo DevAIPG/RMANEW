@@ -33,17 +33,28 @@
         }
     }
 
+    function showRequestError(response, status) {
+        if (status === 'abort' || (response && response.statusText === 'abort')) return;
+        showResponse(response ? response.status : 0, response && response.responseJSON);
+    }
+
     window.RmaErrors = {
         show: show,
+        showRequestError: showRequestError,
+        attachDataTablesHandler: function () {
+            var table = window.jQuery && window.jQuery.fn && window.jQuery.fn.dataTable;
+            if (!table || !table.ext) return;
+            table.ext.errMode = function (settings, techNote, message) {
+                if (window.console) window.console.error('DataTables error:', message);
+                show('Unable to display table data. Refresh the page and try again.');
+            };
+        },
         attachAjaxHandler: function () {
             if (ajaxAttached || !window.jQuery) return;
             ajaxAttached = true;
             // A prefilter also covers requests that specify global: false.
             window.jQuery.ajaxPrefilter(function (options, originalOptions, xhr) {
-                xhr.fail(function (response, status) {
-                    if (status === 'abort' || response.statusText === 'abort') return;
-                    showResponse(response.status, response.responseJSON);
-                });
+                xhr.fail(showRequestError);
             });
         }
     };
