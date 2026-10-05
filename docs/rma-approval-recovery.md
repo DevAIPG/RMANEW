@@ -136,26 +136,40 @@ $env:ConnectionStrings__Connection500 = 'Server=<APPROVED_TEST_SERVER>;Database=
 
 Replace each placeholder with the correct test server/database and use the
 authentication settings appropriate for those servers.
-Fixture IDs are selected automatically from the configured test databases.
-Each test selects a different submitted pending request with no ERP assignment,
-an existing employee approver, a USD customer, and lines with ERP item records.
-Seven scenarios use requests below $20,000; the director bypass scenario needs
-a request at or above $20,000 assigned to role 100031, with GM role 100032.
-Bypass tests also locate an employee account with a nonblank username other
-than the assigned approver (and other than the GM for the director scenario).
-Selection is read-only; it does not create requests or reset approved ones.
-The request's remaining addresses, field lengths, and inventory data must still
-pass the real approval validation. No eligible request produces an explicit
-setup failure rather than a skipped test.
+Automatic setup creates a fresh M10 request and copied lines for each scenario,
+using an existing USD request as a template. Approved templates are preferred,
+so setup does not depend on having fresh pending requests or a high-value request.
+The original request, assignment, lines, attachments, and CAR references remain
+untouched. Fixture copies have new identities and eight-character request numbers
+starting with `T`, a diagnostic comment containing the source ID and scenario,
+no ERP assignment, and submitted pending status. CAR flags/references are cleared.
+Request and line inserts commit together in one local M10 transaction before the
+actual approval test begins.
+
+Normal fixtures total $1,000; the director fixture totals $25,000 and is assigned
+to the first employee in quality director role 100031, with a distinct employee
+in GM role 100032. Line quantities/prices match the fixture total. At least two
+lines are copied, duplicating the template's line when it has only one, so the
+invalid-later-line test exercises a valid earlier line. Bypass tests require an
+additional employee account with a nonblank username. Templates need existing
+ERP customer/item data and valid shipping, inventory, and field values; setup
+does not manufacture ERP master data or hide real approval validation failures.
+If no reusable template or required employee exists, setup fails explicitly.
+
+Both server destinations are checked before fixture creation, accepting only
+`AIO-POS` or `M10TestNA01`. Setup writes only M10 fixture requests and lines.
+ERP writes happen inside the actual approval tests. Generated fixtures and any
+approved ERP records are retained for diagnosis, so repeated runs grow the test
+data. The tests do not send notifications or enqueue CAR jobs.
 
 The optional overrides are `RMA_TEST_ROLLBACK_ID`, `RMA_TEST_M10_FAILURE_ID`,
 `RMA_TEST_VALIDATION_FAILURE_ID`, `RMA_TEST_CONCURRENT_ID`,
 `RMA_TEST_BYPASS_ID`, `RMA_TEST_BYPASS_DIRECTOR_ID`,
 `RMA_TEST_EDIT_PROTECTION_ID`, and `RMA_TEST_EDIT_LIFECYCLE_ID`.
-Unset old fixture variables to enable automatic selection. An override must be
+Unset old fixture variables to enable automatic fixture creation. An override must be
 a positive internal `CSEXSW_Rma.Id`; duplicate overrides are rejected and IDs
-reserved by overrides are excluded from automatic selection. Output reports
-each selected ID and whether it was automatic or explicitly configured.
+reserved by overrides are excluded from automatic fixture creation. Output reports
+each fixture ID and whether it was automatically created or explicitly configured.
 Confirm INVALID-TEST-ITEM is absent from ERP item master before running the
 invalid-line scenario. Run one copy of the suite at a time against these databases;
 fixture reservations apply within one test process.
@@ -178,9 +192,10 @@ The suite checks:
 - A configured bypass user can act at both director and GM stages while retaining
   the handoff between them.
 
-Tests modify the test databases and consume fixtures. For another run, provide
-fresh eligible requests or restore the isolated test data. Automatic selection
-will choose unused pending requests rather than previously approved requests.
+Tests modify the test databases. Automatic setup creates new copies on each run;
+manually overridden requests are consumed and must be replaced or restored before
+reusing those overrides. Restore isolated test data when needed to remove the
+accumulated generated requests and ERP approvals.
 Integration tests no longer skip based on connection environment variables.
 They have not been run on this workstation because it has .NET runtimes but
 no SDK. Fixture request ID variables are optional.
@@ -213,9 +228,9 @@ ORDER BY r.Id DESC;
 ```
 
 For a manual selection, set `RMA_TEST_CONCURRENT_ID` to one of those internal IDs
-and rerun the concurrency test. Otherwise leave it unset for automatic selection.
-A successful run approves the fixture; provide fresh pending requests or restore
-the isolated test data before rerunning. Missing requests, already-approved
+and rerun the concurrency test. Otherwise leave it unset for automatic creation.
+A successful run approves the fixture; manual overrides need a different fresh
+request or restored isolated test data before rerunning. Missing requests, already-approved
 fixtures, absent lines, and missing ERP counter setup now produce explicit
 messages rather than an unexplained `Sequence contains no elements` error.
 
