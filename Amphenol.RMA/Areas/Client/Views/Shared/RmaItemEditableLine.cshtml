@@ -34,7 +34,7 @@
         <div class="input-group">
             <input class="form-control  partnumber-input" type="text" maxlength="20" readonly asp-for="PartNumber" id="Line_@(index)_PartNumber"
                    name="Lines[@(index)].PartNumber" />
-            <button type="button" class="btn btn-sm btn-outline-secondary btn-search-partnumber d-none" title="Search ERP parts" aria-label="Search ERP parts"><i class="fa fa-search"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-search-partnumber d-none" title="Search for part number" aria-label="Search ERP parts"><i class="fa fa-search"></i></button>
         </div>
         <span class="manual-part-error text-danger d-none">Part number not found in ERP.</span>
         <span asp-validation-for="PartNumber" class="text-danger"></span>
