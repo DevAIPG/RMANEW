@@ -27,7 +27,10 @@ function run() {
             removeClass(names) {
                 names.split(' ').forEach(name => this.toggleClass(name, false)); return this;
             },
-            attr(name, value) { elements.forEach(x => { x[name] = value; }); return this; },
+            attr(name, value) {
+                if (value === undefined) return elements[0]?.[name];
+                elements.forEach(x => { x[name] = value; }); return this;
+            },
             each(callback) { elements.forEach(x => callback.call(x)); return this; },
             rules(operation, rules) {
                 elements.forEach(x => {
@@ -136,7 +139,51 @@ function run() {
     handlers['.price-input, .unitcost-input'].call(switched.fields['price-input']);
     assert.equal(priceWarnings, 1);
     assert.ok(switched.fields['price-input'].classes.has('border-danger'));
-    return 'Passed 7 manual RMA line browser scenarios';
+    // Exercise the shipped validator rules: invoice lookup costs are not rounded.
+    const validationSource = fs.readFileSync(path.join(__dirname,
+        '../Amphenol.RMA/wwwroot/lib/jquery-validation/dist/jquery.validate.js'), 'utf8');
+    function validatorMethod(name, nextName) {
+        const start = validationSource.indexOf(name + ': function');
+        const end = validationSource.indexOf(nextName + ': function', start);
+        const expression = validationSource.slice(start + name.length + 2, end)
+            .replace(/,\s*(?:\/\/[^\n]*\s*)*$/, '');
+        return vm.runInContext('(' + expression + ')', context);
+    }
+    const stepRule = validatorMethod('step', 'equalTo');
+    const minRule = validatorMethod('min', 'max');
+    const normalizeRule = validatorMethod('normalizeAttributeRule', 'attributeRules');
+    const validator = { optional: () => false };
+    const view = fs.readFileSync(path.join(__dirname,
+        '../Amphenol.RMA/Areas/Client/Views/Shared/RmaItemEditableLine.cshtml'), 'utf8');
+    const secondLine = row(false);
+    secondLine.fields['price-input'].value = '20.00';
+    secondLine.fields['unitcost-input'].value = '5.123456';
+    context.ApplyInvoiceMode(secondLine, false);
+    // The previous four-place step rejected this otherwise valid invoice cost.
+    secondLine.fields['unitcost-input'].type = 'number';
+    assert.equal(stepRule.call(validator, '5.123456', secondLine.fields['unitcost-input'], 0.0001), false);
+    function amountsValid(line) {
+        return ['price-input', 'unitcost-input'].every(name => {
+            const input = line.fields[name];
+            const tag = view.match(new RegExp('<input[^>]*class="[^"]*' + name + '[^>]*>'))[0];
+            const step = tag.match(/step="([^"]+)"/)[1];
+            const rules = {};
+            normalizeRule(rules, 'number', 'step', step);
+            input.type = 'number';
+            return minRule.call(validator, input.value, input, input.rules.min)
+                && (rules.step === undefined || stepRule.call(validator, input.value, input, rules.step));
+        });
+    }
+    assert.equal(amountsValid(manual), true, 'No invoice permits zero price and cost');
+    assert.equal(amountsValid(secondLine), true, 'Saving a mixed request preserves invoice cost precision');
+    assert.equal(amountsValid(switched), false, 'Invoice lines still reject zero amounts');
+    manual.fields['unitcost-input'].value = '-1';
+    assert.equal(amountsValid(manual), false, 'Manual lines still reject negative amounts');
+    for (const field of ['InvoiceNumber', 'SequenceNumber', 'PartNumber', 'AuthorizedQuantity', 'Price', 'UnitCost']) {
+        assert.ok(view.includes('data-valmsg-for="Lines[@(index)].' + field + '"'),
+            field + ' errors must appear beside the indexed line input');
+    }
+    return 'Passed 9 manual RMA line browser scenarios';
 }
 
 module.exports = run;

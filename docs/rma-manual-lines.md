@@ -6,7 +6,10 @@ invoice and sequence, keep part numbers read-only and enable the existing ERP pa
 and require the user to enter quantity, price, cost, location, action, and return
 code. Manual lines may use zero for both price and unit cost. Negative amounts
 remain invalid; for other amount combinations, price must exceed unit cost.
-Invoice-linked lines retain their positive price/cost requirements. Zero-total
+Invoice-linked lines retain their positive price/cost requirements. Price and cost
+accept decimal values without a fixed browser step so existing invoice costs
+with more than four decimal places remain valid. Field validation messages use
+the indexed line names and appear beside the affected input. Zero-total
 requests follow the existing lowest-value approval tier.
 
 Switching modes clears invoice, sequence, part, quantity, price, and cost so data
@@ -34,5 +37,5 @@ Switch each type in both directions and check that prior values clear. Confirm m
 Unknown parts posted directly must still fail server validation with no save. Submit and approve
 a valid manual line on a test server; verify ERP receives invoice 0 and sequence 0.
 
-Six browser scenarios and JavaScript syntax checks passed in the Node runtime.
+Nine browser scenarios and JavaScript syntax checks passed in the Node runtime.
 The .NET tests could not run on this workstation because the SDK is not installed.
