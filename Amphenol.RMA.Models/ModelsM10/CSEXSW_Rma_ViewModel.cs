@@ -10,6 +10,8 @@ namespace Amphenol.RMA.Models.ModelsM10
 {
     public class CSEXSW_Rma_ViewModel
     {
+        public bool CanEdit => RmaEditPolicy.CanEdit(Status, Sumbit, turno);
+
         public int Id { get; set; }
         public int qty { get; set; }
         public int parts { get; set; }

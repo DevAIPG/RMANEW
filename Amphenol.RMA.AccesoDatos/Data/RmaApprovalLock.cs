@@ -3,9 +3,9 @@ using System;
 
 namespace Amphenol.RMA.AccesoDatos.Data
 {
-    // A SQL session lock also covers the M10 save after the ERP commit.
+    // Hold the same session lock for edits and approvals until their saves commit.
     // Unlike an in-process lock, it serializes approvals across app instances.
-    internal sealed class RmaApprovalLock : IDisposable
+    public sealed class RmaApprovalLock : IDisposable
     {
         private readonly DbContextM10 _m10Db;
         private readonly string _resource;

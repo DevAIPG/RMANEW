@@ -1,39 +1,45 @@
 ﻿using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Hangfire;
+using System.Linq;
 using System;
 namespace Amphenol.RMA.AccesoDatos.Data
 {
     public class csexsw_coustumerRepository : Repository<csexsw_coustumer>, Icsexsw_coustumerRepository
     {
-        private readonly DbContextM10 _db;
+        private readonly DbContextM10 _m10Db;
         private readonly IConfiguration _configuration;
-        public csexsw_coustumerRepository(DbContextM10 db, IConfiguration configuration) : base(db)
+        public csexsw_coustumerRepository(DbContextM10 m10Db, IConfiguration configuration) : base(m10Db)
         {
-            _db = db;
+            _m10Db = m10Db;
             _configuration = configuration;
         }
 
         public void archivos(string archivodocumento, int idRMA)
         {
+            using var requestLock = LockEditableRequest(idRMA);
             var objDesdeDb = new CSEXSW_Attachmentrma();
             objDesdeDb.Documento = archivodocumento;
 
             objDesdeDb.RmaId = idRMA;
 
-            _db.CSEXSW_Attachmentrma.Add(objDesdeDb);
+            _m10Db.CSEXSW_Attachmentrma.Add(objDesdeDb);
 
-            _db.SaveChanges();
+            _m10Db.SaveChanges();
         }
 
 
 
+        [AutomaticRetry(Attempts = 0)]
         public void lineas(CSEXSW_Rma rma, decimal[] acttion, string[] invoice, short[] seq, decimal[] qty, string[] coustumer, int idRMA, string[] code, decimal[] unit, string[] checkcar, string[] loc, bool inicio, string[] actions)
         {
+            using var requestLock = LockEditableRequest(idRMA);
 
             //if (inicio == true)
             //{
-            //    //if (_db.csexsw_coustumer.Where(x => x.RmaId == idRMA).Count() > 0)
+            //    //if (_m10Db.csexsw_coustumer.Where(x => x.RmaId == idRMA).Count() > 0)
             //    //{
             //    //    string connectionString = _configuration.GetConnectionString("Connection100").ToString();
             //    //    var values = new List<Dictionary<string, object>>();
@@ -46,7 +52,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
             //    //        cn.Close();
             //    //    }
             //    //}
-            //    // _db.SaveChanges();
+            //    // _m10Db.SaveChanges();
             //}
 
             for (int i = 0; i < invoice.Length; i++)
@@ -67,16 +73,25 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     rma_seq_no = i + 1
                 };
 
-                _db.csexsw_coustumer.Add(objDesdeDbr);
+                _m10Db.csexsw_coustumer.Add(objDesdeDbr);
             }
 
+            _m10Db.SaveChanges();
+        }
+
+        private RmaApprovalLock LockEditableRequest(int requestId)
+        {
+            var requestLock = new RmaApprovalLock(_m10Db, requestId);
             try
             {
-                _db.SaveChanges();
+                var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
+                RmaApprovalGuard.EnsureEditable(request);
+                return requestLock;
             }
-            catch (Exception)
+            catch
             {
-                // Log exception
+                requestLock.Dispose();
+                throw;
             }
         }
     }

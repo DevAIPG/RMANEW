@@ -113,7 +113,7 @@ function cargarDatatableRma() {
                                             onclick="Customer_complaint('${row.customercomplait}')" data-bs-toggle="tooltip" data-bs-placement="right" title="View Customer Complaint">
                                         <i class="fa fa-comments"></i>
                                      </a>`;
-                            if (row.status != "Approved" && parseInt(row.res_id) == username) {
+                            if (row.canEdit === true && parseInt(row.res_id) == username) {
                                 const editButton = `
                                     <a class="btn btn-light btn-sm action-btn d-flex align-items-center justify-content-center"
                                        href="/Client/Rma/Edit?requestId=${row.id}&returnUrl=${encodeURIComponent(returnUrl)}" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit RMA">
@@ -1690,14 +1690,8 @@ function cargarDatatableRma2() {
                 "width": "105px",
                 "data": "id",
                 "render": function render(data, type, row) {
-                    const editButton = `
-                                    <a class="btn btn-light btn-sm action-btn d-flex align-items-center justify-content-center"
-                                       href="/Client/Rma/Edit?requestId=${row.id}&returnUrl=${encodeURIComponent(returnUrl)}" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit RMA">
-                                        <i class="fa fa-pen"></i>
-                                    </a>`;
                     return `
                         <div class="d-flex gap-1">
-                            ${editButton}
                             <a href="#" class="btn btn-sm btn-light action-btn d-flex" id="btnviewlines" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="View RMA">
                                 <span> <i class="fa fa-eye"></i></span>
                             </a>

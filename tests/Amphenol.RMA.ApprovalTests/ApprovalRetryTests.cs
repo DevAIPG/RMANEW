@@ -24,6 +24,76 @@ public sealed class ApprovalSqlFactAttribute : FactAttribute
 public class ApprovalRetryTests
 {
     [ApprovalSqlFact]
+    public void ReturnedRequestCanBeEditedAndResubmissionLocksHeaderLinesAndAttachments()
+    {
+        var id = FixtureId("RMA_TEST_EDIT_LIFECYCLE_ID");
+        using var m10 = M10();
+        using var erp = Erp();
+        var request = PendingRequest(m10, id);
+        Assert.Equal("Submitted", request.Sumbit);
+        var repository = Repository(m10, erp);
+        var children = new csexsw_coustumerRepository(m10, new ConfigurationBuilder().Build());
+        var before = Snapshot(erp);
+        var linesBefore = m10.csexsw_coustumer.Count(x => x.RmaId == id);
+        var filesBefore = m10.CSEXSW_Attachmentrma.Count(x => x.RmaId == id);
+        Assert.Throws<InvalidOperationException>(() => repository.Update(request));
+        Assert.Throws<InvalidOperationException>(() => children.archivos("blocked.txt", id));
+        Assert.Throws<InvalidOperationException>(() => children.lineas(
+            request, null, null, null, null, null, id, null, null, null, null, false, null));
+
+        repository.UpdateRema(id, "Return for changes");
+        m10.Entry(request).Reload();
+        Assert.True(request.CanEdit);
+        Assert.Equal(string.Empty, repository.Updateaprobar(id, "Not resubmitted", request.res_id_approver.ToString()));
+        // Exercise legacy callers that pass an already tracked request instance.
+        request.Contact = "Updated after return";
+        repository.Update(request);
+        Assert.Equal("Updated after return", m10.CSEXSW_Rma.AsNoTracking().Single(x => x.Id == id).Contact);
+
+        request.Status = "Pending";
+        request.Sumbit = "Not Submitted";
+        m10.SaveChanges();
+        Assert.Equal(string.Empty, repository.Updateaprobar(id, "Draft approval blocked", request.res_id_approver.ToString()));
+        request.Sumbit = "Submitted";
+        m10.SaveChanges();
+        Assert.Throws<InvalidOperationException>(() => repository.Update(request));
+        Assert.Throws<InvalidOperationException>(() => children.archivos("blocked-after-resubmit.txt", id));
+        Assert.Equal(linesBefore, m10.csexsw_coustumer.Count(x => x.RmaId == id));
+        Assert.Equal(filesBefore, m10.CSEXSW_Attachmentrma.Count(x => x.RmaId == id));
+        Assert.Equal(before, Snapshot(erp));
+    }
+
+    [ApprovalSqlFact]
+    public void StaleLegacyEditCannotEraseACommittedApprovalOrCreateAnotherRma()
+    {
+        var id = FixtureId("RMA_TEST_EDIT_PROTECTION_ID");
+        using var staleM10 = M10();
+        using var staleErp = Erp();
+        var staleRequest = PendingRequest(staleM10, id);
+        var userId = staleRequest.res_id_approver.ToString();
+        var staleRepository = Repository(staleM10, staleErp);
+        var reset = new CSEXSW_Rma { Id = id, Status = "Pending", turno = "" };
+
+        using var approvalM10 = M10();
+        using var approvalErp = Erp();
+        var before = Snapshot(approvalErp);
+        // A submitted request is protected before approval too.
+        Assert.Throws<InvalidOperationException>(() => staleRepository.Update(reset));
+        Assert.Equal(before, Snapshot(approvalErp));
+        Assert.Equal("Approved", Repository(approvalM10, approvalErp).Updateaprobar(id, "Approve", userId));
+        var committed = Snapshot(approvalErp);
+        var number = approvalM10.CSEXSW_Rma.AsNoTracking().Single(x => x.Id == id).turno;
+
+        Assert.Throws<InvalidOperationException>(() => staleRepository.Update(reset));
+        var protectedRequest = staleM10.CSEXSW_Rma.AsNoTracking().Single(x => x.Id == id);
+        Assert.Equal("Approved", protectedRequest.Status);
+        Assert.Equal(number, protectedRequest.turno);
+        Assert.Equal("AlreadyApproved", staleRepository.Updateaprobar(id, "Retry after blocked edit", userId));
+        Assert.Equal(committed, Snapshot(approvalErp));
+        AssertCompleted(approvalM10, approvalErp, id);
+    }
+
+    [ApprovalSqlFact]
     public void ConfiguredBypassUserCanApproveAnotherUsersRequestWithoutDuplicateApproval()
     {
         var id = FixtureId("RMA_TEST_BYPASS_ID");
@@ -58,6 +128,8 @@ public class ApprovalRetryTests
         var generalManagerId = m10.HRRoles.Single(x => x.RoleID == 100032).EmpID;
         Assert.Equal(directorId, request.res_id_approver);
         Assert.NotEqual("Approved", request.Status);
+        Assert.Equal("Pending", request.Status);
+        Assert.Equal("Submitted", request.Sumbit);
         Assert.True(string.IsNullOrWhiteSpace(request.turno));
         Assert.True(request.Totalrmavalues >= 20000);
         var bypassUser = m10.humres.AsNoTracking().First(x => x.res_id > 0
@@ -201,7 +273,8 @@ public class ApprovalRetryTests
     private static CSEXSW_Rma PendingRequest(DbContextM10 m10, int id)
     {
         var request = m10.CSEXSW_Rma.Single(x => x.Id == id);
-        Assert.NotEqual("Approved", request.Status);
+        Assert.Equal("Pending", request.Status);
+        Assert.Equal("Submitted", request.Sumbit);
         Assert.True(string.IsNullOrWhiteSpace(request.turno));
         // Use fixtures below the two-stage threshold with valid ERP master data.
         Assert.InRange(request.Totalrmavalues, 0, 19999);

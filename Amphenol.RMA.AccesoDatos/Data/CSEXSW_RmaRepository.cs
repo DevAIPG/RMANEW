@@ -1024,6 +1024,15 @@ namespace Amphenol.RMA.AccesoDatos.Data
                     $"Request {rma.Rmarequest} has an incomplete existing approval. Reconcile its ERP RMA before retrying.");
             }
 
+            var waitingForApproval = rma.Status == RmaRequestStatus.Pending.ToDisplayString()
+                && rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString();
+            var automaticApproval = currentUserId == _autoApprover.Id
+                && rma.res_id_approver == _autoApprover.Id
+                && rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString()
+                && rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString();
+            if (!waitingForApproval && !automaticApproval)
+                return string.Empty;
+
             var exchangeRate = GetRmaExchangeRate(rma);
 
             if (exchangeRate >= TwoStepAuthorizationThreshold)
@@ -2786,7 +2795,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             var objDesdeDb = _m10Db.CSEXSW_Rma.FirstOrDefault(s => s.Id == id);
 
-            objDesdeDb.Status = "Reject";
+            objDesdeDb.Status = RmaRequestStatus.Rejected.ToDisplayString();
 
 
             _m10Db.SaveChanges();
@@ -2860,7 +2869,17 @@ namespace Amphenol.RMA.AccesoDatos.Data
         }
         public void Update(CSEXSW_Rma rma)
         {
+            // A legacy submitter may pass the same tracked instance that we reload.
+            // Keep its proposed values separate from the persisted approval state.
+            rma = (CSEXSW_Rma)_m10Db.Entry(rma).CurrentValues.ToObject();
+            using var requestLock = new RmaApprovalLock(_m10Db, rma.Id);
             var objDesdeDb = _m10Db.CSEXSW_Rma.FirstOrDefault(s => s.Id == rma.Id);
+            if (objDesdeDb != null)
+                _m10Db.Entry(objDesdeDb).Reload();
+            RmaApprovalGuard.EnsureEditable(objDesdeDb);
+            if (!string.IsNullOrWhiteSpace(rma.turno)
+                || string.Equals(rma.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Only the approval process can assign an ERP RMA or approve a request.");
             objDesdeDb.Approver = rma.Approver;
             objDesdeDb.Contact = rma.Contact;
             objDesdeDb.Email = rma.Email;
@@ -2885,7 +2904,6 @@ namespace Amphenol.RMA.AccesoDatos.Data
             objDesdeDb.Rmarequest = rma.Rmarequest;
             objDesdeDb.Rmatypeofrequest = rma.Rmatypeofrequest;
             objDesdeDb.Customer = rma.Customer;
-            objDesdeDb.turno = rma.turno;
             objDesdeDb.Status = rma.Status;
             objDesdeDb.Comment = rma.Comment;
             objDesdeDb.Totalrmavalues = rma.Totalrmavalues;

@@ -8,6 +8,9 @@ namespace Amphenol.RMA.Models
 {
     public class CSEXSW_Rma
     {
+        [NotMapped]
+        public bool CanEdit => RmaEditPolicy.CanEdit(Status, Sumbit, turno);
+
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 

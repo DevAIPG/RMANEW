@@ -99,6 +99,55 @@ namespace Amphenol.RMA.Controllers
             _bypassApprovalModule = configuration.GetSection("ApprovalBypass").Get<ApprovalBypassSettings>();
         }
         public IConfiguration Configuration { get; }
+        private RmaApprovalLock LockEditableRequest(int requestId)
+        {
+            var requestLock = new RmaApprovalLock(_m10Db, requestId);
+            try
+            {
+                var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
+                RmaApprovalGuard.EnsureEditable(request);
+                var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+                var userId = string.IsNullOrWhiteSpace(username)
+                    ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+                if (!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
+                    throw new InvalidOperationException("Only the requester can edit this RMA.");
+                return requestLock;
+            }
+            catch
+            {
+                requestLock.Dispose();
+                throw;
+            }
+        }
+
+        private RmaApprovalLock LockPendingApproval(int requestId)
+        {
+            var requestLock = new RmaApprovalLock(_m10Db, requestId);
+            try
+            {
+                var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
+                if (request == null || !string.IsNullOrWhiteSpace(request.turno)
+                    || request.Status != RmaRequestStatus.Pending.ToDisplayString()
+                    || request.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString())
+                    throw new InvalidOperationException("This request is not waiting for approval.");
+                var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+                var userId = string.IsNullOrWhiteSpace(username)
+                    ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+                var bypass = !string.IsNullOrWhiteSpace(username)
+                    && _configuration.GetSection("ApprovalBypass:Users").GetChildren().Any(x =>
+                        string.Equals(x.Value?.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (!int.TryParse(userId, out var approverId)
+                    || (request.res_id_approver != approverId && !bypass))
+                    throw new InvalidOperationException("Only the assigned approver can return or reject this request.");
+                return requestLock;
+            }
+            catch
+            {
+                requestLock.Dispose();
+                throw;
+            }
+        }
+
         public async Task crearcar(csexsw_car objDesdeDbt, int idCAR)
         {
 
@@ -161,10 +210,12 @@ namespace Amphenol.RMA.Controllers
         [HttpPost]
         public IActionResult DoneRemark(int id)
         {
+            using var requestLock = LockEditableRequest(id);
             var rma = _m10Db.CSEXSW_Rma
                 .FirstOrDefault(x => x.Id == id);
 
-            if (rma == null) NotFound();
+            if (rma == null) return NotFound();
+            _m10Db.Entry(rma).Reload();
 
             if (rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
             {
@@ -178,6 +229,7 @@ namespace Amphenol.RMA.Controllers
                 }
             }
             rma.Status = RmaRequestStatus.Pending.ToDisplayString();
+            rma.Sumbit = RmaSubmitStatus.Submitted.ToDisplayString();
 
             _m10Db.SaveChanges();
 
@@ -187,6 +239,7 @@ namespace Amphenol.RMA.Controllers
         [HttpPost]
         public IActionResult Remark(string commentrema, int idrema)
         {
+            using var requestLock = LockPendingApproval(idrema);
             _contenedorTrabajo.CSEXSW_Rma.UpdateRema(idrema, commentrema);
 
             return RedirectToAction(nameof(Control));
@@ -455,8 +508,11 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult resubmitrechazo(int id)
         {
+            using var requestLock = LockEditableRequest(id);
             var rma = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+            _m10Db.Entry(rma).Reload();
             rma.Status = RmaRequestStatus.Pending.ToDisplayString();
+            rma.Sumbit = RmaSubmitStatus.Submitted.ToDisplayString();
             _m10Db.Entry(rma).State = EntityState.Modified;
             _m10Db.SaveChanges();
             return Json(true);
@@ -466,6 +522,7 @@ namespace Amphenol.RMA.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Desaprobar(string comment, int ids)
         {
+            using var requestLock = LockPendingApproval(ids);
             String cadena = User.Identity.Name;
             string delimitador = @"\";
             string[] valores = cadena.Split(delimitador);
@@ -508,16 +565,33 @@ namespace Amphenol.RMA.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<RedirectToActionResult> Aprobar(string commentt, int idsa, bool isAutoApproved = false)
+        public Task<RedirectToActionResult> Aprobar(string commentt, int idsa)
         {
             String cadena = User.Identity.Name;
             string delimitador = @"\";
             string[] valores = cadena.Split(delimitador);
             string usuario = valores[1];
 
-            string userId = isAutoApproved ? _autoApprover.Id.ToString() : _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
+            string userId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
+            return CompleteApproval(commentt, idsa, userId, false);
+        }
+
+        private Task<RedirectToActionResult> ApproveAutomatically(int requestId)
+        {
+            var request = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == requestId);
+            if (request == null || request.res_id_approver != _autoApprover.Id
+                || request.Status != RmaRequestStatus.AutoApprove.ToDisplayString())
+                throw new InvalidOperationException("The request is not eligible for automatic approval.");
+
+            return CompleteApproval("RMA auto-approved", requestId, _autoApprover.Id.ToString(), true);
+        }
+
+        private async Task<RedirectToActionResult> CompleteApproval(string commentt, int idsa, string userId, bool isAutoApproved)
+        {
 
             var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == idsa);
+            if (rma == null)
+                throw new InvalidOperationException("The RMA request was not found.");
             var originalApprover = rma.Approver;
             // Updateaprobar returns "Approved" only after M10 and ERP commit.
             // No CAR jobs, reports, or approval notifications run before then.
@@ -797,22 +871,24 @@ namespace Amphenol.RMA.Controllers
                 }
             }
 
-            await using var transaction = await _m10Db.Database.BeginTransactionAsync();
-
-            try
+            await using (var transaction = await _m10Db.Database.BeginTransactionAsync())
             {
-                await _m10Db.CSEXSW_Rma.AddAsync(rma);
-                await _m10Db.SaveChangesAsync();
 
-                await SaveLines(rma.Id, vm.Lines);
-                await SaveAttachments(rma, vm.UploadedFiles);
+                try
+                {
+                    await _m10Db.CSEXSW_Rma.AddAsync(rma);
+                    await _m10Db.SaveChangesAsync();
 
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
+                    await SaveLines(rma.Id, vm.Lines);
+                    await SaveAttachments(rma, vm.UploadedFiles);
+
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
 
             //BackgroundJob.Enqueue(() => SendRmaCreationNotification(idRma, approvalFlow));
@@ -821,7 +897,7 @@ namespace Amphenol.RMA.Controllers
 
             if (rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString())
             {
-                await Aprobar("RMA auto-approved", rma.Id, true);
+                await ApproveAutomatically(rma.Id);
             }
             else
             {
@@ -966,31 +1042,15 @@ namespace Amphenol.RMA.Controllers
                 return View(rmaViewModel);
             }
 
-            var qualityManager = GetQualityManager(rma.Wherebuilt);
-            var qualityDirector = GetEmployeeByRole(100031);
-            var generalManager = GetEmployeeByRole(100032);
-
             var isRequester = rma.res_id == requesterUserId;
-
-            var isApprover =
-                rma.res_id_approver == qualityManager.Id ||
-                rma.res_id_approver == qualityDirector.Id ||
-                rma.res_id_approver == generalManager.Id;
-
-            var isPending = rma.Status == RmaRequestStatus.Pending.ToDisplayString();
-
-            var isFinalized =
-                rma.Status == RmaRequestStatus.Approved.ToDisplayString() ||
-                rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString();
-
-            var canEdit =
-                (isRequester && !isFinalized) ||
-                (isApprover && isPending);
+            var canEdit = isRequester && rma.CanEdit;
 
             if (!canEdit)
             {
                 TempData["ErrorTitle"] = "Access Denied";
-                TempData["ErrorMessage"] = "You don't have permission to edit this RMA.";
+                TempData["ErrorMessage"] = rma.CanEdit
+                    ? "Only the requester can edit this RMA."
+                    : "This RMA cannot be edited while awaiting approval or after approval. Ask the approver to return it for changes.";
                 return View(rmaViewModel);
             }
 
@@ -1074,12 +1134,16 @@ namespace Amphenol.RMA.Controllers
 
             string customerPartNumber = vm.Lines.FirstOrDefault().PartNumber ?? "";
 
+            using var requestLock = LockEditableRequest(vm.RequestId);
             var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == vm.RequestId);
 
             if (rma is null)
             {
                 return NotFound();
             }
+
+            await _m10Db.Entry(rma).ReloadAsync();
+            RmaApprovalGuard.EnsureEditable(rma);
 
             string requestStatus = string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase) ?
                 rma.Status : RmaRequestStatus.Pending.ToDisplayString();
@@ -1151,34 +1215,36 @@ namespace Amphenol.RMA.Controllers
             var filesToDelete = new List<string>();
             var newlyCreatedFiles = new List<string>();
 
-            await using var transaction = await _m10Db.Database.BeginTransactionAsync();
-
-            try
+            await using (var transaction = await _m10Db.Database.BeginTransactionAsync())
             {
-                //update lines
-                await UpdateLines(rma.Id, vm.Lines);
-                // Update / insert / delete attachments
-                var attachmentResult = await UpdateAttachments(rma, vm.Attachments, vm.UploadedFiles);
 
-                filesToDelete = attachmentResult.FilesToDelete;
-                newlyCreatedFiles = attachmentResult.NewlyCreatedFiles;
-
-                await _m10Db.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                // DB rolled back, so remove files that were created
-                foreach (var filePath in newlyCreatedFiles)
+                try
                 {
-                    if (System.IO.File.Exists(filePath))
-                    {
-                        System.IO.File.Delete(filePath);
-                    }
+                    //update lines
+                    await UpdateLines(rma.Id, vm.Lines);
+                    // Update / insert / delete attachments
+                    var attachmentResult = await UpdateAttachments(rma, vm.Attachments, vm.UploadedFiles);
+
+                    filesToDelete = attachmentResult.FilesToDelete;
+                    newlyCreatedFiles = attachmentResult.NewlyCreatedFiles;
+
+                    await _m10Db.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-                throw;
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    // DB rolled back, so remove files that were created
+                    foreach (var filePath in newlyCreatedFiles)
+                    {
+                        if (System.IO.File.Exists(filePath))
+                        {
+                            System.IO.File.Delete(filePath);
+                        }
+                    }
+                    throw;
+                }
             }
 
             // Only delete old files AFTER successful DB commit
@@ -1194,7 +1260,7 @@ namespace Amphenol.RMA.Controllers
             {
                 if (rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString())
                 {
-                    await Aprobar("RMA auto-approved", rma.Id, true);
+                    await ApproveAutomatically(rma.Id);
                 }
             }
 
@@ -1569,6 +1635,8 @@ namespace Amphenol.RMA.Controllers
         public IActionResult Save(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
                 bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string rmareason, string[] actions)
         {
+            using var requestLock = id > 0 && _m10Db.CSEXSW_Rma.AsNoTracking().Any(x => x.Id == id)
+                ? LockEditableRequest(id) : null;
 
             csexsw_coustumerVM rma = new csexsw_coustumerVM()
             {
@@ -1722,6 +1790,8 @@ namespace Amphenol.RMA.Controllers
         public IActionResult Done(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
             bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string[] actions)
         {
+            using var requestLock = LockEditableRequest(id);
+            using var transaction = _m10Db.Database.BeginTransaction();
 
             csexsw_coustumerVM rma = new csexsw_coustumerVM()
             {
@@ -1771,8 +1841,7 @@ namespace Amphenol.RMA.Controllers
             rma.CSEXSW_Rma.Preparado = var.Trim();
             rma.CSEXSW_Rma.Status = "Pending";
             rma.CSEXSW_Rma.Sumbit = "Submitted";
-            _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-            _contenedorTrabajo.Save();
+
 
             if (inicio == true)
             {
@@ -1803,6 +1872,8 @@ namespace Amphenol.RMA.Controllers
                         }
                     }
                 }
+                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
+                transaction.Commit();
                 return Json(new { data = "Primeras lineas" });
 
 
@@ -1813,16 +1884,19 @@ namespace Amphenol.RMA.Controllers
 
 
 
-                BackgroundJob.Schedule(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions),
-       TimeSpan.FromSeconds(10));
+                _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions);
 
 
 
+                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
+                transaction.Commit();
                 return Json(new { data = "Lineas creadas" });
 
             }
 
 
+            _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
+            transaction.Commit();
             return Json(new { data = "Terminado" });
 
 
@@ -1849,6 +1923,8 @@ namespace Amphenol.RMA.Controllers
         public IActionResult Saveedit(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
             bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc)
         {
+            using var requestLock = LockEditableRequest(id);
+            var currentRequest = _m10Db.CSEXSW_Rma.AsNoTracking().Single(x => x.Id == id);
             var resid = getResId();
             csexsw_coustumerVM rma = new csexsw_coustumerVM()
             {
@@ -1874,13 +1950,13 @@ namespace Amphenol.RMA.Controllers
             rma.CSEXSW_Rma.Description = description;
             rma.CSEXSW_Rma.Preparado = "";
             rma.CSEXSW_Rma.RMA500 = rma500;
-            rma.CSEXSW_Rma.Sumbit = rmasumbit;
+            rma.CSEXSW_Rma.Sumbit = currentRequest.Sumbit;
             rma.CSEXSW_Rma.Rmarequest = Rmarequest;
             rma.CSEXSW_Rma.Id = id;
             rma.CSEXSW_Rma.Rmatypeofrequest = rmatypeofrequest;
             rma.CSEXSW_Rma.Customer = client;
             rma.CSEXSW_Rma.turno = "";
-            rma.CSEXSW_Rma.Status = rmastatus;
+            rma.CSEXSW_Rma.Status = currentRequest.Status;
             rma.CSEXSW_Rma.Comment = comment;
             rma.CSEXSW_Rma.Totalrmavalues = double.Parse(total.ToString("#.####"));
 
@@ -1897,13 +1973,12 @@ namespace Amphenol.RMA.Controllers
 
             rma.CSEXSW_Rma.Preparado = fullname;
             rma.CSEXSW_Rma.res_id = int.Parse(resid);
-            _m10Db.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
-            _m10Db.SaveChanges();
+            _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
             //_contenedorTrabajo.Save();
             if (inicio == true)
             {
 
-                BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, null));
+                _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, null);
 
                 //_contenedorTrabajo.Save();
 
@@ -1950,8 +2025,7 @@ namespace Amphenol.RMA.Controllers
 
 
 
-                BackgroundJob.Schedule(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, null),
-       TimeSpan.FromSeconds(10));
+                _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, null);
 
 
 
@@ -1974,6 +2048,8 @@ namespace Amphenol.RMA.Controllers
         public IActionResult DeleteLinea(int id)
         {
             var d = _m10Db.csexsw_coustumer.Where(s => s.Id == id).FirstOrDefault();
+            if (d == null) return NotFound();
+            using var requestLock = LockEditableRequest(d.RmaId);
             _m10Db.csexsw_coustumer.Remove(d);
             var r = _m10Db.SaveChanges();
             return Json(r > 0 ? true : false);
@@ -1983,6 +2059,8 @@ namespace Amphenol.RMA.Controllers
         {
 
             var l = JsonConvert.DeserializeObject<csexsw_coustumer>(line);
+            if (l == null) return BadRequest();
+            using var requestLock = LockEditableRequest(l.RmaId);
             _m10Db.csexsw_coustumer.Add(l);
             var result = _m10Db.SaveChanges();
             return Json(result > 0 ? true : false);
@@ -2003,6 +2081,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult SubmitRMA(int id)
         {
+            using var requestLock = LockEditableRequest(id);
             bool inicio = true;
             bool finalizado = false;
             var num = "1";
@@ -2265,6 +2344,9 @@ namespace Amphenol.RMA.Controllers
             if (_m10Db.CSEXSW_Attachmentrma.Any(s => s.Id == id))
             {
                 var file = _m10Db.CSEXSW_Attachmentrma.Where(S => S.Id == id).FirstOrDefault();
+                using var requestLock = LockEditableRequest(file.RmaId);
+                var parent = _m10Db.CSEXSW_Rma.AsNoTracking().Single(x => x.Id == file.RmaId);
+                directoryfile = Path.Combine(rootE, "RMA", parent.Rmarequest.Trim(), "Attachments", file.Documento);
                 _m10Db.CSEXSW_Attachmentrma.Remove(file);
                 var deleted = _m10Db.SaveChanges();
                 if (deleted > 0)
@@ -2292,6 +2374,7 @@ namespace Amphenol.RMA.Controllers
                 var directoryrma = Path.Combine(rootE, "RMA", rmano, "Attachments");
 
                 int idrma = _m10Db.CSEXSW_Rma.Where(s => s.Rmarequest.Trim() == rmano.Trim()).FirstOrDefault().Id;
+                using var requestLock = LockEditableRequest(idrma);
 
                 if (!Directory.Exists(directoryrma))
                 {
@@ -3483,6 +3566,8 @@ namespace Amphenol.RMA.Controllers
         public IActionResult UpdateLinea(int id, string actionn, string loc, decimal qty, decimal price, decimal unitcost, string rcode, bool car)
         {
             var linea = _m10Db.csexsw_coustumer.Where(s => s.Id == id).FirstOrDefault();
+            if (linea == null) return NotFound();
+            using var requestLock = LockEditableRequest(linea.RmaId);
             linea.Action = actionn;
             linea.Loc = loc;
             linea.Qty = qty;
@@ -3499,6 +3584,7 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult UpdateRMA(int id, string where, string desc, string phone, string ext, string fax, float totalrma, string po, string contact, string type, string email, string comments, string reason)
         {
+            using var requestLock = LockEditableRequest(id);
             var rma = _m10Db.CSEXSW_Rma.Where(S => S.Id == id).FirstOrDefault();
             rma.Wherebuilt = where;
             rma.Description = desc;
@@ -3689,11 +3775,11 @@ namespace Amphenol.RMA.Controllers
         }
 
         [HttpPut]
-        public IActionResult Apruebo(int id)
+        public async Task<IActionResult> Apruebo(int id)
         {
 
-            _contenedorTrabajo.CSEXSW_Rma.UpdateAprove(id);
-            _contenedorTrabajo.Save();
+            using var requestLock = LockPendingApproval(id);
+            await Aprobar(null, id);
 
             return Json(new { success = true, message = "Approved RMA" });
 
@@ -3702,6 +3788,7 @@ namespace Amphenol.RMA.Controllers
         [HttpPut]
         public IActionResult Rechazo(int id)
         {
+            using var requestLock = LockPendingApproval(id);
 
             _contenedorTrabajo.CSEXSW_Rma.UpdateRechazo(id);
             _contenedorTrabajo.Save();
@@ -3782,6 +3869,8 @@ namespace Amphenol.RMA.Controllers
 
 
             var articuloDesdeDb = _contenedorTrabajo.CSEXSW_Attachmentrma.Get(id);
+            if (articuloDesdeDb == null) return NotFound();
+            using var requestLock = LockEditableRequest(articuloDesdeDb.RmaId);
             string rutaDirectorioPrincipal = _hostingEnvironment.WebRootPath;
 
             var ruta = @"\documents\documents\rma\" + articuloDesdeDb.Documento;
@@ -3804,6 +3893,7 @@ namespace Amphenol.RMA.Controllers
         [HttpDelete]
         public IActionResult Delete(int id)
         {
+            using var requestLock = LockEditableRequest(id);
             var objFromDb = _contenedorTrabajo.CSEXSW_Rma.Get(id);
             if (objFromDb == null)
             {

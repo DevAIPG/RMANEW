@@ -4,9 +4,10 @@ Approval validates the request and prepares the full ERP header, every line,
 and any new inventory locations in memory before writing ERP data.
 
 Customer names are copied without trimming or truncation. The `bill_to_name`
-model limit is 50 to match the reported ERP column change. `ship_to_name` remains
-40 as shown in the supplied model; it must be updated separately if that SQL
-column is also widened. Length validation reads EF model metadata, not live SQL
+and `ship_to_name` model limits are both 40, preserving the original ERP header
+field limits. Names with more than 40 non-padding characters fail validation
+before ERP writes. This application change does not alter ERP column sizes or
+existing data. Length validation reads EF model metadata, not live SQL
 column sizes. Rebuild the solution and restart/redeploy the application after
 changing model annotations so it loads the updated Models assembly and EF model.
 Length validation ignores trailing ASCII space padding without changing the
@@ -25,6 +26,37 @@ across app instances. The ERP counter row uses UPDLOCK, HOLDLOCK to serialize
 different requests. Already-approved requests return without another RMA, CAR
 job, or notification. Historical partial assignments require reconciliation.
 First-stage approval still hands off to the GM without creating an ERP RMA.
+The current Edit POST and legacy repository Update use the same request lock
+and reload M10 state before changing fields. Approved requests and partial ERP
+assignments cannot be edited. Update cannot accept an approval status or ERP
+number from its caller, and never overwrites `turno`. A stale Done/Edit submission
+therefore cannot clear an assignment and enable a second RMA.
+
+Editing is limited to the requester while the request is a draft (`Pending` /
+`Not Submitted`) or returned for changes (`Remark` / `Rejected` with no ERP
+assignment). Submitted pending requests are locked through the director and GM
+stages. Automatic approvals and finalized requests are also locked. The shared
+`CanEdit` policy drives the request list and server guards; it is not a database
+column. Approval itself requires a submitted pending request or an eligible
+internal automatic approval, so drafts and returned requests must be submitted
+again before approval.
+
+Edit GET/POST and the legacy header, line, attachment, and deletion endpoints
+enforce the policy and requester ownership while holding the request lock.
+Approvers can return or reject a pending request; they cannot edit its content.
+Return/reject endpoints verify the assigned approver or configured approval
+bypass account. Resubmission locks editing again. Queued legacy line/attachment
+edits recheck the saved state and fail without writing when the request is no
+longer editable. Legacy Done writes content before marking the request submitted
+in the same M10 transaction, and Saveedit preserves workflow state and writes
+its lines synchronously rather than queuing changes after submission.
+
+The public Aprobar POST accepts only the comment and request ID and resolves
+the approver from the signed-in user. Automatic approval is a private helper
+called by Create/Edit after the saved request is assigned to System and has
+AutoApprove status. A posted `isAutoApproved` parameter cannot select System.
+Create/Edit dispose their local M10 transaction before automatic approval begins.
+
 Users listed in `ApprovalBypass.Users` can approve a request assigned to someone
 else, including its director stage. The repository verifies that list against
 the employee's M10 `usr_id`; bypass approval still follows the two-stage handoff,
@@ -63,6 +95,11 @@ Deploy all application instances together; older versions do not participate in
 this approval locking and transaction protocol. Review historical Hangfire
 CSEXSW_RmaRepository.falloRMA jobs: that method no longer recreates ERP records
 or overwrites M10 assignments. It reports manual reconciliation without retry.
+The legacy OERDTFIL_SQLRepository methods `nuevorma`, `lineascrear`, `lineas`,
+and `falloRMA` are also disabled before any database access. Their signatures
+remain for old callers and serialized jobs; the creation/recovery job methods
+have automatic retries disabled. Review jobs targeting either repository,
+including jobs already running on an older worker, before deployment.
 
 ## Validation before release
 
@@ -82,6 +119,12 @@ Also set `RMA_TEST_BYPASS_ID` to another pending USD request below $20,000 and
 to the quality director. These fixtures must have valid ERP data and employee
 accounts other than their assigned approvers, with nonblank `usr_id` values;
 the director fixture also needs the configured director and GM roles.
+Also set `RMA_TEST_EDIT_PROTECTION_ID` to a separate valid pending USD request
+below $20,000. The test retains a stale copy of that request while another context
+approves it, then attempts to reset its assignment through legacy Update.
+Set `RMA_TEST_EDIT_LIFECYCLE_ID` to another distinct submitted pending USD request
+below $20,000 to check pending edit protection, return for changes, editing,
+blocked draft/returned approvals, resubmission, and line/attachment protection.
 Run:
 
     dotnet test tests/Amphenol.RMA.ApprovalTests/Amphenol.RMA.ApprovalTests.csproj
@@ -91,6 +134,10 @@ The suite checks:
 - A failed M10 save causes no ERP SaveChanges calls and leaves ERP unchanged.
 - An invalid later line prevents writes and counter movement.
 - Concurrent approvals create one RMA and advance the counter once.
+- A stale legacy edit cannot erase a committed approval or enable another RMA;
+  an update cannot manufacture an approval or ERP number on a pending request.
+- Submitted requests cannot be edited; returned requests can be changed until
+  resubmission. Header, queued line, and attachment writes recheck this state.
 - An unconfigured non-approver is denied; a configured bypass user can approve
   the request and repeat the action without generating another RMA.
 - A configured bypass user can act at both director and GM stages while retaining
@@ -99,6 +146,13 @@ The suite checks:
 Tests modify the clones and consume fixtures; restore clones before rerunning.
 Without connection variables, tests are explicitly skipped. They have not been
 run on this workstation because it has .NET runtimes but no SDK.
+
+`ApprovalProtectionTests` additionally checks finalized/partial assignment
+protection, the public approval action's identity parameters, and legacy writers
+failing without opening SQL connections. These tests do not require database
+connections:
+
+    dotnet test tests/Amphenol.RMA.ApprovalTests/Amphenol.RMA.ApprovalTests.csproj --filter FullyQualifiedName~ApprovalProtectionTests
 
 Additional staging checks:
 - A missing inventory location is created with the complete ERP RMA, and repeated
@@ -110,6 +164,10 @@ Additional staging checks:
 - Legacy partial assignments are blocked for reconciliation.
 - Failed transaction enlistment or commit produces no approval notifications.
 - Report/email failure after commit never generates another RMA on retry.
+- A stale current Edit POST and a legacy Done POST cannot change an approved
+  request, its lines, or its assigned ERP number.
+- Posting `isAutoApproved=true` as a non-approver does not grant approval rights;
+  eligible Create/Edit automatic approvals still succeed after local commit.
 
 Email delivery and CAR job execution occur after the database commit and are not
 part of its transaction. A failure there cannot roll back an approved RMA. Failed
