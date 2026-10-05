@@ -70,7 +70,8 @@ function run() {
     manual.fields['partnumber-input'].value = 'PART001';
     context.ApplyInvoiceMode(manual, false);
     assert.equal(manual.fields['partnumber-input'].value, 'PART001');
-    assert.equal(manual.fields['partnumber-input'].readonly, false);
+    assert.equal(manual.fields['partnumber-input'].readonly, true);
+    assert.equal(manual.fields['partnumber-input'].placeholder, 'Select an ERP part');
     assert.equal(manual.fields['invoice-input'].disabled, true);
     assert.ok(manual.fields['sequence-selection'].classes.has('d-none'));
     assert.ok(!manual.fields['btn-search-partnumber'].classes.has('d-none'));

@@ -378,8 +378,8 @@ function ApplyInvoiceMode(row, reset) {
     row.find('.invoice-selection, .sequence-selection').toggleClass('d-none', manual);
     row.find('.invoice-input, .sequence-input').prop('disabled', manual).removeClass('border-danger');
     row.find('.no-invoice-placeholder, .manual-line-help, .btn-search-partnumber').toggleClass('d-none', !manual);
-    row.find('.partnumber-input').prop('readonly', !manual).attr('placeholder', manual ? 'Enter or search part number' : '');
-    if (manual && reset) row.find('.partnumber-input').trigger('focus');
+    row.find('.partnumber-input').prop('readonly', true).attr('placeholder', manual ? 'Select an ERP part' : '');
+    if (manual && reset) row.find('.btn-search-partnumber').trigger('focus');
     row.find(".price-input, .unitcost-input").each(function () {
         const input = $(this);
         const form = input.closest('form');

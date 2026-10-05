@@ -2,7 +2,7 @@
 
 Create and Edit provide a **No invoice** checkbox on each line. A request can
 mix invoice-linked and manual lines. Manual lines display Not applicable for
-invoice and sequence, enable part-number entry and the existing ERP part search,
+invoice and sequence, keep part numbers read-only and enable the existing ERP part selector,
 and require the user to enter quantity, price, cost, location, action, and return
 code. Manual lines may use zero for both price and unit cost. Negative amounts
 remain invalid; for other amount combinations, price must exceed unit cost.
@@ -30,8 +30,8 @@ Server validation and persistence-mapping checks:
 
 Staging verification: create a request containing both line types; save and reopen;
 confirm manual values remain editable and invoice lines retain their references.
-Switch each type in both directions and check that prior values clear. Enter an
-unknown manual part and confirm an inline error with no save. Submit and approve
+Switch each type in both directions and check that prior values clear. Confirm manual part numbers cannot be typed and must be selected from ERP.
+Unknown parts posted directly must still fail server validation with no save. Submit and approve
 a valid manual line on a test server; verify ERP receives invoice 0 and sequence 0.
 
 Six browser scenarios and JavaScript syntax checks passed in the Node runtime.
