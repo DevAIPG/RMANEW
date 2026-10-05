@@ -128,8 +128,8 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var directorId = m10.HRRoles.Single(x => x.RoleID == 100031).EmpID;
-        var generalManagerId = m10.HRRoles.Single(x => x.RoleID == 100032).EmpID;
+        var directorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
+        var generalManagerId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
         Assert.Equal(directorId, request.res_id_approver);
         Assert.NotEqual("Approved", request.Status);
         Assert.Equal("Pending", request.Status);
@@ -349,8 +349,8 @@ public class ApprovalRetryTests
         int directorId = 0, managerId = 0;
         if (name == "RMA_TEST_BYPASS_DIRECTOR_ID")
         {
-            var director = m10.HRRoles.SingleOrDefault(x => x.RoleID == 100031);
-            var manager = m10.HRRoles.SingleOrDefault(x => x.RoleID == 100032);
+            var director = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100031);
+            var manager = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100032);
             if (director == null || manager == null || director.EmpID <= 0 || manager.EmpID <= 0
                 || !m10.humres.Any(x => x.res_id == manager.EmpID))
                 throw new InvalidOperationException("The director-stage test requires quality director role 100031 and GM role 100032 in M10.");
