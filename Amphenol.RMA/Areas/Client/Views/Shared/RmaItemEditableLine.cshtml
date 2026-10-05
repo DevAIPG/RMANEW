@@ -7,12 +7,12 @@
         <input type="hidden" name="Lines.Index" value="@index" />
         <span class="btn btn-sm btn-outline-danger btn-remove-rma-line" title="Remove Line"><i class="fa fa-trash"></i></span>
     </td>
+    <td class="text-center align-middle">
+        <input class="form-check-input position-static m-0 no-invoice-input" type="checkbox" asp-for="NoInvoice"
+               id="Line_@(index)_NoInvoice" name="Lines[@(index)].NoInvoice" />
+        <label class="sr-only" for="Line_@(index)_NoInvoice">No invoice for this line</label>
+    </td>
     <td>
-        <div class="form-check mb-2">
-            <input class="form-check-input no-invoice-input" type="checkbox" asp-for="NoInvoice"
-                   id="Line_@(index)_NoInvoice" name="Lines[@(index)].NoInvoice" />
-            <label class="form-check-label" for="Line_@(index)_NoInvoice">No invoice</label>
-        </div>
         <span class="no-invoice-placeholder text-muted d-none">Not applicable</span>
         <div class="input-group invoice-selection">
             <input class="form-control  invoice-input" type="text" readonly asp-for="InvoiceNumber" id="Line_@(index)_InvoiceNumber"

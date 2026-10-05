@@ -39,7 +39,7 @@ $(document).on("click", ".btn-remove-rma-line", function () {
     if ($("#LineTable tbody tr").length === 0) {
         $("#LineTable tbody").append(`
             <tr id="emptyLineRow">
-                <td colspan="11" class="text-center text-muted py-4">
+                <td colspan="12" class="text-center text-muted py-4">
                     <div class="d-flex justify-content-center align-items-center">
                         <h5 class="font-weight-bold mb-0 mr-3">Add new lines</h5>
                         <button type="button" class="btn btn-sm btn-primary action-btn btn-add-rma-line">
