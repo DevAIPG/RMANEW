@@ -29,7 +29,12 @@ function run() {
             },
             attr(name, value) { elements.forEach(x => { x[name] = value; }); return this; },
             each(callback) { elements.forEach(x => callback.call(x)); return this; },
-            rules(operation, rules) { elements.forEach(x => { x.rules = rules; }); return this; },
+            rules(operation, rules) {
+                elements.forEach(x => {
+                    if (!x.ownerRow.validatorInitialized) throw new Error("Form validator is not initialized");
+                    x.rules = rules;
+                }); return this;
+            },
             closest() { return elements[0].ownerRow; },
             empty() { return this; }, trigger() { return this; }, ready() { return this; },
             on(event, selector, callback) { handlers[selector] = callback; return this; }
@@ -44,7 +49,8 @@ function run() {
         }
         fields['no-invoice-input'].checked = manual;
         const result = {
-            fields,
+            fields, length: 1, validatorInitialized: false,
+            validate() { this.validatorInitialized = true; },
             find(selector) { return collection(selector.split(',').map(x => fields[x.trim().replace(/^\./, '')]).filter(Boolean)); }
         };
         Object.values(fields).forEach(field => { field.ownerRow = result; });
@@ -68,6 +74,17 @@ function run() {
     assert.equal(manual.fields['invoice-input'].disabled, true);
     assert.ok(manual.fields['sequence-selection'].classes.has('d-none'));
     assert.ok(!manual.fields['btn-search-partnumber'].classes.has('d-none'));
+
+    const noValidator = row(true);
+    noValidator.validate = undefined;
+    noValidator.fields['invoice-input'].value = '123456';
+    noValidator.fields['sequence-input'].value = '3';
+    context.ApplyInvoiceMode(noValidator, true);
+    assert.equal(noValidator.fields['invoice-input'].value, '');
+    assert.equal(noValidator.fields['sequence-input'].value, '');
+    assert.equal(noValidator.fields['invoice-input'].disabled, true);
+    assert.ok(noValidator.fields['invoice-selection'].classes.has('d-none'));
+    assert.ok(noValidator.fields['sequence-selection'].classes.has('d-none'));
 
     const switched = row(true);
     for (const field of ['invoice-input', 'sequence-input', 'partnumber-input', 'quantity-input', 'price-input', 'unitcost-input'])
@@ -118,7 +135,7 @@ function run() {
     handlers['.price-input, .unitcost-input'].call(switched.fields['price-input']);
     assert.equal(priceWarnings, 1);
     assert.ok(switched.fields['price-input'].classes.has('border-danger'));
-    return 'Passed 6 manual RMA line browser scenarios';
+    return 'Passed 7 manual RMA line browser scenarios';
 }
 
 module.exports = run;

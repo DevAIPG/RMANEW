@@ -368,9 +368,6 @@ function ApplyInvoiceMode(row, reset) {
     const manual = IsManualLine(row);
     const minimumAmount = manual ? 0 : 0.01;
     row.find(".price-input, .unitcost-input").attr("min", minimumAmount);
-    row.find(".price-input, .unitcost-input").each(function () {
-        $(this).rules("add", { min: minimumAmount });
-    });
     if (reset) {
         row.find('.invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input')
             .val('').removeClass('border-danger input-validation-error');
@@ -383,6 +380,14 @@ function ApplyInvoiceMode(row, reset) {
     row.find('.no-invoice-placeholder, .manual-line-help, .btn-search-partnumber').toggleClass('d-none', !manual);
     row.find('.partnumber-input').prop('readonly', !manual).attr('placeholder', manual ? 'Enter or search part number' : '');
     if (manual && reset) row.find('.partnumber-input').trigger('focus');
+    row.find(".price-input, .unitcost-input").each(function () {
+        const input = $(this);
+        const form = input.closest('form');
+        if (!form.length || typeof form.validate !== 'function' || typeof input.rules !== 'function') return;
+        // rules('add') requires an initialized validator for the containing form.
+        form.validate();
+        input.rules('add', { min: minimumAmount });
+    });
 }
 function ValidateManualPart(row) {
     if (!IsManualLine(row)) return true;
