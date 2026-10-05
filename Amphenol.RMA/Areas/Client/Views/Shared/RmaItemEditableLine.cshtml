@@ -12,7 +12,7 @@
                id="Line_@(index)_NoInvoice" name="Lines[@(index)].NoInvoice" />
         <label class="sr-only" for="Line_@(index)_NoInvoice">No invoice for this line</label>
     </td>
-    <td>
+    <td class="align-middle">
         <span class="no-invoice-placeholder text-muted d-none font-weight-bold align-middle">N/A</span>
         <div class="input-group invoice-selection">
             <input class="form-control  invoice-input" type="text" readonly asp-for="InvoiceNumber" id="Line_@(index)_InvoiceNumber"
@@ -21,7 +21,7 @@
         </div>
         <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
     </td>
-    <td>
+    <td class="align-middle">
         <span class="no-invoice-placeholder text-muted d-none font-weight-bold align-middle">N/A</span>
         <div class="input-group sequence-selection">
             <input class="form-control  sequence-input" type="text" readonly asp-for="SequenceNumber" id="Line_@(index)_SequenceNumber"
