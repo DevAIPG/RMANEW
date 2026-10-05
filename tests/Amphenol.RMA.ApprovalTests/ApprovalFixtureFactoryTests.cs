@@ -29,10 +29,10 @@ public class ApprovalFixtureFactoryTests
         };
 
         var fixture = ApprovalFixtureFactory.Build(m10, source, new[] { sourceLine }, 20, "Test approver",
-            "test scenario", "T1234567", directorStage);
+            "test scenario", "87654321", directorStage);
 
         Assert.Equal(0, fixture.Request.Id);
-        Assert.Equal("T1234567", fixture.Request.Rmarequest);
+        Assert.Equal("87654321", fixture.Request.Rmarequest);
         Assert.Equal("Pending", fixture.Request.Status);
         Assert.Equal("Submitted", fixture.Request.Sumbit);
         Assert.Equal("", fixture.Request.turno);
@@ -69,6 +69,33 @@ public class ApprovalFixtureFactoryTests
         Assert.Equal(3m, sourceLine.Qty);
         Assert.Equal(10000m, sourceLine.Unit);
         Assert.Same(source, sourceLine.CSEXSW_Rma);
+    }
+
+    [Fact]
+    public void GeneratedRequestNumbersFitTheModalIntegerContract()
+    {
+        for (var index = 0; index < 100; index++)
+        {
+            var number = ApprovalFixtureFactory.NewRequestNumber();
+            Assert.Equal(8, number.Length);
+            Assert.All(number, character => Assert.InRange(character, '0', '9'));
+            Assert.InRange(int.Parse(number), 10_000_000, 99_999_999);
+        }
+    }
+
+    [Theory]
+    [InlineData("TB54420C")]
+    [InlineData("123456789")]
+    [InlineData("-123")]
+    [InlineData(" 123")]
+    [InlineData("0")]
+    public void FixtureBuilderRejectsInvalidRequestNumbers(string requestNumber)
+    {
+        using var m10 = new DbContextM10(new DbContextOptionsBuilder<DbContextM10>()
+            .UseSqlServer("Server=unused;Database=unused;Integrated Security=true").Options);
+        Assert.Throws<ArgumentException>(() => ApprovalFixtureFactory.Build(m10,
+            new CSEXSW_Rma(), new[] { new csexsw_coustumer() }, 20, "Test approver",
+            "test scenario", requestNumber, false));
     }
 
     [Theory]

@@ -1,6 +1,8 @@
 using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Security.Cryptography;
 
 internal static class ApprovalFixtureFactory
 {
@@ -47,7 +49,7 @@ internal static class ApprovalFixtureFactory
                     || !erp.imitmidx_sql.Any(x => x.item_no == line.Coustumer))) continue;
 
             string requestNumber;
-            do { requestNumber = "T" + Guid.NewGuid().ToString("N").Substring(0, 7).ToUpperInvariant(); }
+            do { requestNumber = NewRequestNumber(); }
             while (m10.CSEXSW_Rma.Any(x => x.Rmarequest == requestNumber));
             var fixture = Build(m10, source, lines, approver.res_id, approver.fullname,
                 scenario, requestNumber, directorStage);
@@ -75,10 +77,17 @@ internal static class ApprovalFixtureFactory
             "No ERP master data is created or changed by fixture setup.");
     }
 
+    internal static string NewRequestNumber() =>
+        RandomNumberGenerator.GetInt32(10_000_000, 100_000_000).ToString(CultureInfo.InvariantCulture);
+
     internal static (CSEXSW_Rma Request, List<csexsw_coustumer> Lines) Build(DbContextM10 m10,
         CSEXSW_Rma source, IReadOnlyList<csexsw_coustumer> sourceLines, int approverId, string approverName,
         string scenario, string requestNumber, bool directorStage)
     {
+        if (string.IsNullOrEmpty(requestNumber) || requestNumber.Length > 8
+            || !int.TryParse(requestNumber, NumberStyles.None, CultureInfo.InvariantCulture, out var numericRequest)
+            || numericRequest <= 0)
+            throw new ArgumentException("A fixture request number must contain only digits, be positive, and fit eight characters.", nameof(requestNumber));
         var request = (CSEXSW_Rma)m10.Entry(source).CurrentValues.ToObject();
         request.Id = 0;
         request.Rmarequest = requestNumber;
