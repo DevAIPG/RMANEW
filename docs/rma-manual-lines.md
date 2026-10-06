@@ -37,5 +37,10 @@ Switch each type in both directions and check that prior values clear. Confirm m
 Unknown parts posted directly must still fail server validation with no save. Submit and approve
 a valid manual line on a test server; verify ERP receives invoice 0 and sequence 0.
 
-Nine browser scenarios and JavaScript syntax checks passed in the Node runtime.
+Twelve browser scenarios and JavaScript syntax checks passed in the Node runtime.
 The .NET tests could not run on this workstation because the SDK is not installed.
+
+Create and Edit load the unobtrusive validation adapter before RmaRequest.js.
+Adding a line disposes the previous validator before parsing the updated form
+and restores each line's invoice-mode rules. If the adapter is unavailable,
+the refresh preserves existing validation and still initializes the line UI.

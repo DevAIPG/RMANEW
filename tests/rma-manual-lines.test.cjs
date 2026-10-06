@@ -59,13 +59,55 @@ function run() {
         Object.values(fields).forEach(field => { field.ownerRow = result; });
         return result;
     }
-    const $ = value => value && value.ownerRow ? collection([value]) : collection([]);
+    let validationForm = { length: 0 };
+    let validationRows = [];
+    const $ = value => {
+        if (value === '#LineTable') return { closest: () => validationForm };
+        if (value === '#LineTable tbody tr') return collection(validationRows);
+        if (value && value.fields) return value;
+        return value && value.ownerRow ? collection([value]) : collection([]);
+    };
     let request;
     $.ajax = options => { request = options; };
     let priceWarnings = 0;
     const context = vm.createContext({ $, document: {}, DataTransfer: class {}, console, Swal: { fire: () => { priceWarnings++; } } });
     vm.runInContext(source, context);
     context.CalculateTotalRmaValue = () => {};
+
+    const refreshedManual = row(true);
+    const refreshedInvoice = row(false);
+    validationRows = [refreshedManual, refreshedInvoice];
+    let destroyed = 0, parsed = 0, removed = 0;
+    validationForm = {
+        length: 1,
+        data: () => ({ destroy() { destroyed++; } }),
+        removeData() { removed++; return this; }
+    };
+    // A missing adapter must not crash AJAX line addition or strip existing validation.
+    context.RefreshLineValidation();
+    assert.equal(removed, 0);
+    assert.equal(refreshedManual.fields['invoice-input'].disabled, true);
+    $.validator = {};
+    context.RefreshLineValidation();
+    assert.equal(removed, 0);
+    $.validator.unobtrusive = { parse(form) { assert.equal(form, validationForm); parsed++; } };
+    context.RefreshLineValidation();
+    context.RefreshLineValidation();
+    assert.equal(destroyed, 2, 'Dispose old handlers before attaching a new validator');
+    assert.equal(parsed, 2);
+    assert.equal(removed, 4);
+    assert.equal(refreshedManual.fields['unitcost-input'].rules.min, 0);
+    assert.equal(refreshedInvoice.fields['unitcost-input'].rules.min, 0.01);
+    for (const page of ['Create', 'Edit']) {
+        const markup = fs.readFileSync(path.join(__dirname,
+            '../Amphenol.RMA/Areas/Client/Views/Rma/' + page + '.cshtml'), 'utf8');
+        const adapter = markup.indexOf('jquery.validate.unobtrusive.min.js');
+        assert.ok(adapter >= 0 && adapter < markup.indexOf('~/js/RmaRequest.js'),
+            page + ' must load the adapter before the request script');
+    }
+    validationRows = [];
+    validationForm = { length: 0 };
+    delete $.validator;
 
     const manual = row(true);
     manual.fields['invoice-input'].value = '0';
@@ -74,7 +116,7 @@ function run() {
     context.ApplyInvoiceMode(manual, false);
     assert.equal(manual.fields['partnumber-input'].value, 'PART001');
     assert.equal(manual.fields['partnumber-input'].readonly, true);
-    assert.equal(manual.fields['partnumber-input'].placeholder, 'Select an ERP part');
+    assert.equal(manual.fields['partnumber-input'].placeholder, 'Select a part number');
     assert.equal(manual.fields['invoice-input'].disabled, true);
     assert.ok(manual.fields['sequence-selection'].classes.has('d-none'));
     assert.ok(!manual.fields['btn-search-partnumber'].classes.has('d-none'));
@@ -183,7 +225,7 @@ function run() {
         assert.ok(view.includes('data-valmsg-for="Lines[@(index)].' + field + '"'),
             field + ' errors must appear beside the indexed line input');
     }
-    return 'Passed 9 manual RMA line browser scenarios';
+    return 'Passed 12 manual RMA line browser scenarios';
 }
 
 module.exports = run;

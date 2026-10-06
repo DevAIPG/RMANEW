@@ -359,8 +359,13 @@ function IsManualLine(row) {
 }
 function RefreshLineValidation() {
     const form = $('#LineTable').closest('form');
-    form.removeData('validator').removeData('unobtrusiveValidation');
-    $.validator.unobtrusive.parse(form);
+    if (form.length && $.validator && $.validator.unobtrusive
+        && typeof $.validator.unobtrusive.parse === 'function') {
+        const validator = form.data('validator');
+        if (validator && typeof validator.destroy === 'function') validator.destroy();
+        form.removeData('validator').removeData('unobtrusiveValidation');
+        $.validator.unobtrusive.parse(form);
+    }
     $("#LineTable tbody tr").each(function () { ApplyInvoiceMode($(this), false); });
 }
 function ApplyInvoiceMode(row, reset) {
