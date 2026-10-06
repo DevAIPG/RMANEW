@@ -932,7 +932,7 @@ namespace Amphenol.RMA.Controllers
                 var line = lines[index];
                 if (!line.NoInvoice || string.IsNullOrWhiteSpace(line.PartNumber)) continue;
                 var part = line.PartNumber.Trim();
-                var item = await _500DbContext.imitmidx_sql.AsNoTracking()
+                var item = await _500Db.imitmidx_sql.AsNoTracking()
                     .Where(x => x.item_no.Trim() == part).Select(x => x.item_no).FirstOrDefaultAsync();
                 if (item == null)
                 {
