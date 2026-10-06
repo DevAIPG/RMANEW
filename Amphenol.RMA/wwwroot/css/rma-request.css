@@ -1,0 +1,29 @@
+#LineTable .rma-line-controls > td {
+    vertical-align: middle;
+}
+#LineTable .rma-line-errors > td {
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: 0;
+    text-align: left;
+}
+#LineTable .line-validation-messages {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1.25rem;
+    font-size: .875rem;
+    overflow-wrap: anywhere;
+}
+#LineTable .line-validation-messages > span:empty {
+    display: none;
+}
+#LineTable .line-validation-messages > span:not(:empty):not(.d-none) {
+    padding: .25rem 0;
+}
+#LineTable.table-striped tbody > tr {
+    background-color: transparent;
+}
+#LineTable.table-striped tbody > tr.rma-line-controls:nth-child(4n + 1),
+#LineTable.table-striped tbody > tr.rma-line-controls:nth-child(4n + 1) + .rma-line-errors {
+    background-color: rgba(0, 0, 0, .05);
+}

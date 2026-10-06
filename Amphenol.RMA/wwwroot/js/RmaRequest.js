@@ -10,7 +10,7 @@ const attachmentStore = new DataTransfer();
 $(document).ready(function () {
     InitializeForm();
     initializeNextRmaLineIndex();
-    $("#LineTable tbody tr").each(function () { ApplyInvoiceMode($(this), false); });
+    $("#LineTable tbody tr.rma-line-controls").each(function () { ApplyInvoiceMode($(this), false); });
 });
 $(document).on("click", ".btn-add-rma-line", function () {
     const index = nextRmaLineIndex++;
@@ -23,7 +23,7 @@ $(document).on("click", ".btn-add-rma-line", function () {
 
             $("#LineTable tbody").append(html);
             RefreshLineValidation();
-            ApplyInvoiceMode($("#LineTable tbody tr").last(), false);
+            ApplyInvoiceMode($("#LineTable tbody tr.rma-line-controls").last(), false);
         })
         .fail(function () {
             Swal.fire({
@@ -34,9 +34,11 @@ $(document).on("click", ".btn-add-rma-line", function () {
         });
 });
 $(document).on("click", ".btn-remove-rma-line", function () {
-    $(this).closest("tr").remove();
+    const row = $(this).closest('tr');
+    row.next('.rma-line-errors').remove();
+    row.remove();
     CalculateTotalRmaValue();
-    if ($("#LineTable tbody tr").length === 0) {
+    if ($("#LineTable tbody tr.rma-line-controls").length === 0) {
         $("#LineTable tbody").append(`
             <tr id="emptyLineRow">
                 <td colspan="12" class="text-center text-muted py-4">
@@ -162,7 +164,7 @@ $(document).on('input', '.partnumber-input', function () {
 
     var partnumber = (partnumberInput.val() || '').trimEnd();
     partnumberInput.val(partnumber);
-    selectedLineRow.find('.manual-part-error').addClass('d-none');
+    LineMessages(selectedLineRow).find('.manual-part-error').addClass('d-none');
 
     $(this).valid();
 
@@ -306,7 +308,7 @@ $(document).on("focus", ".quantity-input, .price-input, .unitcost-input", functi
 });
 $(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
     let valid = true;
-    $("#LineTable tbody tr").each(function () {
+    $("#LineTable tbody tr.rma-line-controls").each(function () {
         const row = $(this);
         if (!row.find('.no-invoice-input').length) return;
         if (!ValidateLineAmounts(row)) valid = false;
@@ -320,8 +322,8 @@ $(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
             const sequenceValid = Number.isInteger(sequence) && sequence > 0 && sequence <= 32767;
             row.find('.invoice-input').toggleClass('border-danger', !invoiceValid);
             row.find('.sequence-input').toggleClass('border-danger', !sequenceValid);
-            row.find('[data-valmsg-for$=".InvoiceNumber"]').text(invoiceValid ? '' : 'Select an invoice or choose No invoice.');
-            row.find('[data-valmsg-for$=".SequenceNumber"]').text(sequenceValid ? '' : 'Select an invoice sequence.');
+            LineMessages(row).find('[data-valmsg-for$=".InvoiceNumber"]').text(invoiceValid ? '' : 'Select an invoice or choose No invoice.');
+            LineMessages(row).find('[data-valmsg-for$=".SequenceNumber"]').text(sequenceValid ? '' : 'Select an invoice sequence.');
             valid = valid && invoiceValid && sequenceValid;
         }
     });
@@ -338,12 +340,15 @@ $(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
 $(document).on('input change', '.returncode-input', function () {
     ValidateReturnCode($(this).closest('tr'));
 });
+function LineMessages(row) {
+    return row.next('.rma-line-errors');
+}
 function ValidateReturnCode(row) {
     const input = row.find('.returncode-input');
     const valid = !!(input.val() || '').toString().trim();
     input.toggleClass('border-danger', !valid).attr('aria-invalid', valid ? 'false' : 'true');
     if (valid) input.removeClass('input-validation-error');
-    row.find('.returncode-validation').text(valid ? '' : 'Select a return code.')
+    LineMessages(row).find('.returncode-validation').text(valid ? '' : 'Select a return code.')
         .toggleClass('field-validation-error', !valid).toggleClass('field-validation-valid', valid);
     return valid;
 }
@@ -372,8 +377,8 @@ function ValidateLineAmounts(row) {
     }
     priceInput.toggleClass('border-danger', !!priceError).attr('aria-invalid', priceError ? 'true' : 'false');
     costInput.toggleClass('border-danger', !!costError).attr('aria-invalid', costError ? 'true' : 'false');
-    row.find('.price-amount-error').text(priceError).toggleClass('d-none', !priceError);
-    row.find('.cost-amount-error').text(costError).toggleClass('d-none', !costError);
+    LineMessages(row).find('.price-amount-error').text(priceError).toggleClass('d-none', !priceError);
+    LineMessages(row).find('.cost-amount-error').text(costError).toggleClass('d-none', !costError);
     return !priceError && !costError;
 }
 
@@ -389,7 +394,7 @@ function RefreshLineValidation() {
         form.removeData('validator').removeData('unobtrusiveValidation');
         $.validator.unobtrusive.parse(form);
     }
-    $("#LineTable tbody tr").each(function () { ApplyInvoiceMode($(this), false); });
+    $("#LineTable tbody tr.rma-line-controls").each(function () { ApplyInvoiceMode($(this), false); });
 }
 function ApplyInvoiceMode(row, reset) {
     if (!row.find('.no-invoice-input').length) return;
@@ -398,12 +403,12 @@ function ApplyInvoiceMode(row, reset) {
     row.find(".price-input, .unitcost-input").attr("min", minimumAmount);
     if (reset) {
         row.removeData('amounts-validated');
-        row.find('.price-amount-error, .cost-amount-error').text('').addClass('d-none');
+        LineMessages(row).find('.price-amount-error, .cost-amount-error').text('').addClass('d-none');
         row.find('.price-input, .unitcost-input').attr('aria-invalid', 'false');
         row.find('.invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input')
             .val('').removeClass('border-danger input-validation-error');
-        row.find('[data-valmsg-for]').empty();
-        row.find('.manual-part-error').addClass('d-none');
+        LineMessages(row).find('[data-valmsg-for]').empty();
+        LineMessages(row).find('.manual-part-error').addClass('d-none');
         CalculateTotalRmaValue();
     }
     row.find('.invoice-selection, .sequence-selection').toggleClass('d-none', manual);
@@ -425,7 +430,7 @@ function ValidateManualPart(row) {
     const part = (row.find('.partnumber-input').val() || '').trim();
     const valid = part.length > 0 && (!knownRmaParts || knownRmaParts.has(part.toUpperCase()));
     row.find('.partnumber-input').toggleClass('border-danger', !valid);
-    row.find('.manual-part-error').toggleClass('d-none', valid || part.length === 0);
+    LineMessages(row).find('.manual-part-error').toggleClass('d-none', valid || part.length === 0);
     return valid;
 }
 
@@ -901,7 +906,7 @@ function SetPartNumberModalResult(partnumber) {
 function CalculateTotalRmaValue() {
     var total = 0;
 
-    $('#LineTable tbody tr').each(function () {
+    $('#LineTable tbody tr.rma-line-controls').each(function () {
         var quantity = parseInt($(this).find('.quantity-input').val()) || 0;
         var price = parseFloat($(this).find('.price-input').val()) || 0;
 

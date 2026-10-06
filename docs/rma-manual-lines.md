@@ -53,3 +53,8 @@ Price and unit cost use inline validation after leaving either field, with no
 confirmation popup. Once shown, errors update as the values are corrected. Save
 validates every line and scrolls to/focuses the first invalid field. Zero/zero
 remains valid for No invoice lines; changing invoice mode clears amount errors.
+
+Each editable line has a controls row followed by a full-width warning row.
+Field messages wrap below the controls without changing control alignment.
+Validation, totals, and line counts use only controls rows; deleting a line
+removes its warning row as well. Server validation still uses indexed field names.

@@ -59,7 +59,18 @@ function run() {
             data(name, value) { if (value === undefined) return this[name]; this[name] = value; return this; },
             removeData(name) { delete this[name]; return this; },
             validate() { this.validatorInitialized = true; },
-            find(selector) { return collection(selector.split(',').map(x => fields[x.trim().replace(/^\./, '')]).filter(Boolean)); }
+            next() { return this.messages; },
+            remove() { this.removed = true; validationRows = validationRows.filter(row => row !== this); },
+            find(selector) { return collection(selector.split(',').map(x => fields[x.trim().replace(/^\./, '')])
+                .filter(field => field && !field.isMessage)); }
+        };
+        const messageNames = ['manual-part-error', 'price-amount-error', 'cost-amount-error', 'returncode-validation'];
+        messageNames.forEach(name => { fields[name].isMessage = true; });
+        result.messages = {
+            removed: false,
+            find(selector) { return collection(selector.split(',').map(x => fields[x.trim().replace(/^\./, '')])
+                .filter(field => field && field.isMessage)); },
+            remove() { this.removed = true; }
         };
         Object.values(fields).forEach(field => { field.ownerRow = result; });
         return result;
@@ -68,7 +79,7 @@ function run() {
     let validationRows = [];
     const $ = value => {
         if (value === '#LineTable') return { closest: () => validationForm };
-        if (value === '#LineTable tbody tr') return collection(validationRows);
+        if (value === '#LineTable tbody tr.rma-line-controls') return collection(validationRows);
         if (value && value.fields) return value;
         return value && value.ownerRow ? collection([value]) : collection([]);
     };
@@ -307,7 +318,20 @@ function run() {
     assert.equal(amountLine.data('amounts-validated'), undefined);
     assert.ok(amountLine.fields['price-amount-error'].classes.has('d-none'));
     validationRows = [];
-    return 'Manual RMA line regression checks passed, including inline amounts and Save focus';
+    const controlMarkup = view.split('<tr class="rma-line-errors">')[0];
+    assert.ok(!controlMarkup.includes('asp-validation-for='), 'Warnings must not change the controls row height');
+    assert.ok(!controlMarkup.includes('price-amount-error'));
+    assert.ok(view.includes('<tr class="rma-line-errors">'));
+    assert.ok(view.includes('<td colspan="12">'));
+    assert.equal(context.LineMessages(amountLine), amountLine.messages);
+    assert.equal(amountLine.find('.returncode-validation').length, 0, 'Messages live outside the controls row');
+    validationRows = [manual, amountLine];
+    handlers['.btn-remove-rma-line'].call(amountLine.fields['price-input']);
+    assert.equal(amountLine.removed, true);
+    assert.equal(amountLine.messages.removed, true, 'Delete the associated warning row with the line');
+    assert.equal(manual.messages.removed, false);
+    assert.equal(validationRows.length, 1);
+    return 'Manual RMA line regression checks passed, including separate warning rows';
 }
 
 module.exports = run;
