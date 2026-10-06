@@ -189,39 +189,13 @@ $(document).on('input', '.quantity-input', function () {
     CalculateTotalRmaValue();
 });
 $(document).on('input', '.price-input, .unitcost-input', function () {
-    selectedLineRow = $(this).closest('tr');
-
-    var unitPriceInput = selectedLineRow.find('.price-input');
-    var unitCostInput = selectedLineRow.find('.unitcost-input');
-
-    var unitPrice = parseFloat(unitPriceInput.val());
-    var unitCost = parseFloat(unitCostInput.val());
-
-    if (isNaN(unitPrice) || isNaN(unitCost)) {
-        return;
-    }
-
-    var unitPrice = parseFloat(unitPriceInput.val()).toFixed(2);
-    var unitCost = parseFloat(unitCostInput.val());
-
-    if (unitPrice > unitCost || (IsManualLine(selectedLineRow) && Number(unitPrice) === 0 && unitCost === 0)) {
-        unitPriceInput.removeClass("border-danger");
-        unitCostInput.removeClass("border-danger");
-        CalculateTotalRmaValue();
-    }
-    else {
-        unitPriceInput.addClass("border-danger")
-
-        Swal.fire({
-            title: 'Price must be higher than unit cost. Do you want to continue?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#95a5a6',
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'No'
-        });
-    }
+    const row = $(this).closest('tr');
+    // Wait until blur before showing a new error; clear existing errors as values improve.
+    if (row.data('amounts-validated')) ValidateLineAmounts(row);
+    CalculateTotalRmaValue();
+});
+$(document).on('blur', '.price-input, .unitcost-input', function () {
+    ValidateLineAmounts($(this).closest('tr'));
 });
 $(document).on('click', '.btn-search-returncode', function () {
     selectedLineRow = $(this).closest('tr');
@@ -317,7 +291,7 @@ $(document).on('change', '#attachmentInput', function () {
 
     this.files = attachmentStore.files;
 })
-$(document).on("input change", ".customer-input, .contact-input, .phone-input, .contactEmail-input, .complaint-textarea, .shipto-input, .po-input, .invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input, .returncode-input", function () {
+$(document).on("input change", ".customer-input, .contact-input, .phone-input, .contactEmail-input, .complaint-textarea, .shipto-input, .po-input, .invoice-input, .sequence-input, .partnumber-input, .quantity-input, .returncode-input", function () {
 
     const value = ($(this).val() || "").toString().trim();
 
@@ -335,6 +309,7 @@ $(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
     $("#LineTable tbody tr").each(function () {
         const row = $(this);
         if (!row.find('.no-invoice-input').length) return;
+        if (!ValidateLineAmounts(row)) valid = false;
         if (IsManualLine(row)) {
             if (!ValidateManualPart(row)) valid = false;
         } else {
@@ -351,9 +326,42 @@ $(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
     });
     if (!valid || $(this).find('.border-danger:not(:disabled)').length > 0) {
         event.preventDefault();
-        $(this).find('.border-danger:not(:disabled)').first().trigger('focus');
+        const field = $(this).find('.border-danger:not(:disabled), .input-validation-error:not(:disabled)').first();
+        if (field[0] && typeof field[0].scrollIntoView === 'function') {
+            field[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+        field.trigger('focus');
     }
 });
+
+function ValidateLineAmounts(row) {
+    row.data('amounts-validated', true);
+    const manual = IsManualLine(row);
+    const priceInput = row.find('.price-input');
+    const costInput = row.find('.unitcost-input');
+    const priceText = (priceInput.val() || '').toString().trim();
+    const costText = (costInput.val() || '').toString().trim();
+    const price = Number(priceText);
+    const cost = Number(costText);
+    function amountError(text, amount, label) {
+        if (!text || !Number.isFinite(amount)) return 'Enter a valid ' + label.toLowerCase() + '.';
+        if (amount < 0 || (amount < 0.01 && !(manual && amount === 0))) {
+            return manual ? label + ' must be at least 0.01 or zero.' : label + ' must be greater than zero.';
+        }
+        if (amount > 999999999.99) return label + ' exceeds the allowed maximum.';
+        return '';
+    }
+    let priceError = amountError(priceText, price, 'Price');
+    const costError = amountError(costText, cost, 'Unit cost');
+    if (!priceError && !costError && price <= cost && !(manual && price === 0 && cost === 0)) {
+        priceError = 'Price must be greater than unit cost.';
+    }
+    priceInput.toggleClass('border-danger', !!priceError).attr('aria-invalid', priceError ? 'true' : 'false');
+    costInput.toggleClass('border-danger', !!costError).attr('aria-invalid', costError ? 'true' : 'false');
+    row.find('.price-amount-error').text(priceError).toggleClass('d-none', !priceError);
+    row.find('.cost-amount-error').text(costError).toggleClass('d-none', !costError);
+    return !priceError && !costError;
+}
 
 function IsManualLine(row) {
     return row.find('.no-invoice-input').prop('checked') === true;
@@ -375,6 +383,9 @@ function ApplyInvoiceMode(row, reset) {
     const minimumAmount = manual ? 0 : 0.01;
     row.find(".price-input, .unitcost-input").attr("min", minimumAmount);
     if (reset) {
+        row.removeData('amounts-validated');
+        row.find('.price-amount-error, .cost-amount-error').text('').addClass('d-none');
+        row.find('.price-input, .unitcost-input').attr('aria-invalid', 'false');
         row.find('.invoice-input, .sequence-input, .partnumber-input, .quantity-input, .price-input, .unitcost-input')
             .val('').removeClass('border-danger input-validation-error');
         row.find('[data-valmsg-for]').empty();

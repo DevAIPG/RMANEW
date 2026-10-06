@@ -37,7 +37,7 @@ Switch each type in both directions and check that prior values clear. Confirm m
 Unknown parts posted directly must still fail server validation with no save. Submit and approve
 a valid manual line on a test server; verify ERP receives invoice 0 and sequence 0.
 
-Thirteen browser scenarios and JavaScript syntax checks passed in the Node runtime.
+Browser regression scenarios and JavaScript syntax checks passed in the Node runtime.
 The .NET tests could not run on this workstation because the SDK is not installed.
 
 Create and Edit load the unobtrusive validation adapter before RmaRequest.js.
@@ -48,3 +48,8 @@ the refresh preserves existing validation and still initializes the line UI.
 Part numbers remove trailing ERP padding before browser length validation and
 before server model validation. Leading and embedded characters are preserved;
 genuine part numbers over 20 characters still fail validation.
+
+Price and unit cost use inline validation after leaving either field, with no
+confirmation popup. Once shown, errors update as the values are corrected. Save
+validates every line and scrolls to/focuses the first invalid field. Zero/zero
+remains valid for No invoice lines; changing invoice mode clears amount errors.

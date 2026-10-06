@@ -9,7 +9,9 @@ function run() {
     const source = fs.readFileSync(path.join(__dirname, '../Amphenol.RMA/wwwroot/js/RmaRequest.js'), 'utf8');
     function collection(elements) {
         return {
-            length: elements.length,
+            length: elements.length, 0: elements[0],
+            first() { return collection(elements.slice(0, 1)); },
+            text(value) { if (value === undefined) return elements[0]?.text; elements.forEach(x => { x.text = value; }); return this; },
             prop(name, value) {
                 if (value === undefined) return elements[0]?.[name];
                 elements.forEach(x => { x[name] = value; }); return this;
@@ -40,20 +42,22 @@ function run() {
             },
             valid() { elements.forEach(x => { x.validatedValue = x.value; }); return true; },
             closest() { return elements[0].ownerRow; },
-            empty() { return this; }, trigger() { return this; }, ready() { return this; },
-            on(event, selector, callback) { handlers[selector] = callback; return this; }
+            empty() { return this; }, trigger(event) { elements.forEach(x => { x.lastEvent = event; }); return this; }, ready() { return this; },
+            on(event, selector, callback) { handlers[selector] = callback; handlers[event + ':' + selector] = callback; return this; }
         };
     }
     function row(manual) {
         const fields = {};
         for (const name of ['no-invoice-input', 'invoice-input', 'sequence-input', 'partnumber-input',
             'quantity-input', 'price-input', 'unitcost-input', 'invoice-selection', 'sequence-selection',
-            'no-invoice-placeholder', 'manual-line-help', 'btn-search-partnumber', 'manual-part-error']) {
+            'no-invoice-placeholder', 'manual-line-help', 'btn-search-partnumber', 'manual-part-error', 'price-amount-error', 'cost-amount-error']) {
             fields[name] = { value: '', checked: false, classes: new Set() };
         }
         fields['no-invoice-input'].checked = manual;
         const result = {
             fields, length: 1, validatorInitialized: false,
+            data(name, value) { if (value === undefined) return this[name]; this[name] = value; return this; },
+            removeData(name) { delete this[name]; return this; },
             validate() { this.validatorInitialized = true; },
             find(selector) { return collection(selector.split(',').map(x => fields[x.trim().replace(/^\./, '')]).filter(Boolean)); }
         };
@@ -180,7 +184,7 @@ function run() {
     switched.fields['price-input'].value = '0';
     switched.fields['unitcost-input'].value = '0';
     handlers['.price-input, .unitcost-input'].call(switched.fields['price-input']);
-    assert.equal(priceWarnings, 1);
+    assert.equal(priceWarnings, 0);
     assert.ok(switched.fields['price-input'].classes.has('border-danger'));
     // Exercise the shipped validator rules: invoice lookup costs are not rounded.
     const validationSource = fs.readFileSync(path.join(__dirname,
@@ -239,7 +243,54 @@ function run() {
     partInput.value = ' PART 001   ';
     handlers['.partnumber-input'].call(partInput);
     assert.equal(partInput.validatedValue, ' PART 001', 'Preserve leading and embedded characters');
-    return 'Passed 13 manual RMA line browser scenarios';
+    const amountLine = row(false);
+    amountLine.fields['price-input'].value = '5';
+    amountLine.fields['unitcost-input'].value = '5';
+    handlers['input:.price-input, .unitcost-input'].call(amountLine.fields['price-input']);
+    assert.ok(!amountLine.fields['price-input'].classes.has('border-danger'), 'Do not interrupt initial typing');
+    handlers['blur:.price-input, .unitcost-input'].call(amountLine.fields['unitcost-input']);
+    assert.equal(amountLine.fields['price-amount-error'].text, 'Price must be greater than unit cost.');
+    assert.equal(amountLine.fields['price-input']['aria-invalid'], 'true');
+    amountLine.fields['price-input'].value = '6';
+    handlers['input:.price-input, .unitcost-input'].call(amountLine.fields['price-input']);
+    assert.ok(amountLine.fields['price-amount-error'].classes.has('d-none'));
+    assert.equal(amountLine.fields['price-input']['aria-invalid'], 'false');
+    amountLine.fields['price-input'].value = '0.014';
+    amountLine.fields['unitcost-input'].value = '0.013';
+    assert.equal(context.ValidateLineAmounts(amountLine), true, 'Compare original precision without rounding');
+    manual.fields['price-input'].value = '0';
+    manual.fields['unitcost-input'].value = '0';
+    assert.equal(context.ValidateLineAmounts(manual), true);
+    manual.fields['unitcost-input'].value = '-1';
+    assert.equal(context.ValidateLineAmounts(manual), false);
+    assert.ok(manual.fields['unitcost-input'].classes.has('border-danger'));
+    manual.fields['unitcost-input'].value = '0';
+    amountLine.fields['price-input'].value = '5';
+    amountLine.fields['unitcost-input'].value = '5';
+    amountLine.fields['invoice-input'].value = '123456';
+    amountLine.fields['sequence-input'].value = '3';
+    validationRows = [manual, amountLine];
+    let blockedSave = false, scrolled = false;
+    amountLine.fields['price-input'].scrollIntoView = () => { scrolled = true; };
+    const saveForm = { fields: {}, find() {
+        return collection(validationRows.flatMap(line => Object.values(line.fields))
+            .filter(field => !field.disabled && field.classes.has('border-danger')));
+    } };
+    handlers['#newRmaForm, #editRmaForm'].call(saveForm, { preventDefault() { blockedSave = true; } });
+    assert.equal(blockedSave, true, 'Save must validate even before either field has blurred');
+    assert.equal(scrolled, true);
+    assert.equal(amountLine.fields['price-input'].lastEvent, 'focus');
+    assert.ok(!manual.fields['price-input'].classes.has('border-danger'), 'A valid zero manual line stays valid');
+    amountLine.fields['price-input'].value = '6';
+    blockedSave = false;
+    handlers['#newRmaForm, #editRmaForm'].call(saveForm, { preventDefault() { blockedSave = true; } });
+    assert.equal(blockedSave, false);
+    assert.equal(priceWarnings, 0, 'Amount validation never opens a popup');
+    context.ApplyInvoiceMode(amountLine, true);
+    assert.equal(amountLine.data('amounts-validated'), undefined);
+    assert.ok(amountLine.fields['price-amount-error'].classes.has('d-none'));
+    validationRows = [];
+    return 'Manual RMA line regression checks passed, including inline amounts and Save focus';
 }
 
 module.exports = run;
