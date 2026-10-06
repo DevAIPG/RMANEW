@@ -118,7 +118,7 @@ $(document).on('click', '.btn-search-sequence', function () {
 $(document).on('click', '.select-sequence', function () {
     var row = $(this).closest('tr');
     var sequence = $(this).text().trim();
-    var partNumber = row.find('.sequence-partnumber').text();
+    var partNumber = row.find('.sequence-partnumber').text().trimEnd();
 
     var table = $("#SequenceTable").DataTable();
     table.search('').draw();
@@ -160,7 +160,8 @@ $(document).on('input', '.partnumber-input', function () {
     selectedLineRow = $(this).closest('tr');
     var partnumberInput = selectedLineRow.find('.partnumber-input');
 
-    var partnumber = partnumberInput.val().trim();
+    var partnumber = (partnumberInput.val() || '').trimEnd();
+    partnumberInput.val(partnumber);
     selectedLineRow.find('.manual-part-error').addClass('d-none');
 
     $(this).valid();

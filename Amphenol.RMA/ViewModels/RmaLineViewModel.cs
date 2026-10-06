@@ -16,9 +16,14 @@ namespace Amphenol.RMA.ViewModels
         public int? SequenceNumber { get; set; }
         public string StoredInvoiceNumber => NoInvoice ? "0" : InvoiceNumber?.Trim();
         public short GetStoredSequenceNumber() => NoInvoice ? (short)0 : checked((short)(SequenceNumber ?? 0));
+        private string _partNumber;
         [Required]
         [StringLength(20)]
-        public string PartNumber { get; set; }
+        public string PartNumber
+        {
+            get => _partNumber;
+            set => _partNumber = value?.TrimEnd();
+        }
         public List<SelectableStringOption> Actions { get; } = [];
         [Required]
         public string SelectedAction { get; set; }

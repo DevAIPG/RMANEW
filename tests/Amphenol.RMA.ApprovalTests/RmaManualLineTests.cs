@@ -4,6 +4,23 @@ using Xunit;
 
 public class RmaManualLineTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PartNumberPaddingIsRemovedBeforeLengthValidation(bool manual)
+    {
+        var line = ValidLine();
+        line.NoInvoice = manual;
+        line.PartNumber = "12345678901234567890     ";
+        Assert.Equal("12345678901234567890", line.PartNumber);
+        Assert.Empty(Validate(line));
+        line.PartNumber = "123456789012345678901     ";
+        Assert.Equal("123456789012345678901", line.PartNumber);
+        Assert.Contains(Validate(line), error => error.MemberNames.Contains(nameof(line.PartNumber)));
+        line.PartNumber = " PART 001   ";
+        Assert.Equal(" PART 001", line.PartNumber);
+    }
+
     [Fact]
     public void ManualLineAcceptsMissingInvoiceAndSequenceAndStoresZeros()
     {

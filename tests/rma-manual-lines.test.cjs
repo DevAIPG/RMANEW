@@ -38,6 +38,7 @@ function run() {
                     x.rules = rules;
                 }); return this;
             },
+            valid() { elements.forEach(x => { x.validatedValue = x.value; }); return true; },
             closest() { return elements[0].ownerRow; },
             empty() { return this; }, trigger() { return this; }, ready() { return this; },
             on(event, selector, callback) { handlers[selector] = callback; return this; }
@@ -225,7 +226,20 @@ function run() {
         assert.ok(view.includes('data-valmsg-for="Lines[@(index)].' + field + '"'),
             field + ' errors must appear beside the indexed line input');
     }
-    return 'Passed 12 manual RMA line browser scenarios';
+    const paddedLine = row(false);
+    const partInput = paddedLine.fields['partnumber-input'];
+    partInput.value = '12345678901234567890     ';
+    handlers['.partnumber-input'].call(partInput);
+    assert.equal(partInput.value, '12345678901234567890');
+    assert.equal(partInput.validatedValue, '12345678901234567890',
+        'Normalize trailing ERP padding before invoking length validation');
+    partInput.value = '123456789012345678901     ';
+    handlers['.partnumber-input'].call(partInput);
+    assert.equal(partInput.validatedValue.length, 21, 'Do not truncate genuine part numbers');
+    partInput.value = ' PART 001   ';
+    handlers['.partnumber-input'].call(partInput);
+    assert.equal(partInput.validatedValue, ' PART 001', 'Preserve leading and embedded characters');
+    return 'Passed 13 manual RMA line browser scenarios';
 }
 
 module.exports = run;
