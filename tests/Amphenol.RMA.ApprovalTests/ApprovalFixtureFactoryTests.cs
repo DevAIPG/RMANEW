@@ -71,16 +71,23 @@ public class ApprovalFixtureFactoryTests
         Assert.Same(source, sourceLine.CSEXSW_Rma);
     }
 
-    [Fact]
-    public void GeneratedRequestNumbersFitTheModalIntegerContract()
+    [Theory]
+    [InlineData(0, "1")]
+    [InlineData(42, "43")]
+    [InlineData(601761, "601762")]
+    [InlineData(99_999_998, "99999999")]
+    public void FixtureRequestNumberFollowsCurrentM10Identity(long currentIdentity, string expected)
     {
-        for (var index = 0; index < 100; index++)
-        {
-            var number = ApprovalFixtureFactory.NewRequestNumber();
-            Assert.Equal(8, number.Length);
-            Assert.All(number, character => Assert.InRange(character, '0', '9'));
-            Assert.InRange(int.Parse(number), 10_000_000, 99_999_999);
-        }
+        Assert.Equal(expected, ApprovalFixtureFactory.NewRequestNumber(currentIdentity));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(99_999_999)]
+    [InlineData(long.MaxValue)]
+    public void ConsecutiveNumberRejectsInvalidOrExhaustedIdentity(long currentIdentity)
+    {
+        Assert.Throws<InvalidOperationException>(() => ApprovalFixtureFactory.NewRequestNumber(currentIdentity));
     }
 
     [Theory]

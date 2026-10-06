@@ -140,8 +140,10 @@ Automatic setup creates a fresh M10 request and copied lines for each scenario,
 using an existing USD request as a template. Approved templates are preferred,
 so setup does not depend on having fresh pending requests or a high-value request.
 The original request, assignment, lines, attachments, and CAR references remain
-untouched. Fixture copies have new identities and eight-character request numbers
-starting with `T`, a diagnostic comment containing the source ID and scenario,
+untouched. Fixture copies follow the app's consecutive M10 request numbering
+(current `CSEXSW_Rma` identity plus one), with a table lock held through insertion
+to prevent concurrent fixture runs from reserving the same number. They include
+a diagnostic comment containing the source ID and scenario,
 no ERP assignment, and submitted pending status. CAR flags/references are cleared.
 Request and line inserts commit together in one local M10 transaction before the
 actual approval test begins.

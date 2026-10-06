@@ -2,7 +2,7 @@ using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
-using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore.Storage;
 
 internal static class ApprovalFixtureFactory
 {
@@ -48,13 +48,11 @@ internal static class ApprovalFixtureFactory
                 || lines.Any(line => string.IsNullOrWhiteSpace(line.Coustumer)
                     || !erp.imitmidx_sql.Any(x => x.item_no == line.Coustumer))) continue;
 
-            string requestNumber;
-            do { requestNumber = NewRequestNumber(); }
-            while (m10.CSEXSW_Rma.Any(x => x.Rmarequest == requestNumber));
+            using var transaction = m10.Database.BeginTransaction();
+            var requestNumber = ReserveRequestNumber(m10);
             var fixture = Build(m10, source, lines, approver.res_id, approver.fullname,
                 scenario, requestNumber, directorStage);
 
-            using var transaction = m10.Database.BeginTransaction();
             m10.CSEXSW_Rma.Add(fixture.Request);
             m10.SaveChanges();
             if (excluded.Contains(fixture.Request.Id))
@@ -77,8 +75,25 @@ internal static class ApprovalFixtureFactory
             "No ERP master data is created or changed by fixture setup.");
     }
 
-    internal static string NewRequestNumber() =>
-        RandomNumberGenerator.GetInt32(10_000_000, 100_000_000).ToString(CultureInfo.InvariantCulture);
+    private static string ReserveRequestNumber(DbContextM10 m10)
+    {
+        using var command = m10.Database.GetDbConnection().CreateCommand();
+        command.Transaction = m10.Database.CurrentTransaction.GetDbTransaction();
+        // Match Releaserma: current M10 request identity + 1 (or 1 for an empty table).
+        // Keep the table lock until the request and lines commit, including concurrent runs.
+        command.CommandText = @"SELECT CASE
+            WHEN EXISTS (SELECT 1 FROM dbo.CSEXSW_Rma WITH (TABLOCKX, HOLDLOCK))
+            THEN CONVERT(bigint, IDENT_CURRENT('dbo.CSEXSW_Rma'))
+            ELSE CONVERT(bigint, 0) END";
+        return NewRequestNumber(Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    internal static string NewRequestNumber(long currentIdentity)
+    {
+        if (currentIdentity < 0 || currentIdentity >= 99_999_999)
+            throw new InvalidOperationException("The next consecutive request number must be positive and fit eight characters.");
+        return (currentIdentity + 1).ToString(CultureInfo.InvariantCulture);
+    }
 
     internal static (CSEXSW_Rma Request, List<csexsw_coustumer> Lines) Build(DbContextM10 m10,
         CSEXSW_Rma source, IReadOnlyList<csexsw_coustumer> sourceLines, int approverId, string approverName,
