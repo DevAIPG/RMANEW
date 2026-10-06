@@ -36,7 +36,7 @@ namespace Amphenol.RMA.ViewModels
         public decimal Price { get; set; }
         [Range(typeof(decimal), "0", "999999999.99", ErrorMessage = "Unit Cost must not be negative.")]
         public decimal UnitCost { get; set; }
-        [Required]
+        [Required(ErrorMessage = "Select a return code.")]
         public string ReturnCode { get; set; }
         public bool GenerateCAR { get; set; }
 

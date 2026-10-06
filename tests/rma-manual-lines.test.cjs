@@ -50,7 +50,7 @@ function run() {
         const fields = {};
         for (const name of ['no-invoice-input', 'invoice-input', 'sequence-input', 'partnumber-input',
             'quantity-input', 'price-input', 'unitcost-input', 'invoice-selection', 'sequence-selection',
-            'no-invoice-placeholder', 'manual-line-help', 'btn-search-partnumber', 'manual-part-error', 'price-amount-error', 'cost-amount-error']) {
+            'no-invoice-placeholder', 'manual-line-help', 'btn-search-partnumber', 'manual-part-error', 'price-amount-error', 'cost-amount-error', 'returncode-input', 'returncode-validation']) {
             fields[name] = { value: '', checked: false, classes: new Set() };
         }
         fields['no-invoice-input'].checked = manual;
@@ -269,6 +269,8 @@ function run() {
     amountLine.fields['unitcost-input'].value = '5';
     amountLine.fields['invoice-input'].value = '123456';
     amountLine.fields['sequence-input'].value = '3';
+    manual.fields['returncode-input'].value = '001';
+    amountLine.fields['returncode-input'].value = '001';
     validationRows = [manual, amountLine];
     let blockedSave = false, scrolled = false;
     amountLine.fields['price-input'].scrollIntoView = () => { scrolled = true; };
@@ -285,6 +287,21 @@ function run() {
     blockedSave = false;
     handlers['#newRmaForm, #editRmaForm'].call(saveForm, { preventDefault() { blockedSave = true; } });
     assert.equal(blockedSave, false);
+    amountLine.fields['returncode-input'].value = '   ';
+    blockedSave = false;
+    handlers['#newRmaForm, #editRmaForm'].call(saveForm, { preventDefault() { blockedSave = true; } });
+    assert.equal(blockedSave, true);
+    assert.equal(amountLine.fields['returncode-validation'].text, 'Select a return code.');
+    assert.equal(amountLine.fields['returncode-input'].lastEvent, 'focus');
+    assert.equal(amountLine.fields['returncode-input']['aria-invalid'], 'true');
+    amountLine.fields['returncode-input'].value = '001';
+    handlers['input change:.returncode-input'].call(amountLine.fields['returncode-input']);
+    assert.equal(amountLine.fields['returncode-validation'].text, '');
+    assert.equal(amountLine.fields['returncode-input']['aria-invalid'], 'false');
+    blockedSave = false;
+    handlers['#newRmaForm, #editRmaForm'].call(saveForm, { preventDefault() { blockedSave = true; } });
+    assert.equal(blockedSave, false);
+    assert.ok(view.includes('data-valmsg-for="Lines[@(index)].ReturnCode"'));
     assert.equal(priceWarnings, 0, 'Amount validation never opens a popup');
     context.ApplyInvoiceMode(amountLine, true);
     assert.equal(amountLine.data('amounts-validated'), undefined);

@@ -310,6 +310,7 @@ $(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
         const row = $(this);
         if (!row.find('.no-invoice-input').length) return;
         if (!ValidateLineAmounts(row)) valid = false;
+        if (!ValidateReturnCode(row)) valid = false;
         if (IsManualLine(row)) {
             if (!ValidateManualPart(row)) valid = false;
         } else {
@@ -333,6 +334,19 @@ $(document).on("submit", "#newRmaForm, #editRmaForm", function (event) {
         field.trigger('focus');
     }
 });
+
+$(document).on('input change', '.returncode-input', function () {
+    ValidateReturnCode($(this).closest('tr'));
+});
+function ValidateReturnCode(row) {
+    const input = row.find('.returncode-input');
+    const valid = !!(input.val() || '').toString().trim();
+    input.toggleClass('border-danger', !valid).attr('aria-invalid', valid ? 'false' : 'true');
+    if (valid) input.removeClass('input-validation-error');
+    row.find('.returncode-validation').text(valid ? '' : 'Select a return code.')
+        .toggleClass('field-validation-error', !valid).toggleClass('field-validation-valid', valid);
+    return valid;
+}
 
 function ValidateLineAmounts(row) {
     row.data('amounts-validated', true);
@@ -928,7 +942,7 @@ function SetReturnCodeModalResult(returnCode) {
         return;
     }
 
-    selectedLineRow.find('.returncode-input').val(returnCode);
+    selectedLineRow.find('.returncode-input').val(returnCode.trim()).trigger('input');
 
     $("#ReturnCodeModal").modal("hide");
 }

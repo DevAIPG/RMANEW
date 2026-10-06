@@ -71,9 +71,11 @@
     <td>
         <div class="input-group">
             <input class="form-control returncode-input" type="text" readonly asp-for="ReturnCode" id="Line_@(index)_ReturnCode"
-                   name="Lines[@(index)].ReturnCode" />
+                   name="Lines[@(index)].ReturnCode" aria-describedby="Line_@(index)_ReturnCodeError" />
             <span class="btn btn-sm btn-outline-secondary btn-search-returncode"><i class="fa fa-search"></i></span>
         </div>
+        <span asp-validation-for="ReturnCode" data-valmsg-for="Lines[@(index)].ReturnCode"
+              id="Line_@(index)_ReturnCodeError" class="returncode-validation text-danger" aria-live="polite"></span>
     </td>
     <td>
         <input class="form-check-inline m-2 generatecar-checkbox"
