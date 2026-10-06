@@ -10,11 +10,14 @@ namespace Amphenol.RMA.ViewModels
 
         [Required]
         public int RmaRequestId { get; set; }
-        [Required]
+        public bool NoInvoice { get; set; }
+        [StringLength(8)]
         public string InvoiceNumber { get; set; }
+        public int? SequenceNumber { get; set; }
+        public string StoredInvoiceNumber => NoInvoice ? "0" : InvoiceNumber?.Trim();
+        public short GetStoredSequenceNumber() => NoInvoice ? (short)0 : checked((short)(SequenceNumber ?? 0));
         [Required]
-        public int SequenceNumber { get; set; }
-        [Required]
+        [StringLength(20)]
         public string PartNumber { get; set; }
         public List<SelectableStringOption> Actions { get; } = [];
         [Required]
@@ -24,10 +27,11 @@ namespace Amphenol.RMA.ViewModels
         public string SelectedLocation { get; set; }
         [Range(1, int.MaxValue, ErrorMessage = "Authorized Quantity must be greater than 0.")]
         public int AuthorizedQuantity { get; set; }
-        [Range(typeof(decimal), "0.01", "999999999.99", ErrorMessage = "Price must be greater than 0.")]
+        [Range(typeof(decimal), "0", "999999999.99", ErrorMessage = "Price must not be negative.")]
         public decimal Price { get; set; }
-        [Range(typeof(decimal), "0.01", "999999999.99", ErrorMessage = "Unit Cost must be greater than 0.")]
+        [Range(typeof(decimal), "0", "999999999.99", ErrorMessage = "Unit Cost must not be negative.")]
         public decimal UnitCost { get; set; }
+        [Required]
         public string ReturnCode { get; set; }
         public bool GenerateCAR { get; set; }
 
@@ -38,7 +42,18 @@ namespace Amphenol.RMA.ViewModels
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (Price <= UnitCost)
+            if (!NoInvoice)
+            {
+                if (string.IsNullOrWhiteSpace(InvoiceNumber) || InvoiceNumber.Trim() == "0")
+                    yield return new ValidationResult("Select an invoice or choose No invoice.", [nameof(InvoiceNumber)]);
+                if (!SequenceNumber.HasValue || SequenceNumber <= 0 || SequenceNumber > short.MaxValue)
+                    yield return new ValidationResult("Select a valid invoice sequence.", [nameof(SequenceNumber)]);
+            }
+            if (Price < 0.01m && !(NoInvoice && Price == 0))
+                yield return new ValidationResult("Price must be greater than 0 unless No invoice is selected.", [nameof(Price)]);
+            if (UnitCost < 0.01m && !(NoInvoice && UnitCost == 0))
+                yield return new ValidationResult("Unit Cost must be greater than 0 unless No invoice is selected.", [nameof(UnitCost)]);
+            if (Price <= UnitCost && !(NoInvoice && Price == 0 && UnitCost == 0))
             {
                 yield return new ValidationResult("Price must be greater than Unit Cost.", [nameof(Price)]);
             }
