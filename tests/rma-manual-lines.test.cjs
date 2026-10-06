@@ -318,11 +318,20 @@ function run() {
     assert.equal(amountLine.data('amounts-validated'), undefined);
     assert.ok(amountLine.fields['price-amount-error'].classes.has('d-none'));
     validationRows = [];
-    const controlMarkup = view.split('<tr class="rma-line-errors">')[0];
+    const controlMarkup = view.split('<tr class="rma-line-errors"')[0];
     assert.ok(!controlMarkup.includes('asp-validation-for='), 'Warnings must not change the controls row height');
     assert.ok(!controlMarkup.includes('price-amount-error'));
-    assert.ok(view.includes('<tr class="rma-line-errors">'));
-    assert.ok(view.includes('<td colspan="12">'));
+    const warningsMarkup = view.slice(view.indexOf('<tr class="rma-line-errors"'));
+    const warningCells = [...warningsMarkup.matchAll(/<td>([\s\S]*?)<\/td>/g)].map(match => match[1]);
+    assert.equal(warningCells.length, 12, 'Warning row must match the twelve control columns');
+    for (const [field, column] of [['InvoiceNumber', 2], ['SequenceNumber', 3], ['PartNumber', 4],
+        ['SelectedAction', 5], ['SelectedLocation', 6], ['AuthorizedQuantity', 7],
+        ['Price', 8], ['UnitCost', 9], ['ReturnCode', 10]]) {
+        assert.ok(warningCells[column].includes('asp-validation-for="' + field + '"'),
+            field + ' warning belongs beneath its own control');
+    }
+    assert.ok(warningCells[8].includes('price-amount-error'));
+    assert.ok(warningCells[9].includes('cost-amount-error'));
     assert.equal(context.LineMessages(amountLine), amountLine.messages);
     assert.equal(amountLine.find('.returncode-validation').length, 0, 'Messages live outside the controls row');
     validationRows = [manual, amountLine];

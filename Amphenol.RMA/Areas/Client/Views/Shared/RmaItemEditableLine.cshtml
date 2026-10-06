@@ -75,22 +75,39 @@
 
     </td>
 </tr>
-<tr class="rma-line-errors">
-    <td colspan="12">
-        <div class="line-validation-messages" aria-live="polite">
-            <span asp-validation-for="InvoiceNumber" data-valmsg-for="Lines[@(index)].InvoiceNumber" class="text-danger"></span>
-            <span asp-validation-for="SequenceNumber" data-valmsg-for="Lines[@(index)].SequenceNumber" class="text-danger"></span>
-            <span class="manual-part-error text-danger d-none">Part number not found in ERP.</span>
-            <span asp-validation-for="PartNumber" data-valmsg-for="Lines[@(index)].PartNumber" class="text-danger"></span>
-            <span asp-validation-for="AuthorizedQuantity" data-valmsg-for="Lines[@(index)].AuthorizedQuantity" class="text-danger"></span>
-            <span id="Line_@(index)_PriceAmountError" class="price-amount-error text-danger d-none" aria-live="polite"></span>
-            <span asp-validation-for="Price" data-valmsg-for="Lines[@(index)].Price" class="text-danger"></span>
-            <span id="Line_@(index)_CostAmountError" class="cost-amount-error text-danger d-none" aria-live="polite"></span>
-            <span asp-validation-for="UnitCost" data-valmsg-for="Lines[@(index)].UnitCost" class="text-danger"></span>
-            <span asp-validation-for="ReturnCode" data-valmsg-for="Lines[@(index)].ReturnCode"
-              id="Line_@(index)_ReturnCodeError" class="returncode-validation text-danger" aria-live="polite"></span>
-            <span asp-validation-for="SelectedAction" data-valmsg-for="Lines[@(index)].SelectedAction" class="text-danger"></span>
-            <span asp-validation-for="SelectedLocation" data-valmsg-for="Lines[@(index)].SelectedLocation" class="text-danger"></span>
-        </div>
+<tr class="rma-line-errors" aria-live="polite">
+    <td></td>
+    <td></td>
+    <td>
+        <span asp-validation-for="InvoiceNumber" data-valmsg-for="Lines[@(index)].InvoiceNumber" class="text-danger"></span>
     </td>
+    <td>
+        <span asp-validation-for="SequenceNumber" data-valmsg-for="Lines[@(index)].SequenceNumber" class="text-danger"></span>
+    </td>
+    <td>
+        <span class="manual-part-error text-danger d-none">Part number not found in ERP.</span>
+        <span asp-validation-for="PartNumber" data-valmsg-for="Lines[@(index)].PartNumber" class="text-danger"></span>
+    </td>
+    <td>
+        <span asp-validation-for="SelectedAction" data-valmsg-for="Lines[@(index)].SelectedAction" class="text-danger"></span>
+    </td>
+    <td>
+        <span asp-validation-for="SelectedLocation" data-valmsg-for="Lines[@(index)].SelectedLocation" class="text-danger"></span>
+    </td>
+    <td>
+        <span asp-validation-for="AuthorizedQuantity" data-valmsg-for="Lines[@(index)].AuthorizedQuantity" class="text-danger"></span>
+    </td>
+    <td>
+        <span id="Line_@(index)_PriceAmountError" class="price-amount-error text-danger d-none" aria-live="polite"></span>
+        <span asp-validation-for="Price" data-valmsg-for="Lines[@(index)].Price" class="text-danger"></span>
+    </td>
+    <td>
+        <span id="Line_@(index)_CostAmountError" class="cost-amount-error text-danger d-none" aria-live="polite"></span>
+        <span asp-validation-for="UnitCost" data-valmsg-for="Lines[@(index)].UnitCost" class="text-danger"></span>
+    </td>
+    <td>
+        <span asp-validation-for="ReturnCode" data-valmsg-for="Lines[@(index)].ReturnCode"
+              id="Line_@(index)_ReturnCodeError" class="returncode-validation text-danger" aria-live="polite"></span>
+    </td>
+    <td></td>
 </tr>
