@@ -585,11 +585,31 @@ namespace Amphenol.RMA.Controllers
             }
             if (rma.Sumbit == RmaSubmitStatus.NotSubmitted.ToDisplayString()) return;
             var firstName = approver.Name?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
-            var reviewReason = rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString()
-                ? "This request requires Customer Service review because a line without an invoice has a price below cost."
-                : "Please review the request details and provide your approval decision.";
-            await _emailService.SendApprovalRequestNotification("RMA Request", rma.Rmarequest,
-                $"Hello {firstName},<br><br>You have been assigned as the approver for RMA request #{rma.Rmarequest}.<br><br>{reviewReason}<br><br>Thank you,<br>Amphenol Industrial Operations RMA System",
+            var isCsReview = rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString();
+            var subject = isCsReview
+                ? $"Customer Service review required: RMA request #{rma.Rmarequest}"
+                : "RMA Request";
+            var message = isCsReview
+                ? $"""
+                Hello {firstName},<br><br>
+                RMA request <strong>#{rma.Rmarequest}</strong> has been routed to you for Customer Service review.<br><br>
+                This request contains at least one line where:<br>
+                &bull; no invoice is linked; and<br>
+                &bull; the submitted price is lower than the current cost.<br><br>
+                This can occur when the original sale is historical and the original invoice is not available in the system. Please review the request and approve or reject the pricing exception in the Approval Control screen.<br><br>
+                Once approved, the request will continue through the normal RMA approval workflow.<br><br>
+                Thank you,<br>
+                Amphenol Industrial Operations RMA System
+                """
+                : $"""
+                Hello {firstName},<br><br>
+                You have been assigned as the approver for RMA request #{rma.Rmarequest}.<br><br>
+                Please review the request details and provide your approval decision.<br><br>
+                Thank you,<br>
+                Amphenol Industrial Operations RMA System
+                """;
+            await _emailService.SendApprovalRequestNotification(subject, rma.Rmarequest,
+                message,
                 new EmailAddress(approver.Email));
         }
 
