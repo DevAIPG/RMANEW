@@ -5,7 +5,9 @@ internal sealed class ApprovalFixtureSelector
         "RMA_TEST_ROLLBACK_ID", "RMA_TEST_CONCURRENT_ID", "RMA_TEST_BYPASS_ID",
         "RMA_TEST_M10_FAILURE_ID", "RMA_TEST_EDIT_PROTECTION_ID",
         "RMA_TEST_VALIDATION_FAILURE_ID", "RMA_TEST_EDIT_LIFECYCLE_ID",
-        "RMA_TEST_BYPASS_DIRECTOR_ID"
+        "RMA_TEST_BYPASS_DIRECTOR_ID",
+        "RMA_TEST_CS_1000_False_ID", "RMA_TEST_CS_20000_False_ID",
+        "RMA_TEST_CS_1000_True_ID"
     };
 
     private readonly object _gate = new();
