@@ -5,7 +5,8 @@ namespace Amphenol.RMA.Models.Enumerations
     public enum RmaSubmitStatus
     {
         NotSubmitted,
-        Submitted
+        Submitted,
+        CsReviewRequired
     }
     public static class RmaSubmitStatusExtensions
     {
@@ -15,6 +16,7 @@ namespace Amphenol.RMA.Models.Enumerations
             {
                 RmaSubmitStatus.NotSubmitted => "Not Submitted",
                 RmaSubmitStatus.Submitted => "Submitted",
+                RmaSubmitStatus.CsReviewRequired => "CS Review Required",
                 _ => status.ToString()
             };
         }
@@ -24,6 +26,7 @@ namespace Amphenol.RMA.Models.Enumerations
             {
                 "Not Submitted" => RmaSubmitStatus.NotSubmitted,
                 "Submitted" => RmaSubmitStatus.Submitted,
+                "CS Review Required" => RmaSubmitStatus.CsReviewRequired,
                 _ => throw new ArgumentException(
                     $"Unknown RMA submit status: {value}",
                     nameof(value))

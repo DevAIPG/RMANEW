@@ -5,12 +5,28 @@ mix invoice-linked and manual lines. Manual lines display Not applicable for
 invoice and sequence, keep part numbers read-only and enable the existing ERP part selector,
 and require the user to enter quantity, price, cost, location, action, and return
 code. Manual lines may use zero for both price and unit cost. Negative amounts
-remain invalid; for other amount combinations, price must exceed unit cost.
-Invoice-linked lines retain their positive price/cost requirements. Price and cost
+remain invalid. Equal price and cost are allowed. Invoice-linked lines allow prices
+below cost and retain their positive price/cost requirements. Price and cost
 accept decimal values without a fixed browser step so existing invoice costs
 with more than four decimal places remain valid. Field validation messages use
 the indexed line names and appear beside the affected input. Zero-total
-requests follow the existing lowest-value approval tier.
+requests follow the existing lowest-value approval tier after any required CS review.
+
+On submission, any line with no invoice and price below cost routes the entire
+request to `CustomerServiceManager:ResId`, with notifications sent to
+`CustomerServiceManager:Email`. The request remains Pending and its submission
+status becomes **CS Review Required**. This value uses the existing 20-character
+submission column; no database migration is required. Approval Control includes
+these requests for the assigned manager and existing configured bypass users,
+and displays the submission status. The main request list also labels CS review.
+
+CS approval changes submission status back to Submitted and assigns the normal
+approver using request value, type, and where-built location. Eligible scrap
+allowances proceed to automatic approval only after CS review. CS approval alone
+does not create ERP records. Normal requests totaling exactly $20,000 now receive
+Quality Director approval followed by General Manager approval. Returned or
+rejected requests are checked again when resubmitted. No dedicated exception
+audit fields or tables are added.
 
 Switching modes clears invoice, sequence, part, quantity, price, and cost so data
 from an earlier selection cannot carry into a different mode. Existing saved
@@ -30,6 +46,13 @@ Browser behavior regression checks:
 Server validation and persistence-mapping checks:
 
     dotnet test tests/Amphenol.RMA.ApprovalTests/Amphenol.RMA.ApprovalTests.csproj --filter FullyQualifiedName~RmaManualLineTests
+
+Routing and submission-state checks (no SQL required):
+
+    dotnet test tests/Amphenol.RMA.ApprovalTests/Amphenol.RMA.ApprovalTests.csproj --filter "FullyQualifiedName~RmaApprovalRoutingTests|FullyQualifiedName~ApprovalProtectionTests"
+
+The SQL-clone integration suite includes CS handoff at $1,000 and $20,000,
+unauthorized and repeated CS approvals, and the automatic-approval handoff.
 
 Staging verification: create a request containing both line types; save and reopen;
 confirm manual values remain editable and invoice lines retain their references.

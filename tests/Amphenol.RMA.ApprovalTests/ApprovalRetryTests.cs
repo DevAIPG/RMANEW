@@ -67,6 +67,61 @@ public class ApprovalRetryTests
         Assert.Equal(before, Snapshot(erp));
     }
 
+    [Theory]
+    [InlineData(1000, false)]
+    [InlineData(20000, false)]
+    [InlineData(1000, true)]
+    public void CsApprovalHandsOffWithoutCreatingErpUntilNormalApproval(double total, bool scrap)
+    {
+        var id = FixtureId($"RMA_TEST_CS_{total}_{scrap}_ID");
+        using var m10 = M10();
+        using var erp = Erp();
+        var request = RequireRequest(m10, id);
+        var directorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
+        var generalManagerId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
+        var qualityManagerId = m10.HRRoles.First(x => x.RoleID == 100062).EmpID;
+        var cs = m10.humres.First(x => x.res_id > 0 && x.res_id != directorId
+            && x.res_id != generalManagerId && x.res_id != qualityManagerId);
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["CustomerServiceManager:ResId"] = cs.res_id.ToString(),
+            ["CustomerServiceManager:Email"] = cs.mail
+        }).Build();
+        request.Totalrmavalues = total;
+        request.Wherebuilt = "Mesa";
+        request.RMA500 = "No";
+        request.Rmatypeofrequest = scrap ? "DISTY SCRAP ALLOWANCE" : "CREDIT ONLY";
+        var routing = new RmaApprovalRouting(m10, configuration);
+        var line = m10.csexsw_coustumer.First(x => x.RmaId == id);
+        line.Invoice = "0";
+        line.Unit = 1;
+        line.Cost = 2;
+        Assert.True(RmaApprovalRouting.RequiresCsReview(new[] { line }));
+        routing.Assign(request, true, true);
+        m10.SaveChanges();
+        Assert.Equal("CS Review Required", request.Sumbit);
+        Assert.Equal(cs.res_id, request.res_id_approver);
+        Assert.False(request.CanEdit);
+        var before = Snapshot(erp);
+        var repository = new CSEXSW_RmaRepository(m10, erp, configuration);
+        Assert.Equal(string.Empty, repository.Updateaprobar(id, "Wrong approver", directorId.ToString()));
+        Assert.Equal(scrap ? "AutoApprove" : "Pending",
+            repository.Updateaprobar(id, "CS approved", cs.res_id.ToString()));
+        m10.Entry(request).Reload();
+        Assert.Equal("Submitted", request.Sumbit);
+        Assert.Equal(scrap ? -4 : total >= 5000 ? directorId : qualityManagerId, request.res_id_approver);
+        Assert.True(string.IsNullOrWhiteSpace(request.turno));
+        Assert.Equal(before, Snapshot(erp));
+        Assert.Equal(string.Empty, repository.Updateaprobar(id, "Repeat CS approval", cs.res_id.ToString()));
+        if (total == 20000)
+        {
+            Assert.Equal("Pending", repository.Updateaprobar(id, "Director approved", directorId.ToString()));
+            m10.Entry(request).Reload();
+            Assert.Equal(generalManagerId, request.res_id_approver);
+            Assert.Equal(before, Snapshot(erp));
+        }
+    }
+
     [Fact]
     public void StaleLegacyEditCannotEraseACommittedApprovalOrCreateAnotherRma()
     {

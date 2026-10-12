@@ -30,6 +30,7 @@ public class ApprovalProtectionTests
 
     [Theory]
     [InlineData("Pending", "Submitted")]
+    [InlineData("Pending", "CS Review Required")]
     [InlineData(" pending ", " submitted ")]
     [InlineData("Auto-Approved", "Submitted")]
     [InlineData("Auto-Approved", "Not Submitted")]

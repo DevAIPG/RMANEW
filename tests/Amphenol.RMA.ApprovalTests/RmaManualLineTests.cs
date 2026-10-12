@@ -88,7 +88,10 @@ public class RmaManualLineTests
     [InlineData(false, 10, 0, false)]
     [InlineData(true, -1, 0, false)]
     [InlineData(true, 0, -1, false)]
-    [InlineData(true, 5, 5, false)]
+    [InlineData(true, 5, 5, true)]
+    [InlineData(true, 4, 5, true)]
+    [InlineData(false, 4, 5, true)]
+    [InlineData(false, 5, 5, true)]
     public void ZeroAmountsAreAllowedOnlyForManualLines(bool manual, int price, int cost, bool valid)
     {
         var line = ValidLine();

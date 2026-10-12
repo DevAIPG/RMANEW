@@ -372,9 +372,6 @@ function ValidateLineAmounts(row) {
     }
     let priceError = amountError(priceText, price, 'Price');
     const costError = amountError(costText, cost, 'Unit cost');
-    if (!priceError && !costError && price <= cost && !(manual && price === 0 && cost === 0)) {
-        priceError = 'Price must be greater than unit cost.';
-    }
     priceInput.toggleClass('border-danger', !!priceError).attr('aria-invalid', priceError ? 'true' : 'false');
     costInput.toggleClass('border-danger', !!costError).attr('aria-invalid', costError ? 'true' : 'false');
     LineMessages(row).find('.price-amount-error').text(priceError).toggleClass('d-none', !priceError);

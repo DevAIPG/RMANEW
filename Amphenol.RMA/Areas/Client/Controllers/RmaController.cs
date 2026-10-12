@@ -128,7 +128,8 @@ namespace Amphenol.RMA.Controllers
                 var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
                 if (request == null || !string.IsNullOrWhiteSpace(request.turno)
                     || request.Status != RmaRequestStatus.Pending.ToDisplayString()
-                    || request.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString())
+                    || (request.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString()
+                        && request.Sumbit != RmaSubmitStatus.CsReviewRequired.ToDisplayString()))
                     throw new InvalidOperationException("This request is not waiting for approval.");
                 var username = User.Identity?.Name?.Split('\\').LastOrDefault();
                 var userId = string.IsNullOrWhiteSpace(username)
@@ -208,7 +209,7 @@ namespace Amphenol.RMA.Controllers
             return View();
         }
         [HttpPost]
-        public IActionResult DoneRemark(int id)
+        public async Task<IActionResult> DoneRemark(int id)
         {
             using var requestLock = LockEditableRequest(id);
             var rma = _m10Db.CSEXSW_Rma
@@ -217,21 +218,9 @@ namespace Amphenol.RMA.Controllers
             if (rma == null) return NotFound();
             _m10Db.Entry(rma).Reload();
 
-            if (rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
-            {
-                var qualityDirector = GetEmployeeByRole(100031);
-                var generalManager = GetEmployeeByRole(100032);
-
-                if (rma.res_id_approver == generalManager.Id)
-                {
-                    rma.Approver = qualityDirector.Name;
-                    rma.res_id_approver = qualityDirector.Id;
-                }
-            }
-            rma.Status = RmaRequestStatus.Pending.ToDisplayString();
-            rma.Sumbit = RmaSubmitStatus.Submitted.ToDisplayString();
-
+            var approver = RouteStoredSubmission(rma);
             _m10Db.SaveChanges();
+            await NotifySubmittedApproval(rma, approver);
 
             return RedirectToAction(nameof(Index));
         }
@@ -506,15 +495,15 @@ namespace Amphenol.RMA.Controllers
             return View(rma);
         }
         [HttpGet]
-        public IActionResult resubmitrechazo(int id)
+        public async Task<IActionResult> resubmitrechazo(int id)
         {
             using var requestLock = LockEditableRequest(id);
             var rma = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
+            if (rma == null) return NotFound();
             _m10Db.Entry(rma).Reload();
-            rma.Status = RmaRequestStatus.Pending.ToDisplayString();
-            rma.Sumbit = RmaSubmitStatus.Submitted.ToDisplayString();
-            _m10Db.Entry(rma).State = EntityState.Modified;
+            var approver = RouteStoredSubmission(rma);
             _m10Db.SaveChanges();
+            await NotifySubmittedApproval(rma, approver);
             return Json(true);
 
         }
@@ -576,6 +565,34 @@ namespace Amphenol.RMA.Controllers
             return CompleteApproval(commentt, idsa, userId, false);
         }
 
+        private Approver RouteStoredSubmission(CSEXSW_Rma rma)
+        {
+            var lines = _m10Db.csexsw_coustumer.Where(x => x.RmaId == rma.Id).ToList();
+            if (lines.Count == 0)
+                throw new InvalidOperationException("At least one line is required before submission.");
+            rma.Totalrmavalues = (double)lines.Sum(x => x.Qty * x.Unit);
+            rma.RMA500 = lines.Any(x => x.Unit > 500) ? "Yes" : "No";
+            return new RmaApprovalRouting(_m10Db, _configuration).Assign(rma,
+                RmaApprovalRouting.RequiresCsReview(lines), true, RmaApprovalRouting.ApprovalValue(rma, _500Db));
+        }
+
+        private async Task NotifySubmittedApproval(CSEXSW_Rma rma, Approver approver)
+        {
+            if (rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString())
+            {
+                await ApproveAutomatically(rma.Id);
+                return;
+            }
+            if (rma.Sumbit == RmaSubmitStatus.NotSubmitted.ToDisplayString()) return;
+            var firstName = approver.Name?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
+            var reviewReason = rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString()
+                ? "This request requires Customer Service review because a line without an invoice has a price below cost."
+                : "Please review the request details and provide your approval decision.";
+            await _emailService.SendApprovalRequestNotification("RMA Request", rma.Rmarequest,
+                $"Hello {firstName},<br><br>You have been assigned as the approver for RMA request #{rma.Rmarequest}.<br><br>{reviewReason}<br><br>Thank you,<br>Amphenol Industrial Operations RMA System",
+                new EmailAddress(approver.Email));
+        }
+
         private Task<RedirectToActionResult> ApproveAutomatically(int requestId)
         {
             var request = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == requestId);
@@ -596,6 +613,12 @@ namespace Amphenol.RMA.Controllers
             // Updateaprobar returns "Approved" only after M10 and ERP commit.
             // No CAR jobs, reports, or approval notifications run before then.
             string retorno = _contenedorTrabajo.CSEXSW_Rma.Updateaprobar(idsa, commentt, userId);
+
+            if (retorno == "AutoApprove")
+            {
+                await ApproveAutomatically(idsa);
+                return RedirectToAction(nameof(Control));
+            }
 
             if (retorno != "Approved" && retorno != "Pending")
             {
@@ -694,7 +717,7 @@ namespace Amphenol.RMA.Controllers
                         rma.Rmarequest,
                         $"""
                         Hello {approverFirstname},<br><br>
-                        {originalApprover} has approved RMA request #{rma.Rmarequest}. As part of the approval workflow, this request now requires your review and secondary approval.<br><br>
+                        {originalApprover} has approved RMA request #{rma.Rmarequest}. As part of the approval workflow, this request now requires your review and approval.<br><br>
                         Please review the request details and provide your approval decision at your earliest convenience.<br><br>
                         Thank you,<br>
                         Amphenol Industrial Operations RMA System
@@ -820,58 +843,9 @@ namespace Amphenol.RMA.Controllers
                 RMA500 = vm.HasLineOverThreshold ? "Yes" : "No"
             };
 
-            //set approver
-            var qualityManager = GetQualityManager(rma.Wherebuilt);
-            var qualityDirector = GetEmployeeByRole(100031);
-            var generalManager = GetEmployeeByRole(100032);
-            var customerServiceManager = _customerServiceManager;
-
-
-            //approvalFlow.NotifyEmails =
-            //[
-            //    qualityDirector.mail,
-            //    generalManager.mail,
-            //    customerServiceManager.Email
-            //];
-
-            Approver approver = null;
-
-            if (rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString())
-            {
-                if (rma.Totalrmavalues < 5000 && !vm.HasLineOverThreshold)
-                {
-                    approver = _autoApprover;
-                    rma.SetApprover(approver);
-                    if (!string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase))
-                    {
-                        rma.ChangeRequestStatus(RmaRequestStatus.AutoApprove);
-                    }
-                }
-                else
-                {
-                    approver = qualityDirector;
-                    rma.SetApprover(approver);
-                }
-            }
-            else
-            {
-                switch (rma.Totalrmavalues)
-                {
-                    case >= 0 and < 5000:
-                        approver = qualityManager;
-                        rma.SetApprover(approver);
-                        break;
-                    case >= 5000 and < 20000:
-                        approver = qualityDirector;
-                        rma.SetApprover(qualityDirector);
-                        break;
-                    case > 20000:
-                        approver = qualityDirector;
-                        rma.SetApprover(qualityDirector);
-                        //requires secondary approval
-                        break;
-                }
-            }
+            var approver = new RmaApprovalRouting(_m10Db, _configuration).Assign(rma,
+                vm.Lines.Any(x => x.NoInvoice && x.Price < x.UnitCost),
+                !string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase));
 
             await using (var transaction = await _m10Db.Database.BeginTransactionAsync())
             {
@@ -895,31 +869,7 @@ namespace Amphenol.RMA.Controllers
 
             //BackgroundJob.Enqueue(() => SendRmaCreationNotification(idRma, approvalFlow));
 
-            var firstName = approver.Name?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
-
-            if (rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString())
-            {
-                await ApproveAutomatically(rma.Id);
-            }
-            else
-            {
-                if (rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString())
-                {
-                    await _emailService.SendApprovalRequestNotification(
-                        "RMA Request",
-                        rma.Rmarequest,
-                        $"""
-                    Hello {firstName},<br><br>
-                    You have been assigned as the approver for RMA request #{rma.Rmarequest}.<br><br>
-                    Please review the request details and provide your approval decision.<br><br>
-                    Thank you,<br>
-                    Amphenol Industrial Operations RMA System
-                    """,
-                        new EmailAddress(approver.Email)
-                    );
-                }
-
-            }
+            await NotifySubmittedApproval(rma, approver);
 
             return RedirectToAction(nameof(Index));
         }
@@ -1197,44 +1147,9 @@ namespace Amphenol.RMA.Controllers
             rma.Status = requestStatus;
             rma.Sumbit = submitStatus;
 
-            //set approver
-            var qualityManager = GetQualityManager(rma.Wherebuilt);
-            var qualityDirector = GetEmployeeByRole(100031);
-            var generalManager = GetEmployeeByRole(100032);
-            var customerServiceManager = _customerServiceManager;
-
-            if (rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString())
-            {
-                if (rma.Totalrmavalues < 5000 && !vm.HasLineOverThreshold)
-                {
-                    rma.SetApprover(_autoApprover);
-
-                    if (!string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase))
-                    {
-                        rma.ChangeRequestStatus(RmaRequestStatus.AutoApprove);
-                    }
-                }
-                else
-                {
-                    rma.SetApprover(qualityDirector);
-                }
-            }
-            else
-            {
-                switch (rma.Totalrmavalues)
-                {
-                    case >= 0 and < 5000:
-                        rma.SetApprover(qualityManager);
-                        break;
-                    case >= 5000 and < 20000:
-                        rma.SetApprover(qualityDirector);
-                        break;
-                    case > 20000:
-                        rma.SetApprover(qualityDirector);
-                        //requires secondary approval
-                        break;
-                }
-            }
+            var approver = new RmaApprovalRouting(_m10Db, _configuration).Assign(rma,
+                vm.Lines.Any(x => x.NoInvoice && x.Price < x.UnitCost),
+                !string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase));
 
             var filesToDelete = new List<string>();
             var newlyCreatedFiles = new List<string>();
@@ -1281,13 +1196,7 @@ namespace Amphenol.RMA.Controllers
             }
 
             if (!string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase))
-            {
-                if (rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString())
-                {
-                    await ApproveAutomatically(rma.Id);
-                }
-            }
-
+                await NotifySubmittedApproval(rma, approver);
 
             if (!string.IsNullOrWhiteSpace(vm.ReturnUrl) && Url.IsLocalUrl(vm.ReturnUrl))
             {
@@ -1811,7 +1720,7 @@ namespace Amphenol.RMA.Controllers
         }
 
         [HttpPost]
-        public IActionResult Done(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
+        public async Task<IActionResult> Done(int id, string Rmarequest, string rmastatus, string rmaapprover, string rmasumbit, string rmadata, string rmawherebuilt, double total, string client, string rmatypeofrequest, string description, string customercomplait, string rma500, string customerpo, string shipto, string contact, string phone, string ext, string fax, string contactemail, string companyemail, string comment,
             bool finalizado, bool inicio, decimal[] acttion, string[] invoice, short[] seq, string[] coustumer, decimal[] qty, decimal[] unit, string[] code, string[] checkcar, string[] loc, string[] actions)
         {
             using var requestLock = LockEditableRequest(id);
@@ -1897,7 +1806,12 @@ namespace Amphenol.RMA.Controllers
                     }
                 }
                 _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
+                var submittedRequest = _m10Db.CSEXSW_Rma.Single(x => x.Id == id);
+                var approver = RouteStoredSubmission(submittedRequest);
+                _m10Db.SaveChanges();
                 transaction.Commit();
+                transaction.Dispose();
+                await NotifySubmittedApproval(submittedRequest, approver);
                 return Json(new { data = "Primeras lineas" });
 
 
@@ -1913,14 +1827,24 @@ namespace Amphenol.RMA.Controllers
 
 
                 _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
+                var submittedRequest = _m10Db.CSEXSW_Rma.Single(x => x.Id == id);
+                var approver = RouteStoredSubmission(submittedRequest);
+                _m10Db.SaveChanges();
                 transaction.Commit();
+                transaction.Dispose();
+                await NotifySubmittedApproval(submittedRequest, approver);
                 return Json(new { data = "Lineas creadas" });
 
             }
 
 
             _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
+            var finalRequest = _m10Db.CSEXSW_Rma.Single(x => x.Id == id);
+            var finalApprover = RouteStoredSubmission(finalRequest);
+            _m10Db.SaveChanges();
             transaction.Commit();
+            transaction.Dispose();
+            await NotifySubmittedApproval(finalRequest, finalApprover);
             return Json(new { data = "Terminado" });
 
 
@@ -2103,222 +2027,16 @@ namespace Amphenol.RMA.Controllers
 
 
         [HttpGet]
-        public IActionResult SubmitRMA(int id)
+        public async Task<IActionResult> SubmitRMA(int id)
         {
             using var requestLock = LockEditableRequest(id);
-            bool inicio = true;
-            bool finalizado = false;
-            var num = "1";
-            try
-            {
-                int id2 = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-                num = "8" + id2.ToString("D4");
-            }
-            catch (Exception)
-            {
-
-            }
-
-            var rmaS = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault();
-
-            var arcusfil_sql = new arcusfil_sql();
-
-            double tipo_cambio = rmaS.Totalrmavalues;
-            arcusfil_sql = _500Db.arcusfil_sql.Where(a => a.cus_no.Trim() == rmaS.Customer.Trim()).FirstOrDefault();
-
-            var moneda = arcusfil_sql.curr_cd;
-            var rate = _500Db.Rate.Where(a => a.DateL == _500Db.Rate.Max(a => a.DateL) && a.SourceCurrency == "USD").FirstOrDefault();
-
-
-            if (moneda == "CNY")
-            {
-                tipo_cambio = Convert.ToDouble(rmaS.Totalrmavalues) / Convert.ToDouble(rate.RateExchange);
-            }
-
-            csexsw_coustumerVM rma = new csexsw_coustumerVM()
-            {
-                CSEXSW_Rma = rmaS
-            };
-
-            String cadena = User.Identity.Name;
-            string delimitador = @"\";
-            string[] valores = cadena.Split(delimitador);
-            string usuario = valores[1];
-            string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            var fullname = _m10Db.humres.Where(s => s.res_id == int.Parse(var)).FirstOrDefault().fullname;
-            rma.CSEXSW_Rma.Preparado = fullname;
-            rma.CSEXSW_Rma.res_id = int.Parse(getResId());
-            rma.CSEXSW_Rma.Status = "Pending";
-            rma.CSEXSW_Rma.Sumbit = "Submitted";
-
-            int idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
-
-
-            if (inicio == true)
-            {
-                if (ModelState.IsValid)
-                {
-                    string rutaPrincipal = _hostingEnvironment.WebRootPath;
-                    string QM = "";
-                    humres empQM = null;
-                    if (rma.CSEXSW_Rma.Wherebuilt == "Nogales")
-                    {
-                        //QM Quality Manager NOG)
-                        var QMM10 = _m10Db.HRRoles.Where(s => s.RoleID == 100030).FirstOrDefault();
-                        if (QMM10 != null)
-                        {
-                            empQM = _m10Db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                            QM = empQM.fullname;
-                        }
-                    }
-                    if (rma.CSEXSW_Rma.Wherebuilt == "Mesa")
-                    {
-                        //Mesa
-                        //QM Quality Manager Mesa)
-                        var QMM10 = _m10Db.HRRoles.Where(s => s.RoleID == 100062).FirstOrDefault();
-                        if (QMM10 != null)
-                        {
-                            empQM = _m10Db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                            QM = empQM.fullname;
-                        }
-                    }
-                    if (rma.CSEXSW_Rma.Wherebuilt == "Endicott")
-                    {
-                        //Endicot
-                        //QM Quality Manager END)
-                        var QMM10 = _m10Db.HRRoles.Where(s => s.RoleID == 100039).FirstOrDefault();
-                        if (QMM10 != null)
-                        {
-                            empQM = _m10Db.humres.Where(s => s.res_id == QMM10.EmpID).FirstOrDefault();
-                            QM = empQM.fullname;
-                        }
-                    }
-
-                    //QD (Quality Director)
-                    var QDM10 = _m10Db.HRRoles.Where(d => d.RoleID == 100031).FirstOrDefault();
-                    string QD = "";
-                    humres empQD = null;
-                    if (QDM10 != null)
-                    {
-                        empQD = _m10Db.humres.Where(s => s.res_id == QDM10.EmpID).FirstOrDefault();
-                        QD = empQD.fullname;
-                    }
-                    //GM (General Manager)
-                    var GMM10 = _m10Db.HRRoles.Where(d => d.RoleID == 100032).FirstOrDefault();
-                    humres empGM = null;
-                    string GM = "";
-                    if (GMM10 != null)
-                    {
-                        empGM = _m10Db.humres.Where(s => s.res_id == GMM10.EmpID).FirstOrDefault();
-                        GM = empGM.fullname;
-                    }
-                    string mail1 = "";
-                    string mail2 = "";
-                    string mail3 = "";
-                    string mail4 = "";
-                    string mail5 = "";
-                    string mail6 = "";
-                    string mailp = "";
-
-
-                    if (rma.CSEXSW_Rma.Wherebuilt == "Nogales" || rma.CSEXSW_Rma.Wherebuilt == "Endicott")
-                    {
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "VALUE ADD RMA" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT & REPLACE" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT ONLY")
-                        {
-                            if (tipo_cambio <= 4999)
-                            {
-                                rma.CSEXSW_Rma.Approver = QM;
-                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-
-                            }
-
-                            if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
-                            {
-                                rma.CSEXSW_Rma.Approver = QD;
-                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-                            }
-
-                            if (tipo_cambio >= 20000)
-                            {
-                                rma.CSEXSW_Rma.Approver = QD;
-
-                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-                            }
-                        }
-                        //actualizar res id de approver
-                        if (!string.IsNullOrEmpty(rma.CSEXSW_Rma.Approver))
-                        {
-                            var residapprover = _m10Db.humres.Where(s => s.fullname == rma.CSEXSW_Rma.Approver).FirstOrDefault().res_id;
-                            rma.CSEXSW_Rma.res_id_approver = residapprover;
-                            _m10Db.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
-                            _m10Db.SaveChanges();
-                        }
-
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
-                        {
-                            //if (tip)
-                            //{
-
-                            //}
-                            rma.CSEXSW_Rma.Approver = QD;
-                            _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                            _contenedorTrabajo.Save();
-                        }
-                    }
-
-                    if (rma.CSEXSW_Rma.Wherebuilt == "ATZ" || rma.CSEXSW_Rma.Wherebuilt == "MAO")
-                    {
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "VALUE ADD RMA" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT & REPLACE" || rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT ONLY")
-                        {
-                            if (tipo_cambio <= 4999)
-                            {
-                                rma.CSEXSW_Rma.Approver = QM;
-                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-                            }
-
-                            if (tipo_cambio >= 5000 && tipo_cambio <= 19999.99)
-                            {
-                                rma.CSEXSW_Rma.Approver = QD;
-                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-
-                            }
-
-                            if (tipo_cambio >= 20000)
-                            {
-
-                                rma.CSEXSW_Rma.Approver = QD;
-                                _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                                _contenedorTrabajo.Save();
-                            }
-                        }
-
-                        if (rma.CSEXSW_Rma.Rmatypeofrequest == "DISTY SCRAP ALLOWANCE")
-                        {
-                            rma.CSEXSW_Rma.Approver = QD;
-                            _contenedorTrabajo.CSEXSW_Rma.Update(rma.CSEXSW_Rma);
-                            _contenedorTrabajo.Save();
-                        }
-                    }
-                }
-
-                return Json(new { data = "Primeras lineas" });
-            }
-            if (finalizado != true)
-            {
-                idRMA = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
-                return Json(new { data = "Lineas creadas" });
-            }
-            if (rma.CSEXSW_Rma.Rmatypeofrequest == "CREDIT & REPLACE")
-            {
-
-            }
-            return Json(new { data = "Terminado" });
+            var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == id);
+            if (rma == null) return NotFound();
+            _m10Db.Entry(rma).Reload();
+            var approver = RouteStoredSubmission(rma);
+            _m10Db.SaveChanges();
+            await NotifySubmittedApproval(rma, approver);
+            return Json(new { data = "Submitted" });
         }
 
         [HttpGet]
@@ -3838,7 +3556,8 @@ namespace Amphenol.RMA.Controllers
                 info.AddRange(_contenedorTrabajo.CSEXSW_Rma
                    .GetAll(a =>
                         a.Status == RmaRequestStatus.Pending.ToDisplayString() &&
-                        a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString()
+                        (a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString()
+                            || a.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString())
                    ).OrderByDescending(a => a.Date));
             }
             else
@@ -3846,7 +3565,8 @@ namespace Amphenol.RMA.Controllers
                 info.AddRange(_contenedorTrabajo.CSEXSW_Rma
                    .GetAll(a =>
                         a.Status == RmaRequestStatus.Pending.ToDisplayString() &&
-                        a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString() &&
+                        (a.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString()
+                            || a.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString()) &&
                         a.res_id_approver == userId
                    ).OrderByDescending(a => a.Date));
             }

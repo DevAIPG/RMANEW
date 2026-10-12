@@ -260,8 +260,13 @@ function run() {
     handlers['input:.price-input, .unitcost-input'].call(amountLine.fields['price-input']);
     assert.ok(!amountLine.fields['price-input'].classes.has('border-danger'), 'Do not interrupt initial typing');
     handlers['blur:.price-input, .unitcost-input'].call(amountLine.fields['unitcost-input']);
-    assert.equal(amountLine.fields['price-amount-error'].text, 'Price must be greater than unit cost.');
-    assert.equal(amountLine.fields['price-input']['aria-invalid'], 'true');
+    assert.equal(amountLine.fields['price-amount-error'].text, '');
+    assert.equal(amountLine.fields['price-input']['aria-invalid'], 'false');
+    amountLine.fields['price-input'].value = '4';
+    assert.equal(context.ValidateLineAmounts(amountLine), true, 'Invoice-linked prices below cost are allowed');
+    manual.fields['price-input'].value = '4';
+    manual.fields['unitcost-input'].value = '5';
+    assert.equal(context.ValidateLineAmounts(manual), true, 'Manual below-cost lines can be submitted for CS approval');
     amountLine.fields['price-input'].value = '6';
     handlers['input:.price-input, .unitcost-input'].call(amountLine.fields['price-input']);
     assert.ok(amountLine.fields['price-amount-error'].classes.has('d-none'));
@@ -282,6 +287,7 @@ function run() {
     amountLine.fields['sequence-input'].value = '3';
     manual.fields['returncode-input'].value = '001';
     amountLine.fields['returncode-input'].value = '001';
+    amountLine.fields['price-input'].value = '-1';
     validationRows = [manual, amountLine];
     let blockedSave = false, scrolled = false;
     amountLine.fields['price-input'].scrollIntoView = () => { scrolled = true; };

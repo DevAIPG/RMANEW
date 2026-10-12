@@ -940,7 +940,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             if (rma == null) return;
 
-            if (rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
+            if (rma.Sumbit != RmaSubmitStatus.CsReviewRequired.ToDisplayString()
+                && rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
             {
                 var qualityDirector = GetEmployeeByRole(100031);
                 var generalManager = GetEmployeeByRole(100032);
@@ -1025,13 +1026,27 @@ namespace Amphenol.RMA.AccesoDatos.Data
             }
 
             var waitingForApproval = rma.Status == RmaRequestStatus.Pending.ToDisplayString()
-                && rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString();
+                && (rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString()
+                    || rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString());
             var automaticApproval = currentUserId == _autoApprover.Id
                 && rma.res_id_approver == _autoApprover.Id
                 && rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString()
                 && rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString();
             if (!waitingForApproval && !automaticApproval)
                 return string.Empty;
+
+            if (rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString())
+            {
+                int.TryParse(_configuration["CustomerServiceManager:ResId"], out var managerId);
+                if (managerId <= 0 || rma.res_id_approver != managerId
+                    || (currentUserId != managerId && !canBypassApproval))
+                    return string.Empty;
+
+                AddComment(rma, currentDate, CommentAction.Approved, comment);
+                new RmaApprovalRouting(_m10Db, _configuration).Assign(rma, false, true, GetRmaExchangeRate(rma));
+                _m10Db.SaveChanges();
+                return rma.Status == RmaRequestStatus.AutoApprove.ToDisplayString() ? "AutoApprove" : "Pending";
+            }
 
             var exchangeRate = GetRmaExchangeRate(rma);
 
@@ -1076,39 +1091,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
         }
 
-        private double GetRmaExchangeRate(CSEXSW_Rma rma)
-        {
-            var customer = _500Db.arcusfil_sql
-                .FirstOrDefault(x =>
-                    x.cus_no.Trim() == rma.Customer.Trim());
-
-            if (customer is null)
-            {
-                throw new InvalidOperationException(
-                    $"Customer '{rma.Customer}' was not found.");
-            }
-
-            if (!string.Equals(
-                    customer.curr_cd,
-                    "CNY",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return Convert.ToDouble(rma.Totalrmavalues);
-            }
-
-            var latestRate = _500Db.Rate
-                .Where(x => x.SourceCurrency == "USD")
-                .OrderByDescending(x => x.DateL)
-                .FirstOrDefault();
-
-            if (latestRate is null || latestRate.RateExchange == 0)
-            {
-                throw new InvalidOperationException(
-                    "A valid USD exchange rate could not be found.");
-            }
-
-            return Convert.ToDouble(rma.Totalrmavalues) / Convert.ToDouble(latestRate.RateExchange);
-        }
+        private double GetRmaExchangeRate(CSEXSW_Rma rma) => RmaApprovalRouting.ApprovalValue(rma, _500Db);
 
         private string ProcessTwoStepApproval(CSEXSW_Rma rma, int currentUserId, DateTime currentDate,
             string comment, bool canBypassApproval)

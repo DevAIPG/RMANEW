@@ -58,10 +58,6 @@ namespace Amphenol.RMA.ViewModels
                 yield return new ValidationResult("Price must be greater than 0 unless No invoice is selected.", [nameof(Price)]);
             if (UnitCost < 0.01m && !(NoInvoice && UnitCost == 0))
                 yield return new ValidationResult("Unit Cost must be greater than 0 unless No invoice is selected.", [nameof(UnitCost)]);
-            if (Price <= UnitCost && !(NoInvoice && Price == 0 && UnitCost == 0))
-            {
-                yield return new ValidationResult("Price must be greater than Unit Cost.", [nameof(Price)]);
-            }
         }
         public void InitializeLookups()
         {

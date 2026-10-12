@@ -223,6 +223,9 @@ function cargarDatatableRma() {
                             if (data == "Submitted") {
                                 return `<span class="badge bg-success text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Submitted</span>`;
                             }
+                            else if (data == "CS Review Required") {
+                                return `<span class="badge bg-warning text-dark px-2 py-1">CS Review Required</span>`;
+                            }
                             else {
                                 return `<span class="badge bg-secondary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Not Submitted</span>`;
                             }
@@ -1749,6 +1752,9 @@ function cargarDatatableRma2() {
             }, {
                 "width": "140px",
                 "data": "customerpo"
+            }, {
+                "width": "160px",
+                "data": "sumbit"
             }
         ],
         drawCallback: function () {
