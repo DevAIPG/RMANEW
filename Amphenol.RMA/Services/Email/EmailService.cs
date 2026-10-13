@@ -8,6 +8,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Services.WebApi.Exceptions;
 using MimeKit;
 using System;
@@ -25,7 +26,8 @@ namespace Amphenol.RMA.Services.Email
         public Task SendRejectNotification(string title, string subtitle, string message, EmailAddress recipient, CancellationToken cancellationToken = default);
         public Task SendCustomerNotification(string title, string subtitle, string message, EmailAddress recipient, EmailAttachment attachment, CancellationToken cancellationToken = default);
     }
-    internal class EmailService(IMailSender mailSender, IEmailTemplateRenderer templateRenderer) : IEmailService
+    internal class EmailService(IMailSender mailSender, IEmailTemplateRenderer templateRenderer,
+        ILogger<EmailService> logger) : IEmailService
     {
         private readonly string notificationTemplatePath = "/Views/Shared/_EmailInternalNotification.cshtml";
         public async Task SendApprovalRequestNotification(string title, string subtitle, string message, EmailAddress recipient, CancellationToken cancellationToken = default)
@@ -48,10 +50,13 @@ namespace Amphenol.RMA.Services.Email
 #endif
 
                 await mailSender.SendAsync(emailMessage, cancellationToken);
+                logger.LogInformation("RMA email sent successfully. Type={EmailType}, Recipient={Recipient}, Rma={Rma}",
+                    "ApprovalRequest", string.Join(", ", emailMessage.To.Select(x => x.ToString())), subtitle);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                logger.LogError(ex, "RMA email failed. Type={EmailType}, Recipient={Recipient}, Rma={Rma}",
+                    "ApprovalRequest", recipient?.ToString(), subtitle);
             }
         }
 
@@ -76,10 +81,14 @@ namespace Amphenol.RMA.Services.Email
 #endif
 
                 await mailSender.SendAsync(emailMessage, cancellationToken);
+                logger.LogInformation("RMA email sent successfully. Type={EmailType}, Representative={Representative}, Manager={Manager}, Rma={Rma}",
+                    "Approval", string.Join(", ", emailMessage.To.Select(x => x.ToString())),
+                    string.Join(", ", emailMessage.Cc.Select(x => x.ToString())), subtitle);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                logger.LogError(ex, "RMA email failed. Type={EmailType}, Representative={Representative}, Manager={Manager}, Rma={Rma}",
+                    "Approval", representativeEmail?.ToString(), managerEmail?.ToString(), subtitle);
             }
 
         }
@@ -105,10 +114,13 @@ namespace Amphenol.RMA.Services.Email
 #endif
 
                 await mailSender.SendAsync(emailMessage, cancellationToken);
+                logger.LogInformation("RMA email sent successfully. Type={EmailType}, Recipient={Recipient}, Rma={Rma}",
+                    "CustomerApproval", string.Join(", ", emailMessage.To.Select(x => x.ToString())), subtitle);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                logger.LogError(ex, "RMA email failed. Type={EmailType}, Recipient={Recipient}, Rma={Rma}",
+                    "CustomerApproval", recipient?.ToString(), subtitle);
             }
         }
 
@@ -132,10 +144,13 @@ namespace Amphenol.RMA.Services.Email
 #endif
 
                 await mailSender.SendAsync(emailMessage, cancellationToken);
+                logger.LogInformation("RMA email sent successfully. Type={EmailType}, Recipient={Recipient}, Rma={Rma}",
+                    "Rejection", string.Join(", ", emailMessage.To.Select(x => x.ToString())), subtitle);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                logger.LogError(ex, "RMA email failed. Type={EmailType}, Recipient={Recipient}, Rma={Rma}",
+                    "Rejection", recipient?.ToString(), subtitle);
             }
         }
     }

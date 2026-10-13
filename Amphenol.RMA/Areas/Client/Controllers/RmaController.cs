@@ -838,7 +838,10 @@ namespace Amphenol.RMA.Controllers
 
             CSEXSW_Rma rma = new()
             {
-                Rmarequest = vm.RequestId.ToString(),
+                // The request number is assigned from the database identity after
+                // insertion. Do not use the preview value from the Create page:
+                // two users can receive the same IDENT_CURRENT + 1 preview.
+                Rmarequest = null,
                 Customer = vm.CustomerId,
                 Customerpartno = customerPartNumber,
                 Customerpo = vm.PoNumber,
@@ -873,6 +876,9 @@ namespace Amphenol.RMA.Controllers
                 try
                 {
                     await _m10Db.CSEXSW_Rma.AddAsync(rma);
+                    await _m10Db.SaveChangesAsync();
+
+                    rma.Rmarequest = rma.Id.ToString(CultureInfo.InvariantCulture);
                     await _m10Db.SaveChangesAsync();
 
                     await SaveLines(rma.Id, vm.Lines);
@@ -1661,7 +1667,12 @@ namespace Amphenol.RMA.Controllers
                 _contenedorTrabajo.CSEXSW_Rma.Add(rma.CSEXSW_Rma);
                 _contenedorTrabajo.Save();
 
-                idRMA = _contenedorTrabajo.CSEXSW_Rma.intRMA();
+                // The legacy form also used IDENT_CURRENT + 1 before insert.
+                // Replace that preview with the identity assigned to this row.
+                rma.CSEXSW_Rma.Rmarequest = rma.CSEXSW_Rma.Id.ToString(CultureInfo.InvariantCulture);
+                _contenedorTrabajo.Save();
+
+                idRMA = rma.CSEXSW_Rma.Id;
                 BackgroundJob.Enqueue(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions));
 
                 string rutaPrincipal = _hostingEnvironment.WebRootPath;
@@ -1717,7 +1728,7 @@ namespace Amphenol.RMA.Controllers
             {
 
 
-                idRMA = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
+                idRMA = rma.CSEXSW_Rma.Id;
 
                 BackgroundJob.Schedule(() => _contenedorTrabajo.csexsw_coustumer.lineas(rma.CSEXSW_Rma, acttion, invoice, seq, qty, coustumer, idRMA, code, unit, checkcar, loc, inicio, actions),
         TimeSpan.FromSeconds(10));
