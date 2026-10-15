@@ -781,10 +781,10 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult Create()
         {
-            var requestId = 80001;
+            var requestId = 1;
             try
             {
-                requestId = FormatRequestId(_contenedorTrabajo.CSEXSW_Rma.Releaserma());
+                requestId = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
             }
             catch (Exception)
             {
@@ -886,7 +886,9 @@ namespace Amphenol.RMA.Controllers
                     await _m10Db.CSEXSW_Rma.AddAsync(rma);
                     await _m10Db.SaveChangesAsync();
 
-                    rma.Rmarequest = rma.Id.ToString(CultureInfo.InvariantCulture);
+                    // Use this row's actual identity so concurrent requests remain unique,
+                    // while preserving the required 8-prefixed request-number format.
+                    rma.Rmarequest = FormatRequestId(rma.Id).ToString(CultureInfo.InvariantCulture);
                     await _m10Db.SaveChangesAsync();
 
                     await SaveLines(rma.Id, vm.Lines);
@@ -1676,8 +1678,8 @@ namespace Amphenol.RMA.Controllers
                 _contenedorTrabajo.Save();
 
                 // The legacy form also used IDENT_CURRENT + 1 before insert.
-                // Replace that preview with the identity assigned to this row.
-                rma.CSEXSW_Rma.Rmarequest = rma.CSEXSW_Rma.Id.ToString(CultureInfo.InvariantCulture);
+                // Replace that preview with this row's 8-prefixed assigned identity.
+                rma.CSEXSW_Rma.Rmarequest = FormatRequestId(rma.CSEXSW_Rma.Id).ToString(CultureInfo.InvariantCulture);
                 _contenedorTrabajo.Save();
 
                 idRMA = rma.CSEXSW_Rma.Id;
