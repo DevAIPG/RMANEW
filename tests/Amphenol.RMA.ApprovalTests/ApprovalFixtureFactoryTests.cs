@@ -72,10 +72,10 @@ public class ApprovalFixtureFactoryTests
     }
 
     [Theory]
-    [InlineData(0, "1")]
-    [InlineData(42, "43")]
-    [InlineData(601761, "601762")]
-    [InlineData(99_999_998, "99999999")]
+    [InlineData(0, "81")]
+    [InlineData(42, "843")]
+    [InlineData(601761, "8601762")]
+    [InlineData(9_999_998, "89999999")]
     public void FixtureRequestNumberFollowsCurrentM10Identity(long currentIdentity, string expected)
     {
         Assert.Equal(expected, ApprovalFixtureFactory.NewRequestNumber(currentIdentity));
@@ -83,7 +83,7 @@ public class ApprovalFixtureFactoryTests
 
     [Theory]
     [InlineData(-1)]
-    [InlineData(99_999_999)]
+    [InlineData(9_999_999)]
     [InlineData(long.MaxValue)]
     public void ConsecutiveNumberRejectsInvalidOrExhaustedIdentity(long currentIdentity)
     {

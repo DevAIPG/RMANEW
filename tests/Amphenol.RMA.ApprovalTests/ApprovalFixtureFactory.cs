@@ -79,7 +79,7 @@ internal static class ApprovalFixtureFactory
     {
         using var command = m10.Database.GetDbConnection().CreateCommand();
         command.Transaction = m10.Database.CurrentTransaction.GetDbTransaction();
-        // Match Releaserma: current M10 request identity + 1 (or 1 for an empty table).
+        // Use the next M10 request identity, retaining the test-request 8 prefix.
         // Keep the table lock until the request and lines commit, including concurrent runs.
         command.CommandText = @"SELECT CASE
             WHEN EXISTS (SELECT 1 FROM dbo.CSEXSW_Rma WITH (TABLOCKX, HOLDLOCK))
@@ -90,9 +90,9 @@ internal static class ApprovalFixtureFactory
 
     internal static string NewRequestNumber(long currentIdentity)
     {
-        if (currentIdentity < 0 || currentIdentity >= 99_999_999)
-            throw new InvalidOperationException("The next consecutive request number must be positive and fit eight characters.");
-        return (currentIdentity + 1).ToString(CultureInfo.InvariantCulture);
+        if (currentIdentity < 0 || currentIdentity >= 9_999_998)
+            throw new InvalidOperationException("The next prefixed consecutive request number must fit eight characters.");
+        return "8" + (currentIdentity + 1).ToString(CultureInfo.InvariantCulture);
     }
 
     internal static (CSEXSW_Rma Request, List<csexsw_coustumer> Lines) Build(DbContextM10 m10,
