@@ -770,13 +770,21 @@ namespace Amphenol.RMA.Controllers
 
         }
 
+        private static int FormatRequestId(int requestSequence)
+        {
+            if (requestSequence < 0 || requestSequence > 9_999_999)
+                throw new InvalidOperationException("The RMA request sequence cannot be represented with the required 8 prefix.");
+
+            return int.Parse($"8{requestSequence:D4}");
+        }
+
         [HttpGet]
         public IActionResult Create()
         {
-            var requestId = 1;
+            var requestId = 80001;
             try
             {
-                requestId = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
+                requestId = FormatRequestId(_contenedorTrabajo.CSEXSW_Rma.Releaserma());
             }
             catch (Exception)
             {
@@ -799,10 +807,10 @@ namespace Amphenol.RMA.Controllers
 
             if (!ModelState.IsValid)
             {
-                var requestId = 1;
+                var requestId = 80001;
                 try
                 {
-                    requestId = _contenedorTrabajo.CSEXSW_Rma.Releaserma();
+                    requestId = FormatRequestId(_contenedorTrabajo.CSEXSW_Rma.Releaserma());
                 }
                 catch (Exception)
                 {
