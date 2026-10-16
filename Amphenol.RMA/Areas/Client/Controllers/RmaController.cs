@@ -691,15 +691,16 @@ namespace Amphenol.RMA.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public Task<RedirectToActionResult> Aprobar(string commentt, int idsa)
+        public async Task<RedirectToActionResult> Aprobar(string commentt, int idsa)
         {
+            using var requestLock = LockPendingApproval(idsa);
             String cadena = User.Identity.Name;
             string delimitador = @"\";
             string[] valores = cadena.Split(delimitador);
             string usuario = valores[1];
 
             string userId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            return CompleteApproval(commentt, idsa, userId, false);
+            return await CompleteApproval(commentt, idsa, userId, false);
         }
 
         private Approver RouteStoredSubmission(CSEXSW_Rma rma)
@@ -3700,8 +3701,6 @@ namespace Amphenol.RMA.Controllers
         [HttpPut]
         public async Task<IActionResult> Apruebo(int id)
         {
-
-            using var requestLock = LockPendingApproval(id);
             await Aprobar(null, id);
 
             return Json(new { success = true, message = "Approved RMA" });
