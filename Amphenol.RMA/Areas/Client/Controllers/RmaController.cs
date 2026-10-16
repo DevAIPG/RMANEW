@@ -120,6 +120,57 @@ namespace Amphenol.RMA.Controllers
             }
         }
 
+        private RmaApprovalLock LockWithdrawableRequest(int requestId)
+        {
+            var requestLock = new RmaApprovalLock(_m10Db, requestId);
+            try
+            {
+                var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
+                if (request == null || !RmaWithdrawalPolicy.CanWithdraw(request.Status, request.Sumbit, request.turno))
+                    throw new InvalidOperationException("This request can no longer be withdrawn because it is not awaiting approval or already has an ERP RMA number.");
+
+                var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+                var userId = string.IsNullOrWhiteSpace(username)
+                    ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+                if (!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
+                    throw new InvalidOperationException("Only the requester can withdraw this RMA.");
+                return requestLock;
+            }
+            catch
+            {
+                requestLock.Dispose();
+                throw;
+            }
+        }
+
+        private RmaApprovalLock LockCancelableRequest(int requestId)
+        {
+            var requestLock = new RmaApprovalLock(_m10Db, requestId);
+            try
+            {
+                var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
+                if (request == null || !RmaWithdrawalPolicy.CanCancel(request.Status, request.turno))
+                    throw new InvalidOperationException("This request can no longer be canceled because it already has an ERP RMA number or is final.");
+
+                var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+                var userId = string.IsNullOrWhiteSpace(username)
+                    ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+                var isCancellationAdministrator = !string.IsNullOrWhiteSpace(username)
+                    && _bypassApprovalModule.Users.Any(user =>
+                        string.Equals(user?.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
+                if ((!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
+                    && !isCancellationAdministrator)
+                    throw new InvalidOperationException("Only the requester or an authorized approval administrator can cancel this RMA.");
+
+                return requestLock;
+            }
+            catch
+            {
+                requestLock.Dispose();
+                throw;
+            }
+        }
+
         private RmaApprovalLock LockPendingApproval(int requestId)
         {
             var requestLock = new RmaApprovalLock(_m10Db, requestId);
@@ -221,6 +272,92 @@ namespace Amphenol.RMA.Controllers
             var approver = RouteStoredSubmission(rma);
             _m10Db.SaveChanges();
             await NotifySubmittedApproval(rma, approver);
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Withdraw(int requestId, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Enter a reason before withdrawing the request.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                using var requestLock = LockWithdrawableRequest(requestId);
+                var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == requestId);
+                if (rma == null)
+                {
+                    return NotFound();
+                }
+
+                var requesterName = _m10Db.humres
+                    .Where(x => x.res_id == rma.res_id)
+                    .Select(x => x.fullname)
+                    .FirstOrDefault() ?? rma.Preparado ?? "Requester";
+                var withdrawalComment = $" • {requesterName} [Withdrawn for changes] {DateTime.Now:MM/dd/yyyy hh:mm tt}{Environment.NewLine}-{reason.Trim()}";
+
+                rma.Comment = string.IsNullOrWhiteSpace(rma.Comment)
+                    ? withdrawalComment
+                    : $"{rma.Comment}{Environment.NewLine}{Environment.NewLine}{withdrawalComment}";
+                rma.Status = RmaRequestStatus.Pending.ToDisplayString();
+                rma.Sumbit = RmaSubmitStatus.NotSubmitted.ToDisplayString();
+                rma.Approver = string.Empty;
+                rma.res_id_approver = 0;
+                rma.date_approved = null;
+
+                await _m10Db.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"RMA request {rma.Rmarequest?.Trim()} was withdrawn. You can now edit and re-submit it.";
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["ErrorMessage"] = exception.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(int requestId, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Enter a reason before canceling the request.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                using var requestLock = LockCancelableRequest(requestId);
+                var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == requestId);
+                if (rma == null)
+                {
+                    return NotFound();
+                }
+
+                var canceledBy = User.Identity?.Name?.Split('\\').LastOrDefault() ?? "Requester";
+                var cancellationComment = $" • {canceledBy} [Canceled] {DateTime.Now:MM/dd/yyyy hh:mm tt}{Environment.NewLine}-{reason.Trim()}";
+                rma.Comment = string.IsNullOrWhiteSpace(rma.Comment)
+                    ? cancellationComment
+                    : $"{rma.Comment}{Environment.NewLine}{Environment.NewLine}{cancellationComment}";
+                rma.Status = RmaRequestStatus.Canceled.ToDisplayString();
+                rma.Sumbit = RmaSubmitStatus.NotSubmitted.ToDisplayString();
+                rma.Approver = string.Empty;
+                rma.res_id_approver = 0;
+                rma.date_approved = null;
+
+                await _m10Db.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"RMA request {rma.Rmarequest?.Trim()} was canceled. It cannot be edited or submitted.";
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["ErrorMessage"] = exception.Message;
+            }
 
             return RedirectToAction(nameof(Index));
         }
@@ -3555,7 +3692,9 @@ namespace Amphenol.RMA.Controllers
 
             //var rmas = _context2.csexsw_coustumer.Include(r => r.CSEXSW_Rma).Where(a=>a.CSEXSW_Rma.Id >0).OrderByDescending(r => r.CSEXSW_Rma.Date );
 
-            return Json(new { data = rmas, resid = usuario });
+            var canCancelAnyRequest = _bypassApprovalModule.Users.Any(user =>
+                string.Equals(user?.Trim(), User.Identity?.Name?.Split('\\').LastOrDefault()?.Trim(), StringComparison.OrdinalIgnoreCase));
+            return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
 
         [HttpPut]
@@ -3679,16 +3818,11 @@ namespace Amphenol.RMA.Controllers
         [HttpDelete]
         public IActionResult Delete(int id)
         {
-            using var requestLock = LockEditableRequest(id);
-            var objFromDb = _contenedorTrabajo.CSEXSW_Rma.Get(id);
-            if (objFromDb == null)
+            return Json(new
             {
-                return Json(new { success = false, message = "Error deleting RMA" });
-            }
-
-            _contenedorTrabajo.CSEXSW_Rma.Remove(objFromDb);
-            _contenedorTrabajo.Save();
-            return Json(new { success = true, message = "RMA deleted successfully" });
+                success = false,
+                message = "RMA requests are retained for audit. Cancel the request instead."
+            });
         }
 
         [HttpPost]

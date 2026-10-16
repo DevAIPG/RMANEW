@@ -26,6 +26,21 @@
     <div class="card">
         <div class="card-body">
 
+            @if (TempData["SuccessMessage"] is string successMessage)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @successMessage
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] is string errorMessage)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @errorMessage
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+            }
+
             <div class="row">
                 <div class="col-6">
                     <h2 class="text-primary">RMA Requests</h2>
@@ -107,6 +122,55 @@
     </div>
 </div>
 
+<div class="modal fade" id="withdrawRmaModal" tabindex="-1" role="dialog" aria-labelledby="withdrawRmaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <form id="withdrawRmaForm" class="modal-content" asp-area="Client" asp-controller="Rma" asp-action="Withdraw" method="post">
+            @Html.AntiForgeryToken()
+            <input id="withdrawRequestId" type="hidden" name="requestId" />
+            <div class="modal-header">
+                <h5 class="modal-title" id="withdrawRmaModalLabel">Withdraw RMA request</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Withdrawing removes this request from approval and returns it to draft so you can correct it and submit it again.</p>
+                <p class="text-muted small mb-3">No ERP RMA has been created for this request.</p>
+                <div class="form-group mb-0">
+                    <label for="withdrawReason">Reason for withdrawal <span class="text-danger">*</span></label>
+                    <textarea id="withdrawReason" name="reason" class="form-control" rows="3" maxlength="1000" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Keep in review</button>
+                <button type="submit" class="btn btn-warning">Withdraw for changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="cancelRmaModal" tabindex="-1" role="dialog" aria-labelledby="cancelRmaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <form id="cancelRmaForm" class="modal-content" asp-area="Client" asp-controller="Rma" asp-action="Cancel" method="post">
+            @Html.AntiForgeryToken()
+            <input id="cancelRequestId" type="hidden" name="requestId" />
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelRmaModalLabel">Cancel RMA request</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Canceling is final. The request remains available for audit purposes, but it cannot be edited or submitted again.</p>
+                <p class="text-muted small mb-3">No ERP RMA has been created for this request.</p>
+                <div class="form-group mb-0">
+                    <label for="cancelReason">Reason for cancellation <span class="text-danger">*</span></label>
+                    <textarea id="cancelReason" name="reason" class="form-control" rows="3" maxlength="1000" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Keep request</button>
+                <button type="submit" class="btn btn-danger">Cancel request</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- modal edit rma -->
 <div class="modal fade" id="meditrma" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
