@@ -1,3 +1,6 @@
+@{
+    var globalNoticeMessage = TempData["GlobalNoticeMessage"] as string;
+}
 <dialog id="globalErrorModal" aria-labelledby="globalErrorTitle" aria-describedby="globalErrorMessage">
     <h2 id="globalErrorTitle">Unable to complete the request</h2>
     <p id="globalErrorMessage"></p>
@@ -6,3 +9,7 @@
         <button class="btn btn-primary" type="submit" autofocus>Close</button>
     </form>
 </dialog>
+@if (!string.IsNullOrWhiteSpace(globalNoticeMessage))
+{
+    <div hidden data-global-notice-message="@globalNoticeMessage"></div>
+}
