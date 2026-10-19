@@ -53,6 +53,7 @@ function cargarDatatableRma() {
         cache: true,
         success: function (data) {
             var username = parseInt(data.resid);
+            var canCancelAnyRequest = data.canCancelAnyRequest === true;
             dataTable = $("#GeneratedRmaTable").DataTable({
                 destroy: true,
                 autoWidth: false,
@@ -113,7 +114,19 @@ function cargarDatatableRma() {
                                             onclick="Customer_complaint('${row.customercomplait}')" data-bs-toggle="tooltip" data-bs-placement="right" title="View Customer Complaint">
                                         <i class="fa fa-comments"></i>
                                      </a>`;
-                            if (row.canEdit === true && parseInt(row.res_id) == username) {
+                            const ownsRequest = parseInt(row.res_id) === username;
+                            const canWithdraw = ownsRequest
+                                && row.status === "Pending"
+                                && (row.sumbit === "Submitted" || row.sumbit === "CS Review Required")
+                                && !String(row.turno || '').trim();
+                            const canCancel = (ownsRequest || canCancelAnyRequest)
+                                && (row.status === "Pending" || row.status === "Remark" || row.status === "Rejected")
+                                && !String(row.turno || '').trim();
+                            const cancelButton = canCancel ? `
+                                <button type="button" class="btn btn-outline-danger btn-sm action-btn d-flex align-items-center justify-content-center btn-cancel-rma" data-id="${row.id}" data-request="${row.rmarequest}" data-bs-toggle="tooltip" data-bs-placement="right" title="Cancel request">
+                                    <i class="fa fa-times"></i>
+                                </button>` : '';
+                            if (row.canEdit === true && ownsRequest) {
                                 const editButton = `
                                     <a class="btn btn-light btn-sm action-btn d-flex align-items-center justify-content-center"
                                        href="/Client/Rma/Edit?requestId=${row.id}&returnUrl=${encodeURIComponent(returnUrl)}" data-bs-toggle="tooltip" data-bs-placement="right" title="Edit RMA">
@@ -124,6 +137,7 @@ function cargarDatatableRma() {
                                         <div class="d-flex gap-1">
                                             ${editButton}
                                             ${complaintButton}
+                                            ${cancelButton}
                                             <a class="btn btn-primary btn-sm action-btn d-flex align-items-center justify-content-center" id="btnresubmit"
                                                       data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title=" Re-submit RMA" >
                                                 <i class="fa fa-redo"></i>
@@ -136,6 +150,7 @@ function cargarDatatableRma() {
                                         <div class="d-flex gap-1">
                                             ${editButton}
                                             ${complaintButton}
+                                            ${cancelButton}
                                             <a class="btn btn-primary btn-sm action-btn d-flex align-items-center justify-content-center" id="btnresubmit"
                                                       data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title=" Re-submit RMA" >
                                                 <i class="fa fa-redo"></i>
@@ -147,6 +162,7 @@ function cargarDatatableRma() {
                                     <div class="d-flex gap-1">
                                         ${editButton}
                                         ${complaintButton}
+                                        ${cancelButton}
                                     </div>`;
                                 }
                             }
@@ -155,6 +171,10 @@ function cargarDatatableRma() {
                                     <a class="btn btn-light btn-sm action-btn d-flex align-items-center" id="btnviewlines" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="View RMA">
                                         <i class="fa fa-eye"></i>
                                     </a>`;
+                                const withdrawButton = canWithdraw ? `
+                                    <button type="button" class="btn btn-outline-warning btn-sm action-btn d-flex align-items-center justify-content-center btn-withdraw-rma" data-id="${row.id}" data-request="${row.rmarequest}" data-bs-toggle="tooltip" data-bs-placement="right" title="Withdraw for changes">
+                                        <i class="fa fa-undo"></i>
+                                    </button>` : '';
 
                                 if (row.sumbit === "Submitted" && row.status === "Approved") {
 
@@ -196,6 +216,8 @@ function cargarDatatableRma() {
                                 <div class="d-flex gap-1">
                                     ${viewButton}
                                     ${complaintButton}
+                                    ${withdrawButton}
+                                    ${cancelButton}
                                 </div>`;
                             }
                         }
@@ -237,6 +259,9 @@ function cargarDatatableRma() {
                         render: function (data, type, row) {
                             if (data == "Approved") {
                                 return `<span class="badge bg-success text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Approved</span>`;
+                            }
+                            if (data == "Canceled") {
+                                return `<span class="badge bg-secondary text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Canceled</span>`;
                             }
                             if (data == "Pending") {
                                 return `<span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Pending</span>`;
@@ -4634,6 +4659,63 @@ function Deletedocumentregargar(url) {
 function recargar() {
     location.reload();
 }
+
+$(document).on('click', '.btn-withdraw-rma', function () {
+    const requestNumber = $(this).data('request');
+    $('#withdrawRequestId').val($(this).data('id'));
+    $('#withdrawReason').val('');
+    $('#withdrawRmaModalLabel').text(`Withdraw RMA request ${requestNumber}?`);
+    $('#withdrawRmaModal').modal('show');
+});
+
+$(document).on('submit', '#withdrawRmaForm', function (event) {
+    const form = $(this);
+    const reason = $('#withdrawReason').val().trim();
+    if (!reason) {
+        event.preventDefault();
+        $('#withdrawReason').trigger('focus');
+        return;
+    }
+
+    if (form.data('submitted')) {
+        event.preventDefault();
+        return;
+    }
+
+    form.data('submitted', true);
+    form.find('button[type="submit"]')
+        .prop('disabled', true)
+        .html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Withdrawing...');
+});
+
+$(document).on('click', '.btn-cancel-rma', function () {
+    const requestNumber = $(this).data('request');
+    $('#cancelRequestId').val($(this).data('id'));
+    $('#cancelReason').val('');
+    $('#cancelRmaModalLabel').text(`Cancel RMA request ${requestNumber}?`);
+    $('#cancelRmaModal').modal('show');
+});
+
+$(document).on('submit', '#cancelRmaForm', function (event) {
+    const form = $(this);
+    const reason = $('#cancelReason').val().trim();
+    if (!reason) {
+        event.preventDefault();
+        $('#cancelReason').trigger('focus');
+        return;
+    }
+
+    if (form.data('submitted')) {
+        event.preventDefault();
+        return;
+    }
+
+    form.data('submitted', true);
+    form.find('button[type="submit"]')
+        .prop('disabled', true)
+        .html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Canceling...');
+});
+
 $(document).on('focusin', function (e) {
     if ($(e.target).closest(".tox-tinymce, .tox-tinymce-aux, .moxman-window, .tam-assetmanager-root").length) {
         e.stopImmediatePropagation();

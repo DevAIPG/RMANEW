@@ -5,9 +5,10 @@
     var dialog = document.getElementById('globalErrorModal');
     var ajaxAttached = false;
 
-    function show(message, reference) {
+    function show(message, reference, title) {
         // Keep the first failure visible, including its reference, when several requests fail together.
         if (dialog.open) return;
+        document.getElementById('globalErrorTitle').textContent = title || 'Unable to complete the request';
         document.getElementById('globalErrorMessage').textContent = message || defaultMessage;
         document.getElementById('globalErrorReference').textContent = reference || '';
         document.getElementById('globalErrorReferenceRow').hidden = !reference;
@@ -22,6 +23,8 @@
         // Only display details from our error contract; never display an HTML response or raw exception.
         if (problem && problem.title === 'Unable to complete the request' && problem.traceId) {
             show(problem.detail, problem.traceId);
+        } else if (status === 409 && problem && problem.message) {
+            show(problem.message, null, 'Request no longer available');
         } else if (status === 401) {
             show('Your session has expired. Refresh the page and sign in again.');
         } else if (status === 403) {
@@ -89,5 +92,10 @@
     var initialError = document.querySelector('[data-global-error-message]');
     if (initialError) {
         show(initialError.getAttribute('data-global-error-message'), initialError.getAttribute('data-global-error-reference'));
+    }
+
+    var initialNotice = document.querySelector('[data-global-notice-message]');
+    if (initialNotice) {
+        show(initialNotice.getAttribute('data-global-notice-message'), null, 'Request no longer available');
     }
 })(window, document);

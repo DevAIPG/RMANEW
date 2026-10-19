@@ -7,6 +7,7 @@ namespace Amphenol.RMA.Models.Enumerations
         Pending,
         Remark,
         Rejected,
+        Canceled,
         Approved,
         AutoApprove
     }
@@ -17,6 +18,7 @@ namespace Amphenol.RMA.Models.Enumerations
             return status switch
             {
                 RmaRequestStatus.Pending => "Pending",
+                RmaRequestStatus.Canceled => "Canceled",
                 RmaRequestStatus.Approved => "Approved",
                 RmaRequestStatus.AutoApprove => "Auto-Approved",
                 _ => status.ToString()
@@ -29,6 +31,7 @@ namespace Amphenol.RMA.Models.Enumerations
                 "Pending" => RmaRequestStatus.Pending,
                 "Remark" => RmaRequestStatus.Remark,
                 "Rejected" => RmaRequestStatus.Remark,
+                "Canceled" => RmaRequestStatus.Canceled,
                 "Approved" => RmaRequestStatus.Approved,
                 "Auto-Approved" => RmaRequestStatus.AutoApprove,
                 _ => throw new ArgumentException(

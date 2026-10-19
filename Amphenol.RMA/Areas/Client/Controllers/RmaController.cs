@@ -68,6 +68,7 @@ namespace Amphenol.RMA.Controllers
         private readonly IEmailTemplateRenderer _templateRenderer;
         private readonly ApprovalBypassSettings _bypassApprovalModule;
         const string rootE = @"E:\CSFiles\documents";
+        private const string ApprovalStateChangedMessage = "This request status changed before your decision was processed. Refresh the approval list and check its current status.";
         //const string rootEC = @"E:\CSFiles\";
         private const double TwoStepAuthorizationThreshold = 20_000;
         private readonly ReportService _reportService;
@@ -99,6 +100,12 @@ namespace Amphenol.RMA.Controllers
             _bypassApprovalModule = configuration.GetSection("ApprovalBypass").Get<ApprovalBypassSettings>();
         }
         public IConfiguration Configuration { get; }
+        private sealed class ApprovalStateChangedException : InvalidOperationException
+        {
+            public ApprovalStateChangedException() : base(ApprovalStateChangedMessage)
+            {
+            }
+        }
         private RmaApprovalLock LockEditableRequest(int requestId)
         {
             var requestLock = new RmaApprovalLock(_m10Db, requestId);
@@ -120,6 +127,57 @@ namespace Amphenol.RMA.Controllers
             }
         }
 
+        private RmaApprovalLock LockWithdrawableRequest(int requestId)
+        {
+            var requestLock = new RmaApprovalLock(_m10Db, requestId);
+            try
+            {
+                var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
+                if (request == null || !RmaWithdrawalPolicy.CanWithdraw(request.Status, request.Sumbit, request.turno))
+                    throw new InvalidOperationException("This request can no longer be withdrawn because it is not awaiting approval or already has an ERP RMA number.");
+
+                var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+                var userId = string.IsNullOrWhiteSpace(username)
+                    ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+                if (!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
+                    throw new InvalidOperationException("Only the requester can withdraw this RMA.");
+                return requestLock;
+            }
+            catch
+            {
+                requestLock.Dispose();
+                throw;
+            }
+        }
+
+        private RmaApprovalLock LockCancelableRequest(int requestId)
+        {
+            var requestLock = new RmaApprovalLock(_m10Db, requestId);
+            try
+            {
+                var request = _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(x => x.Id == requestId);
+                if (request == null || !RmaWithdrawalPolicy.CanCancel(request.Status, request.turno))
+                    throw new InvalidOperationException("This request can no longer be canceled because it already has an ERP RMA number or is final.");
+
+                var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+                var userId = string.IsNullOrWhiteSpace(username)
+                    ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+                var isCancellationAdministrator = !string.IsNullOrWhiteSpace(username)
+                    && _bypassApprovalModule.Users.Any(user =>
+                        string.Equals(user?.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
+                if ((!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
+                    && !isCancellationAdministrator)
+                    throw new InvalidOperationException("Only the requester or an authorized approval administrator can cancel this RMA.");
+
+                return requestLock;
+            }
+            catch
+            {
+                requestLock.Dispose();
+                throw;
+            }
+        }
+
         private RmaApprovalLock LockPendingApproval(int requestId)
         {
             var requestLock = new RmaApprovalLock(_m10Db, requestId);
@@ -130,7 +188,7 @@ namespace Amphenol.RMA.Controllers
                     || request.Status != RmaRequestStatus.Pending.ToDisplayString()
                     || (request.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString()
                         && request.Sumbit != RmaSubmitStatus.CsReviewRequired.ToDisplayString()))
-                    throw new InvalidOperationException("This request is not waiting for approval.");
+                    throw new ApprovalStateChangedException();
                 var username = User.Identity?.Name?.Split('\\').LastOrDefault();
                 var userId = string.IsNullOrWhiteSpace(username)
                     ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
@@ -226,10 +284,103 @@ namespace Amphenol.RMA.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Withdraw(int requestId, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Enter a reason before withdrawing the request.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                using var requestLock = LockWithdrawableRequest(requestId);
+                var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == requestId);
+                if (rma == null)
+                {
+                    return NotFound();
+                }
+
+                var requesterName = _m10Db.humres
+                    .Where(x => x.res_id == rma.res_id)
+                    .Select(x => x.fullname)
+                    .FirstOrDefault() ?? rma.Preparado ?? "Requester";
+                var withdrawalComment = $" • {requesterName} [Withdrawn for changes] {DateTime.Now:MM/dd/yyyy hh:mm tt}{Environment.NewLine}-{reason.Trim()}";
+
+                rma.Comment = string.IsNullOrWhiteSpace(rma.Comment)
+                    ? withdrawalComment
+                    : $"{rma.Comment}{Environment.NewLine}{Environment.NewLine}{withdrawalComment}";
+                rma.Status = RmaRequestStatus.Pending.ToDisplayString();
+                rma.Sumbit = RmaSubmitStatus.NotSubmitted.ToDisplayString();
+                rma.Approver = string.Empty;
+                rma.res_id_approver = 0;
+                rma.date_approved = null;
+
+                await _m10Db.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"RMA request {rma.Rmarequest?.Trim()} was withdrawn. You can now edit and re-submit it.";
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["ErrorMessage"] = exception.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(int requestId, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Enter a reason before canceling the request.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                using var requestLock = LockCancelableRequest(requestId);
+                var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == requestId);
+                if (rma == null)
+                {
+                    return NotFound();
+                }
+
+                var canceledBy = User.Identity?.Name?.Split('\\').LastOrDefault() ?? "Requester";
+                var cancellationComment = $" • {canceledBy} [Canceled] {DateTime.Now:MM/dd/yyyy hh:mm tt}{Environment.NewLine}-{reason.Trim()}";
+                rma.Comment = string.IsNullOrWhiteSpace(rma.Comment)
+                    ? cancellationComment
+                    : $"{rma.Comment}{Environment.NewLine}{Environment.NewLine}{cancellationComment}";
+                rma.Status = RmaRequestStatus.Canceled.ToDisplayString();
+                rma.Sumbit = RmaSubmitStatus.NotSubmitted.ToDisplayString();
+                rma.Approver = string.Empty;
+                rma.res_id_approver = 0;
+                rma.date_approved = null;
+
+                await _m10Db.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"RMA request {rma.Rmarequest?.Trim()} was canceled. It cannot be edited or submitted.";
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["ErrorMessage"] = exception.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
         public IActionResult Remark(string commentrema, int idrema)
         {
-            using var requestLock = LockPendingApproval(idrema);
-            _contenedorTrabajo.CSEXSW_Rma.UpdateRema(idrema, commentrema);
+            try
+            {
+                using var requestLock = LockPendingApproval(idrema);
+                _contenedorTrabajo.CSEXSW_Rma.UpdateRema(idrema, commentrema);
+            }
+            catch (ApprovalStateChangedException)
+            {
+                TempData["GlobalNoticeMessage"] = ApprovalStateChangedMessage;
+            }
 
             return RedirectToAction(nameof(Control));
         }
@@ -511,32 +662,34 @@ namespace Amphenol.RMA.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Desaprobar(string comment, int ids)
         {
-            using var requestLock = LockPendingApproval(ids);
-            String cadena = User.Identity.Name;
-            string delimitador = @"\";
-            string[] valores = cadena.Split(delimitador);
-            string usuario = valores[1];
-
-
-            string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-
-            _contenedorTrabajo.CSEXSW_Rma.Updatedesaprobar(ids, comment, var);
-            _contenedorTrabajo.Save();
-
-            var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == ids);
-
-            if (rma != null)
+            try
             {
-                var requester = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id);
-                var firstName = requester.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Requester";
+                using var requestLock = LockPendingApproval(ids);
+                String cadena = User.Identity.Name;
+                string delimitador = @"\";
+                string[] valores = cadena.Split(delimitador);
+                string usuario = valores[1];
 
-                var approver = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
+
+                string var = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
+
+                _contenedorTrabajo.CSEXSW_Rma.Updatedesaprobar(ids, comment, var);
+                _contenedorTrabajo.Save();
+
+                var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(x => x.Id == ids);
+
+                if (rma != null)
+                {
+                    var requester = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id);
+                    var firstName = requester.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Requester";
+
+                    var approver = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
 
 
-                await _emailService.SendRejectNotification(
-                    "RMA Request Rejected",
-                    rma.Rmarequest,
-                    $"""
+                    await _emailService.SendRejectNotification(
+                        "RMA Request Rejected",
+                        rma.Rmarequest,
+                        $"""
                         Hello {firstName},<br><br>
                         We regret to inform you that RMA request #{rma.Rmarequest} has been rejected by {approver.fullname}.<br><br>
                         The approver provided the following comments:<br><br>
@@ -544,9 +697,14 @@ namespace Amphenol.RMA.Controllers
                         If you have any questions or require additional clarification, please contact the approver directly.<br><br>
                         Thank you,<br>
                         Amphenol Industrial Operations RMA System
-                    """,
-                    new EmailAddress(requester.mail)
-                );
+                        """,
+                        new EmailAddress(requester.mail)
+                    );
+                }
+            }
+            catch (ApprovalStateChangedException)
+            {
+                TempData["GlobalNoticeMessage"] = ApprovalStateChangedMessage;
             }
 
             return RedirectToAction(nameof(Control));
@@ -554,15 +712,24 @@ namespace Amphenol.RMA.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public Task<RedirectToActionResult> Aprobar(string commentt, int idsa)
+        public async Task<RedirectToActionResult> Aprobar(string commentt, int idsa)
         {
-            String cadena = User.Identity.Name;
-            string delimitador = @"\";
-            string[] valores = cadena.Split(delimitador);
-            string usuario = valores[1];
+            try
+            {
+                using var requestLock = LockPendingApproval(idsa);
+                String cadena = User.Identity.Name;
+                string delimitador = @"\";
+                string[] valores = cadena.Split(delimitador);
+                string usuario = valores[1];
 
-            string userId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
-            return CompleteApproval(commentt, idsa, userId, false);
+                string userId = _contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim());
+                return await CompleteApproval(commentt, idsa, userId, false);
+            }
+            catch (ApprovalStateChangedException)
+            {
+                TempData["GlobalNoticeMessage"] = ApprovalStateChangedMessage;
+                return RedirectToAction(nameof(Control));
+            }
         }
 
         private Approver RouteStoredSubmission(CSEXSW_Rma rma)
@@ -3555,15 +3722,26 @@ namespace Amphenol.RMA.Controllers
 
             //var rmas = _context2.csexsw_coustumer.Include(r => r.CSEXSW_Rma).Where(a=>a.CSEXSW_Rma.Id >0).OrderByDescending(r => r.CSEXSW_Rma.Date );
 
-            return Json(new { data = rmas, resid = usuario });
+            var canCancelAnyRequest = _bypassApprovalModule.Users.Any(user =>
+                string.Equals(user?.Trim(), User.Identity?.Name?.Split('\\').LastOrDefault()?.Trim(), StringComparison.OrdinalIgnoreCase));
+            return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
 
         [HttpPut]
         public async Task<IActionResult> Apruebo(int id)
         {
-
-            using var requestLock = LockPendingApproval(id);
-            await Aprobar(null, id);
+            try
+            {
+                using var requestLock = LockPendingApproval(id);
+                var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+                var userId = string.IsNullOrWhiteSpace(username)
+                    ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+                await CompleteApproval(null, id, userId, false);
+            }
+            catch (ApprovalStateChangedException)
+            {
+                return Conflict(new { success = false, message = ApprovalStateChangedMessage });
+            }
 
             return Json(new { success = true, message = "Approved RMA" });
 
@@ -3572,10 +3750,17 @@ namespace Amphenol.RMA.Controllers
         [HttpPut]
         public IActionResult Rechazo(int id)
         {
-            using var requestLock = LockPendingApproval(id);
+            try
+            {
+                using var requestLock = LockPendingApproval(id);
 
-            _contenedorTrabajo.CSEXSW_Rma.UpdateRechazo(id);
-            _contenedorTrabajo.Save();
+                _contenedorTrabajo.CSEXSW_Rma.UpdateRechazo(id);
+                _contenedorTrabajo.Save();
+            }
+            catch (ApprovalStateChangedException)
+            {
+                return Conflict(new { success = false, message = ApprovalStateChangedMessage });
+            }
 
             return Json(new { success = true, message = "Approved RMA" });
 
@@ -3679,16 +3864,11 @@ namespace Amphenol.RMA.Controllers
         [HttpDelete]
         public IActionResult Delete(int id)
         {
-            using var requestLock = LockEditableRequest(id);
-            var objFromDb = _contenedorTrabajo.CSEXSW_Rma.Get(id);
-            if (objFromDb == null)
+            return Json(new
             {
-                return Json(new { success = false, message = "Error deleting RMA" });
-            }
-
-            _contenedorTrabajo.CSEXSW_Rma.Remove(objFromDb);
-            _contenedorTrabajo.Save();
-            return Json(new { success = true, message = "RMA deleted successfully" });
+                success = false,
+                message = "RMA requests are retained for audit. Cancel the request instead."
+            });
         }
 
         [HttpPost]

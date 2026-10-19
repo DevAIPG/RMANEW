@@ -66,6 +66,31 @@ public class ApprovalProtectionTests
         Assert.False(row.CanEdit);
     }
 
+    [Theory]
+    [InlineData("Pending", "Submitted", null, true)]
+    [InlineData("Pending", "CS Review Required", " ", true)]
+    [InlineData("Pending", "Not Submitted", null, false)]
+    [InlineData("Remark", "Submitted", null, false)]
+    [InlineData("Approved", "Submitted", null, false)]
+    [InlineData("Pending", "Submitted", "601761", false)]
+    public void OnlyUnassignedRequestsAwaitingReviewCanBeWithdrawn(
+        string status, string submission, string rmaNumber, bool canWithdraw)
+    {
+        Assert.Equal(canWithdraw, RmaWithdrawalPolicy.CanWithdraw(status, submission, rmaNumber));
+    }
+
+    [Theory]
+    [InlineData("Pending", null, true)]
+    [InlineData("Remark", " ", true)]
+    [InlineData("Rejected", null, true)]
+    [InlineData("Approved", null, false)]
+    [InlineData("Canceled", null, false)]
+    [InlineData("Pending", "601761", false)]
+    public void OnlyRequestsWithoutAnErpRmaCanBeCanceled(string status, string rmaNumber, bool canCancel)
+    {
+        Assert.Equal(canCancel, RmaWithdrawalPolicy.CanCancel(status, rmaNumber));
+    }
+
     [Fact]
     public void PublicApprovalActionCannotSelectTheSystemIdentity()
     {
