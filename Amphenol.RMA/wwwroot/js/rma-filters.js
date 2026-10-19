@@ -35,7 +35,9 @@
         return (!filters.part || text(row.customerpartno).toLowerCase().includes(filters.part)) &&
             (!filters.customer || text(row.customerName) === filters.customer) &&
             (!filters.approver || text(row.approver) === filters.approver) &&
-            (!filters.type || text(row.rmatypeofrequest) === filters.type);
+            (!filters.type || text(row.rmatypeofrequest) === filters.type) &&
+            (!filters.status || text(row.status) === filters.status) &&
+            (!filters.location || text(row.wherebuilt) === filters.location);
     }
 
     function populateOptions(id, property, rows) {
@@ -59,6 +61,8 @@
         populateOptions('rmaCustomerName', 'customerName', rows);
         populateOptions('rmaApprover', 'approver', rows);
         populateOptions('rmaRequestType', 'rmatypeofrequest', rows);
+        populateOptions('rmaApprovalStatus', 'status', rows);
+        populateOptions('rmaBuiltLocation', 'wherebuilt', rows);
         table.search.fixed('rmaFilters', matchesRow);
         table.draw();
     });
@@ -88,10 +92,13 @@
             part: text($('#rmaPartNumber').val()).toLowerCase(),
             customer: $('#rmaCustomerName').val(),
             approver: $('#rmaApprover').val(),
-            type: $('#rmaRequestType').val()
+            type: $('#rmaRequestType').val(),
+            status: $('#rmaApprovalStatus').val(),
+            location: $('#rmaBuiltLocation').val()
         };
         var count = Number(!!(filters.from || filters.to)) + Number(!!filters.part) +
-            Number(!!filters.customer) + Number(!!filters.approver) + Number(!!filters.type);
+            Number(!!filters.customer) + Number(!!filters.approver) + Number(!!filters.type) +
+            Number(!!filters.status) + Number(!!filters.location);
         $('#rmaFilterCount').text(count).prop('hidden', count === 0);
         if (table) table.draw();
     }

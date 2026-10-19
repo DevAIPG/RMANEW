@@ -44,7 +44,7 @@
             </div>
             <div id="rmaFilterPanel" class="border rounded p-3 mb-3" hidden>
                 <form id="rmaFilterForm">
-                    <p class="text-muted small">Filter by request date. Excel and PDF exports include all matching rows.</p>
+                    <p class="text-muted small">Filter RMA requests. Excel and PDF exports include all matching rows.</p>
                     <div class="row">
                         <div class="col-md-6 col-lg-2 mb-3">
                             <label for="rmaDateFrom">Date from</label>
@@ -69,6 +69,14 @@
                         <div class="col-md-6 col-lg-2 mb-3">
                             <label for="rmaRequestType">Request type</label>
                             <select id="rmaRequestType" class="form-control"><option value="">All request types</option></select>
+                        </div>
+                        <div class="col-md-6 col-lg-2 mb-3">
+                            <label for="rmaApprovalStatus">Approval status</label>
+                            <select id="rmaApprovalStatus" class="form-control"><option value="">All approval statuses</option></select>
+                        </div>
+                        <div class="col-md-6 col-lg-2 mb-3">
+                            <label for="rmaBuiltLocation">Built location</label>
+                            <select id="rmaBuiltLocation" class="form-control"><option value="">All built locations</option></select>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Apply filters</button>
