@@ -33,7 +33,7 @@
     function renderChoices(filter) {
         var query = filter.search.value.trim().toLowerCase();
         var visible = filter.values.filter(function (value) {
-            return (value || '(Blanks)').toLowerCase().includes(query);
+            return value.toLowerCase().includes(query);
         });
         filter.list.replaceChildren();
         var checkedCount = visible.filter(function (value) { return !filter.excluded.has(value); }).length;
@@ -55,7 +55,7 @@
                 filter.all.checked = selected === boxes.length;
                 filter.all.indeterminate = selected > 0 && selected < boxes.length;
             });
-            label.append(checkbox, document.createTextNode(value || '(Blanks)'));
+            label.append(checkbox, document.createTextNode(value));
             filter.list.append(label);
         });
         if (!visible.length) filter.list.textContent = 'No matching values';
@@ -108,7 +108,7 @@
         filter.all.addEventListener('change', function () {
             var query = filter.search.value.trim().toLowerCase();
             filter.values.forEach(function (value) {
-                if (!(value || '(Blanks)').toLowerCase().includes(query)) return;
+                if (!value.toLowerCase().includes(query)) return;
                 if (filter.all.checked) filter.excluded.delete(value);
                 else filter.excluded.add(value);
             });
@@ -189,7 +189,7 @@
 
     function populateOptions(filter, rows) {
         // Keep exclusions across refreshes, including values temporarily absent.
-        var values = rows.map(function (row) { return text(row[filter.property]); });
+        var values = rows.map(function (row) { return text(row[filter.property]); }).filter(Boolean);
         filter.values = Array.from(new Set(values.concat(Array.from(filter.excluded)))).sort(function (a, b) {
             return a.localeCompare(b);
         });

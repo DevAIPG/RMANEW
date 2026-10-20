@@ -133,9 +133,13 @@ function run() {
     refresh();
     assert.ok(matching().includes('Created'), 'New values are included unless explicitly excluded');
     clear();
-    toggle('rmaCustomerName', '(Blanks)', false);
-    apply();
-    assert.deepEqual(matching(), ['Approved', 'Pending'], 'Blank values can be excluded');
+    rows.push({status: '   ', wherebuilt: null, customerName: '   '});
+    refresh();
+    for (const id of ['rmaCustomerName', 'rmaApprover', 'rmaRequestType', 'rmaApprovalStatus', 'rmaBuiltLocation']) {
+        const choices = menu(id).children[2].children.map(label => label.children[1].textContent);
+        assert.ok(choices.every(value => value.trim() && value !== '(Blanks)'),
+            'Empty, null, missing, and whitespace values are omitted from ' + id);
+    }
     clear();
     elements.rmaPartNumber.value = 'abc';
     elements.rmaDateFrom.value = '2026-10-19';
@@ -150,7 +154,7 @@ function run() {
     assert.equal(menu('rmaApprovalStatus').hidden, true);
     assert.equal(elements.rmaApprovalStatus['aria-expanded'], 'false');
     assert.equal(elements.rmaApprovalStatus.focused, true);
-    return 'RMA checkbox filters: exclusions, search, select all/none, blanks, refresh, clear, and Escape passed';
+    return 'RMA checkbox filters: exclusions, search, select all/none, blank omission, refresh, clear, and Escape passed';
 }
 
 module.exports = run;
