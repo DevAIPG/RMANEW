@@ -91,6 +91,34 @@ public class ApprovalProtectionTests
         Assert.Equal(canCancel, RmaWithdrawalPolicy.CanCancel(status, rmaNumber));
     }
 
+    [Theory]
+    [InlineData("cs.manager", "42", 42, true)]
+    [InlineData("cs.manager", " 42 ", 42, true)]
+    [InlineData("another.requester", "43", 42, false)]
+    [InlineData("cs.manager", null, 42, false)]
+    [InlineData("cs.manager", "invalid", 42, false)]
+    [InlineData("cs.manager", "0", 0, false)]
+    [InlineData("cs.manager", "-1", -1, false)]
+    [InlineData(null, "42", 42, false)]
+    [InlineData(" ", "42", 42, false)]
+    public void OnlyConfiguredCsManagerCanCancelOtherUsersRequests(
+        string username, string employeeId, int managerId, bool expected)
+    {
+        Assert.Equal(expected, RmaWithdrawalPolicy.CanCancelAnyRequest(
+            username, employeeId, managerId, Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void ApprovalAdministratorsRetainCancellationPermission()
+    {
+        Assert.True(RmaWithdrawalPolicy.CanCancelAnyRequest(
+            " ADMIN ", "43", 42, new[] { " admin " }));
+        Assert.False(RmaWithdrawalPolicy.CanCancelAnyRequest(
+            "another.requester", "43", 42, new[] { "admin" }));
+        Assert.False(RmaWithdrawalPolicy.CanCancelAnyRequest(
+            null, null, 0, new string[] { null, " " }));
+    }
+
     [Fact]
     public void PublicApprovalActionCannotSelectTheSystemIdentity()
     {

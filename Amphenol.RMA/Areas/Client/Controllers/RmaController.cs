@@ -162,12 +162,11 @@ namespace Amphenol.RMA.Controllers
                 var username = User.Identity?.Name?.Split('\\').LastOrDefault();
                 var userId = string.IsNullOrWhiteSpace(username)
                     ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
-                var isCancellationAdministrator = !string.IsNullOrWhiteSpace(username)
-                    && _bypassApprovalModule.Users.Any(user =>
-                        string.Equals(user?.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
+                var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
+                    username, userId, _customerServiceManager.ResId, _bypassApprovalModule.Users);
                 if ((!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
-                    && !isCancellationAdministrator)
-                    throw new InvalidOperationException("Only the requester or an authorized approval administrator can cancel this RMA.");
+                    && !canCancelAnyRequest)
+                    throw new InvalidOperationException("Only the requester, Customer Service manager, or an authorized approval administrator can cancel this RMA.");
 
                 return requestLock;
             }
@@ -3722,8 +3721,9 @@ namespace Amphenol.RMA.Controllers
 
             //var rmas = _context2.csexsw_coustumer.Include(r => r.CSEXSW_Rma).Where(a=>a.CSEXSW_Rma.Id >0).OrderByDescending(r => r.CSEXSW_Rma.Date );
 
-            var canCancelAnyRequest = _bypassApprovalModule.Users.Any(user =>
-                string.Equals(user?.Trim(), User.Identity?.Name?.Split('\\').LastOrDefault()?.Trim(), StringComparison.OrdinalIgnoreCase));
+            var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
+                User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
+                _customerServiceManager.ResId, _bypassApprovalModule.Users);
             return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
 
