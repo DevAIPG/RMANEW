@@ -24,6 +24,46 @@
         box-sizing: border-box;
         padding: 0;
     }
+
+    #rmaFilterPanel {
+        container-type: inline-size;
+    }
+
+    .rma-filter-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: .75rem;
+    }
+
+    .rma-filter-field {
+        min-width: 0;
+    }
+
+    .rma-filter-field label {
+        margin-bottom: .25rem;
+        font-size: .8125rem;
+    }
+
+    .rma-filter-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-top: .75rem;
+    }
+
+    @@container (min-width: 360px) {
+        .rma-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @@container (min-width: 640px) {
+        .rma-filter-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @@container (min-width: 1240px) {
+        .rma-filter-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    }
 </style>
 <br />
 <div>
@@ -62,43 +102,47 @@
             </div>
             <div id="rmaFilterPanel" class="border rounded p-3 mb-3" hidden>
                 <form id="rmaFilterForm">
-                    <p class="text-muted small">Filter RMA requests. Excel and PDF exports include all matching rows.</p>
-                    <div class="row">
-                        <div class="col-md-6 col-lg-2 mb-3">
+                    <div class="rma-filter-grid">
+                        <div class="rma-filter-field">
                             <label for="rmaDateFrom">Date from</label>
-                            <input type="date" id="rmaDateFrom" class="form-control" />
+                            <input type="date" id="rmaDateFrom" class="form-control form-control-sm" />
                         </div>
-                        <div class="col-md-6 col-lg-2 mb-3">
+                        <div class="rma-filter-field">
                             <label for="rmaDateTo">Date to</label>
-                            <input type="date" id="rmaDateTo" class="form-control" />
+                            <input type="date" id="rmaDateTo" class="form-control form-control-sm" />
                         </div>
-                        <div class="col-md-6 col-lg-2 mb-3">
+                        <div class="rma-filter-field">
                             <label for="rmaCustomerName">Customer name</label>
-                            <select id="rmaCustomerName" class="form-control"><option value="">All customers</option></select>
+                            <select id="rmaCustomerName" class="form-control form-control-sm"><option value="">All customers</option></select>
                         </div>
-                        <div class="col-md-6 col-lg-2 mb-3">
-                            <label for="rmaPartNumber">Customer part number</label>
-                            <input type="search" id="rmaPartNumber" class="form-control" placeholder="All or part of a number" />
+                        <div class="rma-filter-field">
+                            <label for="rmaPartNumber">Customer part #</label>
+                            <input type="search" id="rmaPartNumber" class="form-control form-control-sm" placeholder="Full or partial #" />
                         </div>
-                        <div class="col-md-6 col-lg-2 mb-3">
+                        <div class="rma-filter-field">
                             <label for="rmaApprover">Approver</label>
-                            <select id="rmaApprover" class="form-control"><option value="">All approvers</option></select>
+                            <select id="rmaApprover" class="form-control form-control-sm"><option value="">All approvers</option></select>
                         </div>
-                        <div class="col-md-6 col-lg-2 mb-3">
+                        <div class="rma-filter-field">
                             <label for="rmaRequestType">Request type</label>
-                            <select id="rmaRequestType" class="form-control"><option value="">All request types</option></select>
+                            <select id="rmaRequestType" class="form-control form-control-sm"><option value="">All request types</option></select>
                         </div>
-                        <div class="col-md-6 col-lg-2 mb-3">
+                        <div class="rma-filter-field">
                             <label for="rmaApprovalStatus">Approval status</label>
-                            <select id="rmaApprovalStatus" class="form-control"><option value="">All approval statuses</option></select>
+                            <select id="rmaApprovalStatus" class="form-control form-control-sm"><option value="">All statuses</option></select>
                         </div>
-                        <div class="col-md-6 col-lg-2 mb-3">
+                        <div class="rma-filter-field">
                             <label for="rmaBuiltLocation">Built location</label>
-                            <select id="rmaBuiltLocation" class="form-control"><option value="">All built locations</option></select>
+                            <select id="rmaBuiltLocation" class="form-control form-control-sm"><option value="">All locations</option></select>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Apply filters</button>
-                    <button type="button" id="rmaClearFilters" class="btn btn-outline-secondary">Clear filters</button>
+                    <div class="rma-filter-footer">
+                        <small class="text-muted">Excel and PDF exports include all matching rows.</small>
+                        <div>
+                            <button type="button" id="rmaClearFilters" class="btn btn-outline-secondary btn-sm">Clear filters</button>
+                            <button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="table-responsive">
