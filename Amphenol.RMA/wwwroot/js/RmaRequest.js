@@ -618,12 +618,8 @@ function LoadCustomerDetails(customerID, preserveValues = false) {
 }
 function ClearContactInfomration() {
     currentCustomerId = "";
-    $("#inputContact").val("");
-    $("#inputShipTo").val("");
-    $("#inputContactEmail").val("");
-    $("#inputCompanyEmail").val("");
-    $("#inputPhone").val("");
-    $("#inputExtension").val("");
+    $("#inputContact, #inputShipTo, #inputContactEmail, #inputCompanyEmail, #inputPhone, #inputExtension")
+        .val("").trigger("change");
 
     UpdateVisibility();
 }

@@ -20,14 +20,18 @@ namespace Amphenol.RMA.ViewModels
         public DateTime Date { get; set; } = DateTime.Now;
         public List<string> BuildLocations { get; } = [];
         [Required]
+        [StringLength(8)]
         public string SelectedBuildLocation { get; set; }
         public decimal TotalValue => Lines?.Sum(x => x.AuthorizedQuantity * x.Price) ?? 0m;
         public List<string> RequestTypes { get; } = [];
         [Required]
+        [StringLength(64)]
         public string SelectedRequestType { get; set; }
         public List<string> Reasons { get; } = [];
         [Required]
+        [StringLength(100)]
         public string SelectedReason { get; set; }
+        [StringLength(29)]
         public string Description { get; set; }
         [Required]
         public string Complaint { get; set; }
@@ -35,22 +39,31 @@ namespace Amphenol.RMA.ViewModels
 
         //Customer info
         [Required]
+        [StringLength(8)]
         public string CustomerId { get; set; }
         [Required]
+        [StringLength(25)]
         public string PoNumber { get; set; }
         [Required]
+        [StringLength(40)]
         public string Contact { get; set; }
         [Required]
         [Phone]
+        [StringLength(20)]
         public string PhoneNumber { get; set; }
+        [StringLength(4)]
         public string ExtensionNumber { get; set; }
+        [StringLength(20)]
         public string Fax { get; set; }
         [Required]
         [EmailAddress]
+        [StringLength(128)]
         public string ContactEmail { get; set; }
         [EmailAddress]
+        [StringLength(128)]
         public string CompanyEmail { get; set; }
         [Required]
+        [StringLength(64)]
         public string ShipTo { get; set; }
         public RmaSubmitStatus SubmitStatus { get; set; }
         public RmaRequestStatus RequestStatus { get; set; }

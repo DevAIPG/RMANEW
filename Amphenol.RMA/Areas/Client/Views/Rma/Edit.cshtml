@@ -138,7 +138,7 @@ else
                         </div>
                         <div class="mb-2 row">
                             <div class="col-4 col-form-label font-weight-bold">Issue Description:</div>
-                            <input class="col-8 form-control" asp-for="Description" id="inputDescription" maxlength="29" />
+                            <input class="col-8 form-control" asp-for="Description" data-character-counter="true" id="inputDescription" maxlength="29" />
                         </div>
                     </div>
                     <div class="border-top mt-4 pt-4">
@@ -153,7 +153,7 @@ else
                         <div class="mb-2 row">
                             <label class="col-4 col-form-label font-weight-bold" for="inputCustomer">Customer Number<span class="ml-2 text-danger">*</span></label>
                             <div class="col-8 input-group">
-                                <input tabindex="1" class="form-control  customer-input" placeholder="Enter or search for a customer id" asp-for="CustomerId" id="inputCustomer" list="customerOptions" autocomplete="off" />
+                                <input tabindex="1" class="form-control  customer-input" placeholder="Enter or search for a customer id" asp-for="CustomerId" data-character-counter="true" id="inputCustomer" list="customerOptions" autocomplete="off" />
                                 <span class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#CustomerModal"><i class="fa fa-search"></i></span>
                             </div>
                             <datalist id="customerOptions">
@@ -165,7 +165,7 @@ else
                         <div class="mb-2 row customer-info d-none">
                             <label class="col-4 col-form-label font-weight-bold">Contact<span class="ml-2 text-danger">*</span></label>
                             <div class="col-8 input-group">
-                                <input class="form-control  contact-input" asp-for="Contact" id="inputContact" />
+                                <input class="form-control  contact-input" asp-for="Contact" data-character-counter="true" id="inputContact" />
                                 <span asp-validation-for="Contact" class="col-12 text-danger"></span>
                             </div>
 
@@ -177,13 +177,13 @@ else
                             <div class="col-8">
                                 <div class="row">
                                     <div class="col-6">
-                                        <input class="form-control  phone-input" type="tel" asp-for="PhoneNumber" id="inputPhone" />
+                                        <input class="form-control  phone-input" type="tel" asp-for="PhoneNumber" data-character-counter="true" id="inputPhone" />
                                     </div>
                                     <label class="col-2 col-form-label font-weight-bold">
                                         Ext:
                                     </label>
                                     <div class="col-4">
-                                        <input class="form-control" asp-for="ExtensionNumber" type="tel" id="inputExtension" />
+                                        <input class="form-control" asp-for="ExtensionNumber" data-character-counter="true" type="tel" id="inputExtension" />
                                     </div>
                                     <span asp-validation-for="PhoneNumber" class="col-12 text-danger"></span>
                                 </div>
@@ -192,7 +192,7 @@ else
                         <div class="mb-2 row customer-info d-none">
                             <label class="col-4 col-form-label font-weight-bold">Email<span class="ml-2 text-danger">*</span></label>
                             <div class="col-8 input-group">
-                                <input class="form-control  contactEmail-input" asp-for="ContactEmail" id="inputContactEmail" />
+                                <input class="form-control  contactEmail-input" asp-for="ContactEmail" data-character-counter="true" id="inputContactEmail" />
                                 <span asp-validation-for="ContactEmail" class="col-12 text-danger"></span>
                             </div>
                         </div>
@@ -201,7 +201,7 @@ else
                         <div class="mb-2 row shipto-section d-none">
                             <label class="col-4 col-form-label font-weight-bold">Ship To<span class="ml-2 text-danger">*</span></label>
                             <div class="col-8 input-group">
-                                <input tabindex="2" class="form-control  shipto-input disabled" readonly asp-for="ShipTo" id="inputShipTo" autocomplete="off" />
+                                <input tabindex="2" class="form-control  shipto-input disabled" readonly asp-for="ShipTo" data-character-counter="true" id="inputShipTo" autocomplete="off" />
                                 <span class="btn btn-sm btn-outline-secondary" onclick="OpenShipToModal()"><i class="fa fa-search"></i></span>
                                 <span asp-validation-for="ShipTo" class="col-12 text-danger"></span>
                             </div>
@@ -209,7 +209,7 @@ else
                         <div class="mb-2 row customer-info d-none">
                             <label class="col-4 col-form-label font-weight-bold">PO Number<span class="ml-2 text-danger">*</span></label>
                             <div class="col-8 input-group">
-                                <input class="form-control  po-input" asp-for="PoNumber" id="inputCustomerPo" />
+                                <input class="form-control  po-input" asp-for="PoNumber" data-character-counter="true" id="inputCustomerPo" />
                                 <span asp-validation-for="PoNumber" class="col-12 text-danger"></span>
                             </div>
 
@@ -217,13 +217,13 @@ else
                         <div class="mb-2 row customer-info d-none">
                             <label class="col-4 col-form-label font-weight-bold">Fax:</label>
                             <div class="col-8 input-group">
-                                <input class="form-control" asp-for="Fax" id="inputFax" />
+                                <input class="form-control" asp-for="Fax" data-character-counter="true" id="inputFax" />
                             </div>
                         </div>
                         <div class="mb-2 row customer-info d-none">
                             <label class="col-4 col-form-label font-weight-bold">Company Email:</label>
                             <div class="col-8 input-group">
-                                <input class="form-control disabled" readonly asp-for="CompanyEmail" id="inputCompanyEmail" />
+                                <input class="form-control disabled" readonly asp-for="CompanyEmail" data-character-counter="true" id="inputCompanyEmail" />
                             </div>
                         </div>
                     </div>
@@ -383,5 +383,6 @@ else
     <script src="~/js/jquery.loadingModal.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="~/js/rma-character-counters.js" asp-append-version="true"></script>
     <script src="~/js/RmaRequest.js" asp-append-version="true"></script>
 }

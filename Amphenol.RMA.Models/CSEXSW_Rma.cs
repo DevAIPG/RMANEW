@@ -98,6 +98,7 @@ namespace Amphenol.RMA.Models
         public string Company { get; set; } 
         public int res_id { get; set; }
         public int res_id_approver { get; set; }
+        [MaxLength(100)]
         public string reason { get; set; }
         public DateTime? date_approved { get; set; }
         [NotMapped]

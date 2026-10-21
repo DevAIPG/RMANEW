@@ -1,6 +1,21 @@
 #LineTable .rma-line-controls > td {
     vertical-align: middle;
 }
+.rma-character-count {
+    display: block;
+    flex: 0 0 100%;
+    width: 100%;
+    margin-top: .25rem;
+    color: #6c757d;
+    text-align: right;
+}
+.rma-character-count-warning {
+    color: #856404;
+}
+.rma-character-count-limit {
+    color: #b21f2d;
+    font-weight: 600;
+}
 #LineTable .rma-line-errors > td {
     padding-top: 0;
     padding-bottom: 0;
