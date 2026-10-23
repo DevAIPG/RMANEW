@@ -57,18 +57,36 @@ namespace Amphenol.RMA.AccesoDatos.Data
             return Convert.ToDouble(rma.Totalrmavalues) / Convert.ToDouble(latestRate.RateExchange);
         }
 
-        public static int? NormalApprovalRole(CSEXSW_Rma rma, double? approvalValue = null)
+        public static string NormalApproverSection(CSEXSW_Rma rma, double? approvalValue = null)
         {
             var total = approvalValue ?? rma.Totalrmavalues;
             if (rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString())
-                return total < 5000 && rma.RMA500 == "No" ? null : 100031;
-            if (total >= 5000) return 100031;
+                return total < 5000 && rma.RMA500 == "No" ? null : "QualityDirector";
+            if (total >= 5000) return "QualityDirector";
             return rma.Wherebuilt switch
             {
-                "Nogales" => 100030,
-                "Mesa" => 100062,
-                "Endicott" => 100039,
+                "Nogales" => "QualityManagerNogales",
+                "Mesa" => "QualityManagerMesa",
+                "Endicott" => "QualityManagerEndicott",
                 _ => throw new InvalidOperationException("No quality manager is configured for this location.")
+            };
+        }
+
+        public Approver GetConfiguredApprover(string section)
+        {
+            if (!int.TryParse(_configuration[$"{section}:ResId"], out var id) || id <= 0)
+                throw new InvalidOperationException($"{section}:ResId must identify an existing employee.");
+
+            var employee = _db.humres.FirstOrDefault(x => x.res_id == id);
+            if (employee == null)
+                throw new InvalidOperationException($"{section}:ResId must identify an existing employee.");
+
+            var configuredEmail = _configuration[$"{section}:Email"];
+            return new Approver
+            {
+                Id = employee.res_id,
+                Name = employee.fullname,
+                Email = string.IsNullOrWhiteSpace(configuredEmail) ? employee.mail : configuredEmail.Trim()
             };
         }
 
@@ -78,33 +96,22 @@ namespace Amphenol.RMA.AccesoDatos.Data
             Approver approver;
             if (submitted && requiresCsReview)
             {
-                int.TryParse(_configuration["CustomerServiceManager:ResId"], out var id);
-                var employee = id > 0 ? _db.humres.FirstOrDefault(x => x.res_id == id) : null;
-                if (employee == null)
-                    throw new InvalidOperationException("CustomerServiceManager:ResId must identify an existing employee.");
-                approver = new Approver { Id = employee.res_id, Name = employee.fullname,
-                    Email = _configuration["CustomerServiceManager:Email"] ?? employee.mail };
+                approver = GetConfiguredApprover("CustomerServiceManager");
                 rma.Sumbit = RmaSubmitStatus.CsReviewRequired.ToDisplayString();
                 rma.Status = RmaRequestStatus.Pending.ToDisplayString();
             }
             else
             {
-                var roleId = NormalApprovalRole(rma, approvalValue);
-                if (roleId == null)
+                var section = NormalApproverSection(rma, approvalValue);
+                if (section == null)
                     approver = new Approver { Id = -4, Name = "System" };
                 else
                 {
-                    var employee = (from role in _db.HRRoles
-                                    join person in _db.humres on role.EmpID equals person.res_id
-                                    where role.RoleID == roleId.Value
-                                    select person).FirstOrDefault();
-                    if (employee == null)
-                        throw new InvalidOperationException($"No employee is assigned to approval role {roleId}.");
-                    approver = new Approver { Id = employee.res_id, Name = employee.fullname, Email = employee.mail };
+                    approver = GetConfiguredApprover(section);
                 }
                 rma.Sumbit = (submitted ? RmaSubmitStatus.Submitted : RmaSubmitStatus.NotSubmitted).ToDisplayString();
                 if (submitted)
-                    rma.Status = (roleId == null ? RmaRequestStatus.AutoApprove : RmaRequestStatus.Pending).ToDisplayString();
+                    rma.Status = (section == null ? RmaRequestStatus.AutoApprove : RmaRequestStatus.Pending).ToDisplayString();
             }
             rma.Approver = approver.Name;
             rma.res_id_approver = approver.Id;

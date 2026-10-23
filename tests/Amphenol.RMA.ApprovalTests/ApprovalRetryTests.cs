@@ -77,21 +77,30 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var directorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
-        var generalManagerId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
+        // Deliberately differ from HR roles: application settings control both stages.
+        var directorId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
+        var generalManagerId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
         var qualityManagerId = m10.HRRoles.First(x => x.RoleID == 100062).EmpID;
         var cs = m10.humres.First(x => x.res_id > 0 && x.res_id != directorId
             && x.res_id != generalManagerId && x.res_id != qualityManagerId);
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
         {
             ["CustomerServiceManager:ResId"] = cs.res_id.ToString(),
-            ["CustomerServiceManager:Email"] = cs.mail
+            ["CustomerServiceManager:Email"] = cs.mail,
+            ["QualityDirector:ResId"] = directorId.ToString(),
+            ["QualityDirector:Email"] = "configured.director@example.com",
+            ["GeneralManager:ResId"] = generalManagerId.ToString(),
+            ["QualityManagerMesa:ResId"] = qualityManagerId.ToString()
         }).Build();
         request.Totalrmavalues = total;
         request.Wherebuilt = "Mesa";
         request.RMA500 = "No";
         request.Rmatypeofrequest = scrap ? "DISTY SCRAP ALLOWANCE" : "CREDIT ONLY";
         var routing = new RmaApprovalRouting(m10, configuration);
+        Assert.Equal(directorId, routing.GetConfiguredApprover("QualityDirector").Id);
+        Assert.Equal("configured.director@example.com", routing.GetConfiguredApprover("QualityDirector").Email);
+        Assert.Equal(m10.humres.First(x => x.res_id == qualityManagerId).mail,
+            routing.GetConfiguredApprover("QualityManagerMesa").Email);
         var line = m10.csexsw_coustumer.First(x => x.RmaId == id);
         line.Invoice = "0";
         line.Unit = 1;
@@ -420,6 +429,8 @@ public class ApprovalRetryTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string>
             {
+                ["QualityDirector:ResId"] = m10.HRRoles.First(x => x.RoleID == 100031).EmpID.ToString(),
+                ["GeneralManager:ResId"] = m10.HRRoles.First(x => x.RoleID == 100032).EmpID.ToString(),
                 ["ApprovalBypass:Users:0"] = "  " + username.Trim().ToUpperInvariant() + "  "
             }).Build();
         return new CSEXSW_RmaRepository(m10, erp, configuration);

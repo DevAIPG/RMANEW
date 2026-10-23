@@ -943,8 +943,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
             if (rma.Sumbit != RmaSubmitStatus.CsReviewRequired.ToDisplayString()
                 && rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
             {
-                var qualityDirector = GetEmployeeByRole(100031);
-                var generalManager = GetEmployeeByRole(100032);
+                var routing = new RmaApprovalRouting(_m10Db, _configuration);
+                var qualityDirector = routing.GetConfiguredApprover("QualityDirector");
+                var generalManager = routing.GetConfiguredApprover("GeneralManager");
 
                 if (rma.res_id_approver == generalManager.Id)
                 {
@@ -1096,14 +1097,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
         private string ProcessTwoStepApproval(CSEXSW_Rma rma, int currentUserId, DateTime currentDate,
             string comment, bool canBypassApproval)
         {
-            var qualityDirector = GetEmployeeByRole(100031);
-            var generalManager = GetEmployeeByRole(100032);
-
-            if (qualityDirector is null || generalManager is null)
-            {
-                throw new InvalidOperationException(
-                    "Required approval roles could not be found.");
-            }
+            var routing = new RmaApprovalRouting(_m10Db, _configuration);
+            var qualityDirector = routing.GetConfiguredApprover("QualityDirector");
+            var generalManager = routing.GetConfiguredApprover("GeneralManager");
 
             if (rma.res_id_approver == qualityDirector.Id)
             {
@@ -2786,9 +2782,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
         }
         public void UpdateAprove(int id)
         {
-            var revisor = (from c in _m10Db.CSEXSW_Approver
-                           where c.Rango == "GM"
-                           select c.Approver).First();
+            var revisor = new RmaApprovalRouting(_m10Db, _configuration).GetConfiguredApprover("GeneralManager");
             var total = (from c in _m10Db.CSEXSW_Rma
                          where c.Id == id
                          select c.Totalrmavalues).First();
@@ -2817,7 +2811,8 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 var objDesdeDb = _m10Db.CSEXSW_Rma.FirstOrDefault(s => s.Id == id);
 
                 objDesdeDb.Status = "Pending";
-                objDesdeDb.Approver = revisor;
+                objDesdeDb.Approver = revisor.Name;
+                objDesdeDb.res_id_approver = revisor.Id;
 
                 _m10Db.SaveChanges();
             }
@@ -2895,31 +2890,6 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
         }
 
-        private Approver GetEmployeeByRole(int roleId)
-        {
-            var role = _m10Db.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
 
-            if (role == null) return null;
-
-            var employee = _m10Db.humres.FirstOrDefault(x => x.res_id == role.EmpID);
-            return new Approver
-            {
-                Id = employee.res_id,
-                Name = employee.fullname,
-                Email = employee.mail
-            };
-        }
-
-        private Approver GetQualityManager(string site)
-        {
-            var roles = new Dictionary<string, int>
-            {
-                { "Nogales", 100030 },
-                { "Mesa", 100062 },
-                { "Endicott", 100039 }
-            };
-
-            return roles.TryGetValue(site, out int roleId) ? GetEmployeeByRole(roleId) : null;
-        }
     }
 }

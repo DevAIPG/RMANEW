@@ -1,10 +1,51 @@
 using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.Models;
 using Amphenol.RMA.Models.Enumerations;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 public class RmaApprovalRoutingTests
 {
+    [Theory]
+    [InlineData("QualityDirector", null)]
+    [InlineData("GeneralManager", "invalid")]
+    [InlineData("QualityManagerMesa", "0")]
+    [InlineData("QualityManagerNogales", "-1")]
+    [InlineData("QualityManagerEndicott", " ")]
+    [InlineData("CustomerServiceManager", "0")]
+    public void InvalidApproverSettingsFailBeforeDatabaseAccess(string section, string id)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string> { [$"{section}:ResId"] = id }).Build();
+        var routing = new RmaApprovalRouting(null, configuration);
+        var error = Assert.Throws<InvalidOperationException>(() => routing.GetConfiguredApprover(section));
+        Assert.Contains($"{section}:ResId", error.Message);
+    }
+
+    [Fact]
+    public void MissingConfiguredDirectorDoesNotFallBackToHrRolesOrChangeAssignment()
+    {
+        var routing = new RmaApprovalRouting(null, new ConfigurationBuilder().Build());
+        var request = new CSEXSW_Rma { Totalrmavalues = 5000, Approver = "Original", res_id_approver = 42 };
+        Assert.Throws<InvalidOperationException>(() => routing.Assign(request, false, true));
+        Assert.Equal("Original", request.Approver);
+        Assert.Equal(42, request.res_id_approver);
+    }
+
+    [Fact]
+    public void SmallScrapAllowanceStillAutoApprovesWithoutConfiguredApprovers()
+    {
+        var routing = new RmaApprovalRouting(null, new ConfigurationBuilder().Build());
+        var request = new CSEXSW_Rma
+        {
+            Totalrmavalues = 4999, RMA500 = "No", Rmatypeofrequest = "DISTY SCRAP ALLOWANCE"
+        };
+        var approver = routing.Assign(request, false, true);
+        Assert.Equal(-4, approver.Id);
+        Assert.Equal(-4, request.res_id_approver);
+        Assert.Equal(RmaRequestStatus.AutoApprove.ToDisplayString(), request.Status);
+    }
+
     [Theory]
     [InlineData("123456", 4, 5, false)]
     [InlineData("0", 4, 5, true)]
@@ -24,36 +65,36 @@ public class RmaApprovalRoutingTests
     }
 
     [Theory]
-    [InlineData(4999.99, "Mesa", 100062)]
-    [InlineData(4999.99, "Nogales", 100030)]
-    [InlineData(4999.99, "Endicott", 100039)]
-    [InlineData(5000, "Mesa", 100031)]
-    [InlineData(19999.99, "Mesa", 100031)]
-    [InlineData(20000, "Mesa", 100031)]
-    [InlineData(20000.01, "Mesa", 100031)]
-    public void NormalRoutingCoversAmountBoundariesAndSites(double amount, string site, int expectedRole)
+    [InlineData(4999.99, "Mesa", "QualityManagerMesa")]
+    [InlineData(4999.99, "Nogales", "QualityManagerNogales")]
+    [InlineData(4999.99, "Endicott", "QualityManagerEndicott")]
+    [InlineData(5000, "Mesa", "QualityDirector")]
+    [InlineData(19999.99, "Mesa", "QualityDirector")]
+    [InlineData(20000, "Mesa", "QualityDirector")]
+    [InlineData(20000.01, "Mesa", "QualityDirector")]
+    public void NormalRoutingCoversAmountBoundariesAndSites(double amount, string site, string expectedSection)
     {
         var request = new CSEXSW_Rma { Totalrmavalues = amount, Wherebuilt = site };
-        Assert.Equal(expectedRole, RmaApprovalRouting.NormalApprovalRole(request));
+        Assert.Equal(expectedSection, RmaApprovalRouting.NormalApproverSection(request));
     }
 
     [Theory]
     [InlineData(4999, "No", null)]
-    [InlineData(4999, "Yes", 100031)]
-    [InlineData(5000, "No", 100031)]
-    [InlineData(20000, "No", 100031)]
-    public void ScrapAllowanceKeepsItsNormalApprovalRules(double amount, string overThreshold, int? role)
+    [InlineData(4999, "Yes", "QualityDirector")]
+    [InlineData(5000, "No", "QualityDirector")]
+    [InlineData(20000, "No", "QualityDirector")]
+    public void ScrapAllowanceKeepsItsNormalApprovalRules(double amount, string overThreshold, string section)
     {
         var request = new CSEXSW_Rma { Totalrmavalues = amount, RMA500 = overThreshold,
             Rmatypeofrequest = RmaRequestType.DistyScrapAllowance.ToDisplayString() };
-        Assert.Equal(role, RmaApprovalRouting.NormalApprovalRole(request));
+        Assert.Equal(section, RmaApprovalRouting.NormalApproverSection(request));
     }
 
     [Fact]
     public void NormalRoutingCanUseTheExistingCurrencyAdjustedValue()
     {
         var request = new CSEXSW_Rma { Totalrmavalues = 20000, Wherebuilt = "Mesa" };
-        Assert.Equal(100062, RmaApprovalRouting.NormalApprovalRole(request, 2800));
+        Assert.Equal("QualityManagerMesa", RmaApprovalRouting.NormalApproverSection(request, 2800));
         Assert.Equal(20000d, request.Totalrmavalues);
     }
 

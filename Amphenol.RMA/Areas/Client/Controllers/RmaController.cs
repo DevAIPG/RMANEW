@@ -820,6 +820,7 @@ namespace Amphenol.RMA.Controllers
             if (rma == null)
                 throw new InvalidOperationException("The RMA request was not found.");
             var originalApprover = rma.Approver;
+            var wasCsReview = rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString();
             // Updateaprobar returns "Approved" only after M10 and ERP commit.
             // No CAR jobs, reports, or approval notifications run before then.
             string retorno = _contenedorTrabajo.CSEXSW_Rma.Updateaprobar(idsa, commentt, userId);
@@ -917,8 +918,11 @@ namespace Amphenol.RMA.Controllers
             }
             else
             {
-                var newApprover = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
-                var approverFirstname = newApprover.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
+                var nextApproverSection = wasCsReview
+                    ? RmaApprovalRouting.NormalApproverSection(rma, RmaApprovalRouting.ApprovalValue(rma, _500Db))
+                    : "GeneralManager";
+                var newApprover = new RmaApprovalRouting(_m10Db, _configuration).GetConfiguredApprover(nextApproverSection);
+                var approverFirstname = newApprover.Name?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
 
                 if (rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString())
                 {
@@ -932,7 +936,7 @@ namespace Amphenol.RMA.Controllers
                         Thank you,<br>
                         Amphenol Industrial Operations RMA System
                      """,
-                        new EmailAddress(newApprover.mail)
+                        new EmailAddress(newApprover.Email)
                     );
                 }
 
@@ -1691,32 +1695,6 @@ namespace Amphenol.RMA.Controllers
             };
         }
 
-        private Approver GetEmployeeByRole(int roleId)
-        {
-            var role = _m10Db.HRRoles.FirstOrDefault(x => x.RoleID == roleId);
-
-            if (role == null) return null;
-
-            var employee = _m10Db.humres.FirstOrDefault(x => x.res_id == role.EmpID);
-            return new Approver
-            {
-                Id = employee.res_id,
-                Name = employee.fullname,
-                Email = employee.mail
-            };
-        }
-
-        private Approver GetQualityManager(string site)
-        {
-            var roles = new Dictionary<string, int>
-            {
-                { "Nogales", 100030 },
-                { "Mesa", 100062 },
-                { "Endicott", 100039 }
-            };
-
-            return roles.TryGetValue(site, out int roleId) ? GetEmployeeByRole(roleId) : null;
-        }
         public async Task SendRmaCreationNotification(int rmaId, RmaApprovalFlow approvalFlow)
         {
 
