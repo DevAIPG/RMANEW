@@ -522,6 +522,30 @@
     </div>
 </div>
 
+<div class="modal fade" id="GeneratedOrderModal" tabindex="-1" aria-labelledby="generatedOrderTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="generatedOrderTitle">Generated Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="generatedOrderNumber" class="form-label">Assigned order number</label>
+                <div class="input-group">
+                    <input type="text" id="generatedOrderNumber" class="form-control" readonly />
+                    <button type="button" id="copyGeneratedOrderNumber" class="btn btn-outline-primary">
+                        <i class="fa fa-copy" aria-hidden="true"></i> Copy
+                    </button>
+                </div>
+                <small id="generatedOrderCopyStatus" class="d-block mt-2" role="status" aria-live="polite"></small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade bd-example-modal-lg" id="CreateOrderModel" tabindex="-1" aria-labelledby="createOrderTitle">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">

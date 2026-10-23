@@ -47,6 +47,37 @@ function DownloadRmaFile(rmaId) {
 
     window.location.href = url;
 }
+$(document).on('click', '#GeneratedRmaTable [data-generated-order]', function () {
+    const orderNumber = decodeURIComponent(this.getAttribute('data-generated-order'));
+    document.getElementById('generatedOrderNumber').value = orderNumber;
+    document.getElementById('generatedOrderCopyStatus').textContent = '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('GeneratedOrderModal')).show();
+});
+
+$(document).on('click', '#copyGeneratedOrderNumber', async function () {
+    const input = document.getElementById('generatedOrderNumber');
+    const status = document.getElementById('generatedOrderCopyStatus');
+    const orderNumber = input.value;
+    if (!orderNumber) return;
+
+    let copied = false;
+    try {
+        await navigator.clipboard.writeText(orderNumber);
+        copied = true;
+    } catch (_) {
+        // Older browsers and HTTP deployments may not support the Clipboard API.
+        input.focus();
+        input.select();
+        input.setSelectionRange(0, input.value.length);
+        try {
+            copied = document.execCommand('copy');
+        } catch (_) {
+            copied = false;
+        }
+    }
+    status.textContent = copied ? 'Order number copied.' : 'Select the order number and press Ctrl+C (or Command+C) to copy it.';
+});
+
 function OnCreateOrderClicked(id) {
     $.ajax({
         "url": "/Client/rma/GetGeneratedOrderNumber",
