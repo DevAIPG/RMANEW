@@ -184,7 +184,7 @@ function cargarDatatableRma() {
 
                                     const canGenerateOrder = row.canGenerateOrderForCurrentUser === true;
                                     const canClickGenerateOrder = row.canGenerateOrder && canGenerateOrder && !hasOrder;
-                                    const awaitingOrderGeneration = !canGenerateOrder && !hasOrder;
+                                    const awaitingOrderGeneration = row.canGenerateOrder && !canGenerateOrder && !hasOrder;
 
                                     const generateOrderButtonColor = hasOrder ? 'btn-success' : awaitingOrderGeneration || !row.canGenerateOrder ? 'btn-warning' : 'btn-primary';
 

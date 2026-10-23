@@ -30,8 +30,8 @@ async function run() {
     for (const permission of [false, undefined, null]) {
         for (const ready of [false, true]) {
             const html = button({ canGenerateOrderForCurrentUser: permission, canGenerateOrder: ready });
-            assert.match(html, /title="Awaiting order generation"/);
-            assert.match(html, /fa-clock/);
+            assert.match(html, ready ? /title="Awaiting order generation"/ : /title="Awaiting returned products"/);
+            assert.match(html, ready ? /fa-clock/ : /fa-truck/);
             assert.match(html, /aria-disabled="true"/);
             assert.doesNotMatch(html, /OnClick|OnCreateOrderClicked/i);
         }
