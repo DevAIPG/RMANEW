@@ -385,6 +385,15 @@ namespace Amphenol.RMA.Controllers
         }
 
 
+        private bool CanGenerateOrderForRequest(CSEXSW_Rma request)
+        {
+            var username = User.Identity?.Name?.Split('\\').LastOrDefault()?.Trim();
+            var employeeId = string.IsNullOrWhiteSpace(username)
+                ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
+            return RmaOrderGenerationPolicy.CanGenerateOrder(request.res_id, username, employeeId,
+                _customerServiceManager.ResId, _bypassApprovalModule?.Users);
+        }
+
         [HttpGet]
         public async Task<IActionResult> RMA_IdTo_OrderCreate(string id)
         {
@@ -399,6 +408,9 @@ namespace Amphenol.RMA.Controllers
                 var rma = _m10Db.CSEXSW_Rma.FirstOrDefault(s => s.Id == rmaId);
                 if (rma == null)
                     return NotFound($"RMA with id {id} not found");
+
+                if (!CanGenerateOrderForRequest(rma))
+                    return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Only the requester, Customer Service manager, or an approval bypass user can generate this order." });
 
                 var humres = _m10Db.humres.FirstOrDefault(s => s.res_id == rma.res_id);
                 if (humres == null)
@@ -427,13 +439,21 @@ namespace Amphenol.RMA.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateOrderpost([FromBody] CreateOrder request)
         {
-            string cadena = User.Identity.Name;
-            string delimitador = @"\";
-            string[] valores = cadena.Split(delimitador);
-            string username = valores[1].Trim();
+            var username = User.Identity?.Name?.Split('\\').LastOrDefault()?.Trim();
 
             try
             {
+                if (request == null || string.IsNullOrWhiteSpace(request.rmaNo))
+                    return BadRequest(new { success = false, message = "An RMA number is required." });
+
+                var requestedRmaNumber = request.rmaNo.Trim();
+                var rma = await _m10Db.CSEXSW_Rma.AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.turno != null && r.turno.Trim() == requestedRmaNumber);
+                if (rma == null)
+                    return NotFound(new { success = false, message = "RMA request not found." });
+                if (!CanGenerateOrderForRequest(rma))
+                    return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Only the requester, Customer Service manager, or an approval bypass user can generate this order." });
+
                 using var conn = _500Db.Database.GetDbConnection();
                 await conn.OpenAsync();
 
@@ -3724,6 +3744,12 @@ namespace Amphenol.RMA.Controllers
             var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
                 User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
                 _customerServiceManager.ResId, _bypassApprovalModule.Users);
+            foreach (var rma in rmas)
+            {
+                rma.CanGenerateOrderForCurrentUser = RmaOrderGenerationPolicy.CanGenerateOrder(
+                    rma.res_id, User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
+                    _customerServiceManager.ResId, _bypassApprovalModule?.Users);
+            }
             return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
 
@@ -3876,11 +3902,14 @@ namespace Amphenol.RMA.Controllers
         {
             try
             {
-                if (id <= 0 || !_m10Db.CSEXSW_Rma.Any(s => s.Id == id))
+                var rma = id > 0 ? _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefault(s => s.Id == id) : null;
+                if (rma == null)
                 {
                     return Json(new { message = "Could not find record", orderNumber = "", wasSuccessful = false });
                 }
-                var rmano = _m10Db.CSEXSW_Rma.Where(s => s.Id == id).FirstOrDefault().turno;
+                if (!CanGenerateOrderForRequest(rma))
+                    return StatusCode(StatusCodes.Status403Forbidden, new { wasSuccessful = false, message = "Only the requester, Customer Service manager, or an approval bypass user can generate this order." });
+                var rmano = rma.turno;
 
                 var existingOrder = _500Db.OEORDHDR_SQL
                     .AsNoTracking()

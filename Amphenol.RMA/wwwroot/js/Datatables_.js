@@ -182,17 +182,18 @@ function cargarDatatableRma() {
 
                                     const hasRmaId = !!row.turno?.trim();
 
-                                    const generateOrderButtonColor = !row.canGenerateOrder ? 'btn-warning' : hasOrder ? 'btn-success' : 'btn-primary';
+                                    const canGenerateOrder = row.canGenerateOrderForCurrentUser === true;
+                                    const canClickGenerateOrder = row.canGenerateOrder && canGenerateOrder && !hasOrder;
+                                    const awaitingOrderGeneration = !canGenerateOrder && !hasOrder;
 
-                                    const generateOrderButtonModal = row.canGenerateOrder && !hasOrder ? `OnClick="OnCreateOrderClicked(${row.id})"` : '';
+                                    const generateOrderButtonColor = awaitingOrderGeneration ? 'btn-secondary' : !row.canGenerateOrder ? 'btn-warning' : hasOrder ? 'btn-success' : 'btn-primary';
 
-                                    const generateOrderButtonIcon = !row.canGenerateOrder ? 'fa-truck' : hasOrder ? 'fa-clipboard-check' : 'fa-file-invoice';
+                                    const generateOrderButtonModal = canClickGenerateOrder ? `OnClick="OnCreateOrderClicked(${row.id})"` : 'role="button" aria-disabled="true" tabindex="0"';
 
-                                    const generateOrderButtonTitle = !row.canGenerateOrder ?
+                                    const generateOrderButtonIcon = awaitingOrderGeneration ? 'fa-hourglass-half' : !row.canGenerateOrder ? 'fa-truck' : hasOrder ? 'fa-clipboard-check' : 'fa-file-invoice';
+
+                                    const generateOrderButtonTitle = awaitingOrderGeneration ? 'awaiting order generation' : !row.canGenerateOrder ?
                                         'Awaiting returned products' : hasOrder ? `Order #${row.orderNumber} Generated` : 'Generate New Order';
-
-                                    //const generateOrderButtonModal = hasOrder ? `onclick="DownloadRmaFile(${row.turno})"` :
-                                    //    row.canGenerateOrder ? `OnClick="OnCreateOrderClicked(${row.id})"` : '';
 
                                     const documentButton = hasRmaId ? `
                                     <a class="btn btn-outline-primary btn-sm action-btn d-flex align-items-center" onclick="DownloadRmaFile(${row.turno})" data-bs-toggle="tooltip" data-bs-placement="right" title="Download RMA file">
