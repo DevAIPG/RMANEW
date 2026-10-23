@@ -27,4 +27,34 @@ public class RmaOrderGenerationPolicyTests
         Assert.False(RmaOrderGenerationPolicy.CanGenerateOrder(101, "other", "303", 0, null));
         Assert.True(RmaOrderGenerationPolicy.CanGenerateOrder(101, "requester", "101", 0, null));
     }
+
+    [Theory]
+    [InlineData("supervisor", "303", 303, true)]
+    [InlineData("supervisor", " 303 ", 303, true)]
+    [InlineData("supervisor", "303", 0, false)]
+    [InlineData("other", "404", 303, false)]
+    [InlineData("supervisor", null, 303, false)]
+    [InlineData("supervisor", "invalid", 303, false)]
+    [InlineData(null, "303", 303, false)]
+    [InlineData(" ", "303", 303, false)]
+    [InlineData("supervisor", "0", 0, false)]
+    [InlineData("supervisor", "-1", -1, false)]
+    public void SupervisorCanGenerateOrdersAndCancelOthersRequestsOnlyWhenConfigured(
+        string username, string employeeId, int supervisorId, bool expected)
+    {
+        Assert.Equal(expected, RmaOrderGenerationPolicy.CanGenerateOrder(
+            101, username, employeeId, 202, Array.Empty<string>(), supervisorId));
+        Assert.Equal(expected, RmaWithdrawalPolicy.CanCancelAnyRequest(
+            username, employeeId, 202, Array.Empty<string>(), supervisorId));
+    }
+
+    [Fact]
+    public void SupervisorCancellationStillRequiresAnEligibleRequest()
+    {
+        Assert.True(RmaWithdrawalPolicy.CanCancelAnyRequest(
+            "supervisor", "303", 202, Array.Empty<string>(), 303));
+        Assert.True(RmaWithdrawalPolicy.CanCancel("Pending", null));
+        Assert.False(RmaWithdrawalPolicy.CanCancel("Approved", null));
+        Assert.False(RmaWithdrawalPolicy.CanCancel("Pending", "123456"));
+    }
 }

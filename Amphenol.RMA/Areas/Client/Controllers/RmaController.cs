@@ -65,6 +65,7 @@ namespace Amphenol.RMA.Controllers
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly CustomerServiceManager _customerServiceManager;
+        private readonly CustomerServiceSupervisor _customerServiceSupervisor;
         private readonly IEmailTemplateRenderer _templateRenderer;
         private readonly ApprovalBypassSettings _bypassApprovalModule;
         const string rootE = @"E:\CSFiles\documents";
@@ -96,6 +97,8 @@ namespace Amphenol.RMA.Controllers
             _httpContextAccessor = httpContextAccessor;
             _emailService = emailService;
             _customerServiceManager = customerServiceManager.Value;
+            _customerServiceSupervisor = configuration.GetSection("CustomerServiceSupervisor")
+                .Get<CustomerServiceSupervisor>() ?? new CustomerServiceSupervisor();
             _reportService = reportService;
             _bypassApprovalModule = configuration.GetSection("ApprovalBypass").Get<ApprovalBypassSettings>();
         }
@@ -163,10 +166,11 @@ namespace Amphenol.RMA.Controllers
                 var userId = string.IsNullOrWhiteSpace(username)
                     ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
                 var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
-                    username, userId, _customerServiceManager.ResId, _bypassApprovalModule.Users);
+                    username, userId, _customerServiceManager.ResId, _bypassApprovalModule.Users,
+                    _customerServiceSupervisor.ResId);
                 if ((!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
                     && !canCancelAnyRequest)
-                    throw new InvalidOperationException("Only the requester, Customer Service manager, or an authorized approval administrator can cancel this RMA.");
+                    throw new InvalidOperationException("Only the requester, Customer Service manager or supervisor, or an authorized approval administrator can cancel this RMA.");
 
                 return requestLock;
             }
@@ -391,7 +395,7 @@ namespace Amphenol.RMA.Controllers
             var employeeId = string.IsNullOrWhiteSpace(username)
                 ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
             return RmaOrderGenerationPolicy.CanGenerateOrder(request.res_id, username, employeeId,
-                _customerServiceManager.ResId, _bypassApprovalModule?.Users);
+                _customerServiceManager.ResId, _bypassApprovalModule?.Users, _customerServiceSupervisor.ResId);
         }
 
         [HttpGet]
@@ -410,7 +414,7 @@ namespace Amphenol.RMA.Controllers
                     return NotFound($"RMA with id {id} not found");
 
                 if (!CanGenerateOrderForRequest(rma))
-                    return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Only the requester, Customer Service manager, or an approval bypass user can generate this order." });
+                    return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Only the requester, Customer Service manager or supervisor, or an approval bypass user can generate this order." });
 
                 var humres = _m10Db.humres.FirstOrDefault(s => s.res_id == rma.res_id);
                 if (humres == null)
@@ -452,7 +456,7 @@ namespace Amphenol.RMA.Controllers
                 if (rma == null)
                     return NotFound(new { success = false, message = "RMA request not found." });
                 if (!CanGenerateOrderForRequest(rma))
-                    return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Only the requester, Customer Service manager, or an approval bypass user can generate this order." });
+                    return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Only the requester, Customer Service manager or supervisor, or an approval bypass user can generate this order." });
 
                 using var conn = _500Db.Database.GetDbConnection();
                 await conn.OpenAsync();
@@ -3743,12 +3747,12 @@ namespace Amphenol.RMA.Controllers
 
             var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
                 User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
-                _customerServiceManager.ResId, _bypassApprovalModule.Users);
+                _customerServiceManager.ResId, _bypassApprovalModule.Users, _customerServiceSupervisor.ResId);
             foreach (var rma in rmas)
             {
                 rma.CanGenerateOrderForCurrentUser = RmaOrderGenerationPolicy.CanGenerateOrder(
                     rma.res_id, User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
-                    _customerServiceManager.ResId, _bypassApprovalModule?.Users);
+                    _customerServiceManager.ResId, _bypassApprovalModule?.Users, _customerServiceSupervisor.ResId);
             }
             return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
@@ -3908,7 +3912,7 @@ namespace Amphenol.RMA.Controllers
                     return Json(new { message = "Could not find record", orderNumber = "", wasSuccessful = false });
                 }
                 if (!CanGenerateOrderForRequest(rma))
-                    return StatusCode(StatusCodes.Status403Forbidden, new { wasSuccessful = false, message = "Only the requester, Customer Service manager, or an approval bypass user can generate this order." });
+                    return StatusCode(StatusCodes.Status403Forbidden, new { wasSuccessful = false, message = "Only the requester, Customer Service manager or supervisor, or an approval bypass user can generate this order." });
                 var rmano = rma.turno;
 
                 var existingOrder = _500Db.OEORDHDR_SQL
