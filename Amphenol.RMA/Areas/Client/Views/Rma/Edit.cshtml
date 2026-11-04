@@ -111,8 +111,10 @@ else
                         <div class="mb-2 row">
                             <label class="col-4 col-form-label font-weight-bold">Build Location<span class="ml-2 text-danger">*</span></label>
                             <select class="col-8 form-select form-control" asp-for="SelectedBuildLocation" id="selectWherebuilt"
-                                    asp-items="@(new SelectList(Model.BuildLocations))">
+                                    asp-items="@(new SelectList(Model.BuildLocations))" required>
+                                <option value="">Select a build location</option>
                             </select>
+                            <span asp-validation-for="SelectedBuildLocation" class="col-8 offset-4 text-danger"></span>
                         </div>
                         <div class="mb-2 row">
                             <label class="col-4 col-form-label font-weight-bold">Request Type <span class="ml-2 text-danger">*</span></label>

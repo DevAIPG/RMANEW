@@ -19,9 +19,15 @@ namespace Amphenol.RMA.ViewModels
         [Required]
         public DateTime Date { get; set; } = DateTime.Now;
         public List<string> BuildLocations { get; } = [];
-        [Required]
+        private string selectedBuildLocation;
+        [Required(ErrorMessage = "Select a build location.")]
         [StringLength(8)]
-        public string SelectedBuildLocation { get; set; }
+        [RegularExpression("^(Nogales|Endicott|Mesa)$", ErrorMessage = "Select a supported build location.")]
+        public string SelectedBuildLocation
+        {
+            get => selectedBuildLocation;
+            set => selectedBuildLocation = value?.Trim();
+        }
         public decimal TotalValue => Lines?.Sum(x => x.AuthorizedQuantity * x.Price) ?? 0m;
         public List<string> RequestTypes { get; } = [];
         [Required]
