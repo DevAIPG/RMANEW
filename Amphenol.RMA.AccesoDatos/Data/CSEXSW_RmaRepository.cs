@@ -1,5 +1,6 @@
 ﻿using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Constants;
 using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models.ModelsM10;
 using Amphenol.RMA.Models.ViewModels;
@@ -36,7 +37,6 @@ namespace Amphenol.RMA.AccesoDatos.Data
             Id = -4,
             Name = "System"
         };
-        private const double TwoStepAuthorizationThreshold = 20_000;
         private readonly IConfiguration _configuration;
 
         public CSEXSW_RmaRepository(DbContextM10 m10Db, DbContext500 db500, IConfiguration configuration) : base(m10Db)
@@ -940,20 +940,6 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             if (rma == null) return;
 
-            if (rma.Sumbit != RmaSubmitStatus.CsReviewRequired.ToDisplayString()
-                && rma.Totalrmavalues >= TwoStepAuthorizationThreshold)
-            {
-                var routing = new RmaApprovalRouting(_m10Db);
-                var qualityDirector = routing.GetConfiguredApprover("QualityDirector");
-                var generalManager = routing.GetConfiguredApprover("GeneralManager");
-
-                if (rma.res_id_approver == generalManager.Id)
-                {
-                    rma.Approver = qualityDirector.Name;
-                    rma.res_id_approver = qualityDirector.Id;
-                }
-            }
-
             rma.Status = RmaRequestStatus.Remark.ToDisplayString();
             AddComment(rma, DateTime.Now, CommentAction.Remark, commentrema);
 
@@ -1038,9 +1024,10 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             if (rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString())
             {
-                int.TryParse(_configuration["CustomerServiceManager:ResId"], out var managerId);
-                if (managerId <= 0 || rma.res_id_approver != managerId
-                    || (currentUserId != managerId && !canBypassApproval))
+                var routing = new RmaApprovalRouting(_m10Db);
+                var customerServiceManager = routing.GetApprover(RmaRoles.CustomerServiceManager);
+                if (rma.res_id_approver != customerServiceManager.Id
+                    || (currentUserId != customerServiceManager.Id && !canBypassApproval))
                     return string.Empty;
 
                 AddComment(rma, currentDate, CommentAction.Approved, comment);
@@ -1051,28 +1038,13 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
             var exchangeRate = GetRmaExchangeRate(rma);
 
-            if (exchangeRate >= TwoStepAuthorizationThreshold)
-            {
-                return ProcessTwoStepApproval(rma, currentUserId, currentDate, comment, canBypassApproval);
-            }
-
-            return ApproveRma(rma, currentDate, comment);
+            return ProcessApprovalStep(rma, currentUserId, currentDate, comment, canBypassApproval, exchangeRate);
         }
 
         private bool CanBypassApproval(int currentUserId)
         {
-            var username = _m10Db.humres
-                .Where(x => x.res_id == currentUserId)
-                .Select(x => x.usr_id)
-                .FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(username))
-            {
-                return false;
-            }
-
-            return _configuration.GetSection("ApprovalBypass:Users").GetChildren()
-                .Any(user => string.Equals(user.Value?.Trim(), username.Trim(),
-                    StringComparison.OrdinalIgnoreCase));
+            return new RmaApprovalRouting(_m10Db)
+                .HasActiveRoleAssignment(currentUserId, RmaRoles.IT);
         }
 
         private void AddComment(CSEXSW_Rma rma, DateTime currentDate, CommentAction action, string comment)
@@ -1094,37 +1066,27 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
         private double GetRmaExchangeRate(CSEXSW_Rma rma) => RmaApprovalRouting.ApprovalValue(rma, _500Db);
 
-        private string ProcessTwoStepApproval(CSEXSW_Rma rma, int currentUserId, DateTime currentDate,
-            string comment, bool canBypassApproval)
+        private string ProcessApprovalStep(CSEXSW_Rma rma, int currentUserId, DateTime currentDate,
+            string comment, bool canBypassApproval, double approvalValue)
         {
             var routing = new RmaApprovalRouting(_m10Db);
-            var qualityDirector = routing.GetConfiguredApprover("QualityDirector");
-            var generalManager = routing.GetConfiguredApprover("GeneralManager");
+            var nextApprover = routing.GetNextApprover(rma, rma.res_id_approver, approvalValue);
+            if (currentUserId != rma.res_id_approver && currentUserId != _autoApprover.Id && !canBypassApproval)
+                return string.Empty;
 
-            if (rma.res_id_approver == qualityDirector.Id)
-            {
-                if (currentUserId != qualityDirector.Id && currentUserId != _autoApprover.Id && !canBypassApproval)
-                {
-                    return string.Empty;
-                }
-
-                // Record the first approver before changing the assignment.
-                AddComment(rma, currentDate, CommentAction.Approved, comment);
-                rma.Status = "Pending";
-                rma.Approver = generalManager.Name;
-                rma.res_id_approver = generalManager.Id;
-                rma.date_approved = currentDate;
-                _m10Db.SaveChanges();
-
-                return "Pending";
-            }
-
-            if (rma.res_id_approver == generalManager.Id)
+            if (nextApprover is null)
             {
                 return ApproveRma(rma, currentDate, comment);
             }
 
-            return string.Empty;
+            AddComment(rma, currentDate, CommentAction.Approved, comment);
+            rma.Status = RmaRequestStatus.Pending.ToDisplayString();
+            rma.Approver = nextApprover.Name;
+            rma.res_id_approver = nextApprover.Id;
+            rma.date_approved = currentDate;
+            _m10Db.SaveChanges();
+
+            return "Pending";
         }
 
         private string ApproveRma(CSEXSW_Rma rma, DateTime currentDate, string comment)
@@ -2781,7 +2743,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
         }
         public void UpdateAprove(int id)
         {
-            var revisor = new RmaApprovalRouting(_m10Db).GetConfiguredApprover("GeneralManager");
+            var revisor = new RmaApprovalRouting(_m10Db).GetApprover(RmaRoles.GeneralManager);
             var total = (from c in _m10Db.CSEXSW_Rma
                          where c.Id == id
                          select c.Totalrmavalues).First();

@@ -3,6 +3,7 @@ using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.AccesoDatos.Data.Repository;
 using Amphenol.RMA.Extensions;
 using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Constants;
 using Amphenol.RMA.Models.Enumerations;
 using Amphenol.RMA.Models.ModelsM10;
 using Amphenol.RMA.Models.ViewModels;
@@ -25,7 +26,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Office.Interop.Excel;
 using Newtonsoft.Json;
 using OfficeOpenXml;
@@ -64,14 +65,11 @@ namespace Amphenol.RMA.Controllers
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
-        private readonly CustomerServiceManager _customerServiceManager;
-        private readonly CustomerServiceSupervisor _customerServiceSupervisor;
+        private readonly ILogger<RmaController> _logger;
         private readonly IEmailTemplateRenderer _templateRenderer;
-        private readonly ApprovalBypassSettings _bypassApprovalModule;
         const string rootE = @"E:\CSFiles\documents";
         private const string ApprovalStateChangedMessage = "This request status changed before your decision was processed. Refresh the approval list and check its current status.";
         //const string rootEC = @"E:\CSFiles\";
-        private const double TwoStepAuthorizationThreshold = 20_000;
         private readonly ReportService _reportService;
 
         private Approver _autoApprover = new()
@@ -86,7 +84,8 @@ namespace Amphenol.RMA.Controllers
         public RmaController(IConfiguration configuration, IContenedorTrabajo contenedorTrabajo, DbContextM10 m10Db,
                              DbContext500 db500, IWebHostEnvironment hostingEnvironmen,
                              IHttpContextAccessor httpContextAccessor, IEmailService emailService,
-                             IOptions<CustomerServiceManager> customerServiceManager, ReportService reportService)
+                             ReportService reportService,
+                             ILogger<RmaController> logger)
         {
             _contenedorTrabajo = contenedorTrabajo;
             _m10Db = m10Db;
@@ -96,13 +95,15 @@ namespace Amphenol.RMA.Controllers
             Configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
             _emailService = emailService;
-            _customerServiceManager = customerServiceManager.Value;
-            _customerServiceSupervisor = configuration.GetSection("CustomerServiceSupervisor")
-                .Get<CustomerServiceSupervisor>() ?? new CustomerServiceSupervisor();
+            _logger = logger;
             _reportService = reportService;
-            _bypassApprovalModule = configuration.GetSection("ApprovalBypass").Get<ApprovalBypassSettings>();
         }
         public IConfiguration Configuration { get; }
+        private int GetAssignedRoleEmployeeNumber(string roleTitle) =>
+            new RmaApprovalRouting(_m10Db).GetApprover(roleTitle).Id;
+        private bool HasItBypassRole(string? employeeId) =>
+            int.TryParse(employeeId, out var id)
+            && new RmaApprovalRouting(_m10Db).HasActiveRoleAssignment(id, RmaRoles.IT);
         private sealed class ApprovalStateChangedException : InvalidOperationException
         {
             public ApprovalStateChangedException() : base(ApprovalStateChangedMessage)
@@ -166,8 +167,8 @@ namespace Amphenol.RMA.Controllers
                 var userId = string.IsNullOrWhiteSpace(username)
                     ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
                 var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
-                    username, userId, _customerServiceManager.ResId, _bypassApprovalModule.Users,
-                    _customerServiceSupervisor.ResId);
+                    username, userId, GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceManager),
+                    HasItBypassRole(userId), GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceSupervisor));
                 if ((!int.TryParse(userId, out var requesterId) || request.res_id != requesterId)
                     && !canCancelAnyRequest)
                     throw new InvalidOperationException("Only the requester, Customer Service manager or supervisor, or an authorized approval administrator can cancel this RMA.");
@@ -195,9 +196,7 @@ namespace Amphenol.RMA.Controllers
                 var username = User.Identity?.Name?.Split('\\').LastOrDefault();
                 var userId = string.IsNullOrWhiteSpace(username)
                     ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
-                var bypass = !string.IsNullOrWhiteSpace(username)
-                    && _configuration.GetSection("ApprovalBypass:Users").GetChildren().Any(x =>
-                        string.Equals(x.Value?.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase));
+                var bypass = HasItBypassRole(userId);
                 if (!int.TryParse(userId, out var approverId)
                     || (request.res_id_approver != approverId && !bypass))
                     throw new InvalidOperationException("Only the assigned approver can return or reject this request.");
@@ -395,7 +394,8 @@ namespace Amphenol.RMA.Controllers
             var employeeId = string.IsNullOrWhiteSpace(username)
                 ? null : _contenedorTrabajo.csexsw_dibujo.usuario(username);
             return RmaOrderGenerationPolicy.CanGenerateOrder(request.res_id, username, employeeId,
-                _customerServiceManager.ResId, _bypassApprovalModule?.Users, _customerServiceSupervisor.ResId);
+                GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceManager), HasItBypassRole(employeeId),
+                GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceSupervisor));
         }
 
         [HttpGet]
@@ -761,8 +761,8 @@ namespace Amphenol.RMA.Controllers
             if (lines.Count == 0)
                 throw new InvalidOperationException("At least one line is required before submission.");
             rma.Totalrmavalues = (double)lines.Sum(x => x.Qty * x.Unit);
-            rma.RMA500 = lines.Any(x => x.Unit > 500) ? "Yes" : "No";
-            return new RmaApprovalRouting(_m10Db, _configuration).Assign(rma,
+            rma.RMA500 = lines.Any(x => x.Unit >= 500) ? "Yes" : "No";
+            return new RmaApprovalRouting(_m10Db).Assign(rma,
                 RmaApprovalRouting.RequiresCsReview(lines), true, RmaApprovalRouting.ApprovalValue(rma, _500Db));
         }
 
@@ -783,10 +783,7 @@ namespace Amphenol.RMA.Controllers
                 ? $"""
                 Hello {firstName},<br><br>
                 RMA request <strong>#{rma.Rmarequest}</strong> has been routed to you for Customer Service review.<br><br>
-                This request contains at least one line where:<br>
-                &bull; no invoice is linked; and<br>
-                &bull; the submitted price is lower than the current cost.<br><br>
-                This can occur when the original sale is historical and the original invoice is not available in the system. Please review the request and approve or reject the pricing exception in the Approval Control screen.<br><br>
+                This request contains at least one line without a linked invoice. Please review the request and approve or reject it in the Approval Control screen.<br><br>
                 Once approved, the request will continue through the normal RMA approval workflow.<br><br>
                 Thank you,<br>
                 Amphenol Industrial Operations RMA System
@@ -820,7 +817,6 @@ namespace Amphenol.RMA.Controllers
             if (rma == null)
                 throw new InvalidOperationException("The RMA request was not found.");
             var originalApprover = rma.Approver;
-            var wasCsReview = rma.Sumbit == RmaSubmitStatus.CsReviewRequired.ToDisplayString();
             // Updateaprobar returns "Approved" only after M10 and ERP commit.
             // No CAR jobs, reports, or approval notifications run before then.
             string retorno = _contenedorTrabajo.CSEXSW_Rma.Updateaprobar(idsa, commentt, userId);
@@ -873,6 +869,20 @@ namespace Amphenol.RMA.Controllers
                 var attachment = new EmailAttachment(report.FileName, report.ContentType, report.Data);
 
                 var custormerServiceRepresentative = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id);
+                var notificationRouting = new RmaApprovalRouting(_m10Db);
+                var approvalValue = RmaApprovalRouting.ApprovalValue(rma, _500Db);
+                var (roleApprovers, missingRoles) = notificationRouting
+                    .ResolveCompletionNotificationApprovers(rma, approvalValue);
+                if (missingRoles.Count > 0)
+                    _logger.LogWarning("No active RMA assignments were found for completion notification roles {Roles}. Request={Request}",
+                        string.Join(", ", missingRoles), rma.Rmarequest);
+
+                var internalRecipients = new List<EmailAddress>();
+                if (!string.IsNullOrWhiteSpace(custormerServiceRepresentative?.mail))
+                    internalRecipients.Add(new EmailAddress(custormerServiceRepresentative.mail));
+                internalRecipients.AddRange(roleApprovers
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Email))
+                    .Select(x => new EmailAddress(x.Email)));
 
                 //Notify Amphenol Team
                 await _emailService.SendApproveNotification(
@@ -885,8 +895,7 @@ namespace Amphenol.RMA.Controllers
                         Thank you,<br>
                         Amphenol Industrial Operations RMA System
                      """,
-                    new EmailAddress(custormerServiceRepresentative.mail),
-                    new EmailAddress(_customerServiceManager.Email),
+                    internalRecipients,
                     attachment
                 );
 
@@ -918,10 +927,8 @@ namespace Amphenol.RMA.Controllers
             }
             else
             {
-                var nextApproverSection = wasCsReview
-                    ? RmaApprovalRouting.NormalApproverSection(rma, RmaApprovalRouting.ApprovalValue(rma, _500Db))
-                    : "GeneralManager";
-                var newApprover = new RmaApprovalRouting(_m10Db, _configuration).GetConfiguredApprover(nextApproverSection);
+                var newApprover = new RmaApprovalRouting(_m10Db)
+                    .GetApproverByEmployeeNumber(rma.res_id_approver);
                 var approverFirstname = newApprover.Name?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Approver";
 
                 if (rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString())
@@ -1068,9 +1075,10 @@ namespace Amphenol.RMA.Controllers
                 RMA500 = vm.HasLineOverThreshold ? "Yes" : "No"
             };
 
-            var approver = new RmaApprovalRouting(_m10Db, _configuration).Assign(rma,
-                vm.Lines.Any(x => x.NoInvoice && x.Price < x.UnitCost),
-                !string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase));
+            var isSubmitted = !string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase);
+            var approver = new RmaApprovalRouting(_m10Db).Assign(rma,
+                vm.Lines.Any(x => x.NoInvoice), isSubmitted,
+                isSubmitted ? RmaApprovalRouting.ApprovalValue(rma, _500Db) : null);
 
             await using (var transaction = await _m10Db.Database.BeginTransactionAsync())
             {
@@ -1377,9 +1385,10 @@ namespace Amphenol.RMA.Controllers
             rma.Status = requestStatus;
             rma.Sumbit = submitStatus;
 
-            var approver = new RmaApprovalRouting(_m10Db, _configuration).Assign(rma,
-                vm.Lines.Any(x => x.NoInvoice && x.Price < x.UnitCost),
-                !string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase));
+            var isSubmitted = !string.Equals(submitAction, "save", StringComparison.OrdinalIgnoreCase);
+            var approver = new RmaApprovalRouting(_m10Db).Assign(rma,
+                vm.Lines.Any(x => x.NoInvoice), isSubmitted,
+                isSubmitted ? RmaApprovalRouting.ApprovalValue(rma, _500Db) : null);
 
             var filesToDelete = new List<string>();
             var newlyCreatedFiles = new List<string>();
@@ -3723,14 +3732,17 @@ namespace Amphenol.RMA.Controllers
 
             //var rmas = _context2.csexsw_coustumer.Include(r => r.CSEXSW_Rma).Where(a=>a.CSEXSW_Rma.Id >0).OrderByDescending(r => r.CSEXSW_Rma.Date );
 
+            var customerServiceManagerId = GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceManager);
+            var customerServiceSupervisorId = GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceSupervisor);
+            var hasItBypassRole = HasItBypassRole(usuario);
             var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
                 User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
-                _customerServiceManager.ResId, _bypassApprovalModule.Users, _customerServiceSupervisor.ResId);
+                customerServiceManagerId, hasItBypassRole, customerServiceSupervisorId);
             foreach (var rma in rmas)
             {
                 rma.CanGenerateOrderForCurrentUser = RmaOrderGenerationPolicy.CanGenerateOrder(
                     rma.res_id, User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
-                    _customerServiceManager.ResId, _bypassApprovalModule?.Users, _customerServiceSupervisor.ResId);
+                    customerServiceManagerId, hasItBypassRole, customerServiceSupervisorId);
             }
             return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
@@ -3785,7 +3797,7 @@ namespace Amphenol.RMA.Controllers
             int userId = int.Parse(_contenedorTrabajo.csexsw_dibujo.usuario(usuario.Trim()));
 
             List<CSEXSW_Rma> info = [];
-            if (_bypassApprovalModule.Users.Any(u => u.Equals(usuario, StringComparison.OrdinalIgnoreCase)))
+            if (HasItBypassRole(userId.ToString()))
             {
                 info.AddRange(_contenedorTrabajo.CSEXSW_Rma
                    .GetAll(a =>

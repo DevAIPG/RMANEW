@@ -68,7 +68,6 @@ namespace Amphenol.RMA
             services.AddServerSideBlazor();
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
-            services.Configure<CustomerServiceManager>(Configuration.GetSection("CustomerServiceManager"));
             services.AddMailDispatch(Configuration);
             services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
             services.AddScoped<IEmailService, EmailService>();

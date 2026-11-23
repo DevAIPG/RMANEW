@@ -1,24 +1,22 @@
 using Amphenol.RMA.Models.Enumerations;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Amphenol.RMA.Models
 {
     public static class RmaWithdrawalPolicy
     {
         public static bool CanCancelAnyRequest(string username, string employeeId,
-            int customerServiceManagerId, IEnumerable<string> approvalAdministrators,
+            int customerServiceManagerId, bool hasItBypassRole,
             int customerServiceSupervisorId = 0)
         {
             if (string.IsNullOrWhiteSpace(username)) return false;
 
+            var hasEmployeeId = int.TryParse(employeeId, out var id) && id > 0;
             return (customerServiceManagerId > 0
-                    && int.TryParse(employeeId, out var id) && id == customerServiceManagerId)
-                || (approvalAdministrators?.Any(user => !string.IsNullOrWhiteSpace(user)
-                    && string.Equals(user.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase)) ?? false)
+                    && hasEmployeeId && id == customerServiceManagerId)
+                || (hasEmployeeId && hasItBypassRole)
                 || (customerServiceSupervisorId > 0
-                    && int.TryParse(employeeId, out var supervisorId) && supervisorId == customerServiceSupervisorId);
+                    && hasEmployeeId && id == customerServiceSupervisorId);
         }
 
         public static bool CanWithdraw(string status, string submission, string rmaNumber)

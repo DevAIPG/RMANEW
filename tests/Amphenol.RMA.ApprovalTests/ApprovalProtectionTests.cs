@@ -105,18 +105,20 @@ public class ApprovalProtectionTests
         string username, string employeeId, int managerId, bool expected)
     {
         Assert.Equal(expected, RmaWithdrawalPolicy.CanCancelAnyRequest(
-            username, employeeId, managerId, Array.Empty<string>()));
+            username, employeeId, managerId, false));
     }
 
     [Fact]
-    public void ApprovalAdministratorsRetainCancellationPermission()
+    public void ItRoleRetainsCancellationPermission()
     {
         Assert.True(RmaWithdrawalPolicy.CanCancelAnyRequest(
-            " ADMIN ", "43", 42, new[] { " admin " }));
+            "it.user", "43", 42, true));
         Assert.False(RmaWithdrawalPolicy.CanCancelAnyRequest(
-            "another.requester", "43", 42, new[] { "admin" }));
+            "another.requester", "43", 42, false));
         Assert.False(RmaWithdrawalPolicy.CanCancelAnyRequest(
-            null, null, 0, new string[] { null, " " }));
+            null, null, 0, true));
+        Assert.False(RmaWithdrawalPolicy.CanCancelAnyRequest(
+            "it.user", "invalid", 0, true));
     }
 
     [Fact]

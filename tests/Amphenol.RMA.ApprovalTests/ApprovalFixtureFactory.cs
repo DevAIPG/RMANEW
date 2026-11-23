@@ -11,17 +11,17 @@ internal static class ApprovalFixtureFactory
         // Check both destinations here too, before opening connections or inserting fixtures.
         ApprovalTestConnection.Validate(m10.Database.GetConnectionString());
         ApprovalTestConnection.Validate(erp.Database.GetConnectionString());
-        var directorStage = scenario == "RMA_TEST_BYPASS_DIRECTOR_ID";
-        var directorId = 0;
-        var managerId = 0;
-        if (directorStage)
+        var multiStage = scenario == "RMA_TEST_BYPASS_DIRECTOR_ID";
+        var qualityManagerId = 0;
+        var businessUnitDirectorId = 0;
+        if (multiStage)
         {
-            directorId = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100031)?.EmpID ?? 0;
-            managerId = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100032)?.EmpID ?? 0;
-            if (directorId <= 0 || managerId <= 0 || directorId == managerId
-                || !m10.humres.Any(x => x.res_id == directorId)
-                || !m10.humres.Any(x => x.res_id == managerId))
-                throw new InvalidOperationException("The director-stage fixture requires distinct existing employees in director role 100031 and GM role 100032.");
+            qualityManagerId = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100062)?.EmpID ?? 0;
+            businessUnitDirectorId = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100031)?.EmpID ?? 0;
+            if (qualityManagerId <= 0 || businessUnitDirectorId <= 0 || qualityManagerId == businessUnitDirectorId
+                || !m10.humres.Any(x => x.res_id == qualityManagerId)
+                || !m10.humres.Any(x => x.res_id == businessUnitDirectorId))
+                throw new InvalidOperationException("The multi-stage fixture requires distinct existing Quality Manager and Business Unit Director employees.");
         }
 
         // Approved requests are reusable templates, so repeated runs do not exhaust pending data.
@@ -34,14 +34,14 @@ internal static class ApprovalFixtureFactory
         {
             var customerCode = source.Customer.Trim();
             if (!erp.arcusfil_sql.Any(x => x.cus_no.Trim() == customerCode && x.curr_cd.Trim() == "USD")) continue;
-            var approver = directorStage
-                ? m10.humres.FirstOrDefault(x => x.res_id == directorId)
+            var approver = multiStage
+                ? m10.humres.FirstOrDefault(x => x.res_id == qualityManagerId)
                 : m10.humres.FirstOrDefault(x => x.res_id == source.res_id_approver && x.res_id > 0)
                     ?? m10.humres.FirstOrDefault(x => x.res_id > 0);
             if (approver == null) continue;
-            if ((scenario == "RMA_TEST_BYPASS_ID" || directorStage)
+            if ((scenario == "RMA_TEST_BYPASS_ID" || multiStage)
                 && !m10.humres.Any(x => x.res_id > 0 && x.res_id != approver.res_id
-                    && (!directorStage || x.res_id != managerId)
+                    && (!multiStage || x.res_id != businessUnitDirectorId)
                     && x.usr_id != null && x.usr_id.Trim() != "")) continue;
             var lines = m10.csexsw_coustumer.AsNoTracking().Where(x => x.RmaId == source.Id).OrderBy(x => x.Id).ToList();
             if (lines.Count == 0 || lines.Count > short.MaxValue
@@ -51,7 +51,7 @@ internal static class ApprovalFixtureFactory
             using var transaction = m10.Database.BeginTransaction();
             var requestNumber = ReserveRequestNumber(m10);
             var fixture = Build(m10, source, lines, approver.res_id, approver.fullname,
-                scenario, requestNumber, directorStage);
+                scenario, requestNumber, multiStage);
 
             m10.CSEXSW_Rma.Add(fixture.Request);
             m10.SaveChanges();
@@ -97,7 +97,7 @@ internal static class ApprovalFixtureFactory
 
     internal static (CSEXSW_Rma Request, List<csexsw_coustumer> Lines) Build(DbContextM10 m10,
         CSEXSW_Rma source, IReadOnlyList<csexsw_coustumer> sourceLines, int approverId, string approverName,
-        string scenario, string requestNumber, bool directorStage)
+        string scenario, string requestNumber, bool multiStage)
     {
         if (string.IsNullOrEmpty(requestNumber) || requestNumber.Length > 8
             || !int.TryParse(requestNumber, NumberStyles.None, CultureInfo.InvariantCulture, out var numericRequest)
@@ -116,7 +116,7 @@ internal static class ApprovalFixtureFactory
         request.Comment = $"Approval integration fixture: {scenario}; template Id={source.Id}";
         request.res_id_approver = approverId;
         request.Approver = approverName;
-        request.Totalrmavalues = directorStage ? 25000 : 1000;
+        request.Totalrmavalues = multiStage ? 25000 : 1000;
 
         if (sourceLines.Count == 0) throw new ArgumentException("A fixture template needs at least one line.", nameof(sourceLines));
         var templates = sourceLines.ToList();

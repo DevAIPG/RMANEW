@@ -1,5 +1,6 @@
 using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -77,30 +78,24 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        // Deliberately differ from HR roles: application settings control both stages.
-        var directorId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
-        var generalManagerId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
+        var plantManagerId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
+        var businessUnitDirectorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
         var qualityManagerId = m10.HRRoles.First(x => x.RoleID == 100062).EmpID;
-        var cs = m10.humres.First(x => x.res_id > 0 && x.res_id != directorId
-            && x.res_id != generalManagerId && x.res_id != qualityManagerId);
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
-        {
-            ["CustomerServiceManager:ResId"] = cs.res_id.ToString(),
-            ["CustomerServiceManager:Email"] = cs.mail,
-            ["QualityDirector:ResId"] = directorId.ToString(),
-            ["QualityDirector:Email"] = "configured.director@example.com",
-            ["GeneralManager:ResId"] = generalManagerId.ToString(),
-            ["QualityManagerMesa:ResId"] = qualityManagerId.ToString()
-        }).Build();
+        var generalManager = m10.humres.First(x => x.res_id > 0 && x.res_id != plantManagerId
+            && x.res_id != businessUnitDirectorId && x.res_id != qualityManagerId);
+        var cs = m10.humres.First(x => x.res_id > 0 && x.res_id != plantManagerId
+            && x.res_id != businessUnitDirectorId && x.res_id != qualityManagerId
+            && x.res_id != generalManager.res_id);
+        EnsureRoleAssignment(m10, RmaRoles.CustomerServiceManager, "NorthAmerica", cs.res_id);
+        EnsureRoleAssignment(m10, RmaRoles.QualityManager, "Mesa", qualityManagerId);
+        EnsureRoleAssignment(m10, RmaRoles.PlantManager, "Mesa", plantManagerId);
+        EnsureRoleAssignment(m10, RmaRoles.BusinessUnitDirector, "NorthAmerica", businessUnitDirectorId);
+        EnsureRoleAssignment(m10, RmaRoles.GeneralManager, "NorthAmerica", generalManager.res_id);
         request.Totalrmavalues = total;
         request.Wherebuilt = "Mesa";
         request.RMA500 = "No";
         request.Rmatypeofrequest = scrap ? "DISTY SCRAP ALLOWANCE" : "CREDIT ONLY";
-        var routing = new RmaApprovalRouting(m10, configuration);
-        Assert.Equal(directorId, routing.GetConfiguredApprover("QualityDirector").Id);
-        Assert.Equal("configured.director@example.com", routing.GetConfiguredApprover("QualityDirector").Email);
-        Assert.Equal(m10.humres.First(x => x.res_id == qualityManagerId).mail,
-            routing.GetConfiguredApprover("QualityManagerMesa").Email);
+        var routing = new RmaApprovalRouting(m10);
         var line = m10.csexsw_coustumer.First(x => x.RmaId == id);
         line.Invoice = "0";
         line.Unit = 1;
@@ -112,22 +107,23 @@ public class ApprovalRetryTests
         Assert.Equal(cs.res_id, request.res_id_approver);
         Assert.False(request.CanEdit);
         var before = Snapshot(erp);
-        var repository = new CSEXSW_RmaRepository(m10, erp, configuration);
-        Assert.Equal(string.Empty, repository.Updateaprobar(id, "Wrong approver", directorId.ToString()));
+        var repository = Repository(m10, erp);
+        Assert.Equal(string.Empty, repository.Updateaprobar(id, "Wrong approver", plantManagerId.ToString()));
         Assert.Equal(scrap ? "AutoApprove" : "Pending",
             repository.Updateaprobar(id, "CS approved", cs.res_id.ToString()));
         m10.Entry(request).Reload();
         Assert.Equal("Submitted", request.Sumbit);
-        Assert.Equal(scrap ? -4 : total >= 5000 ? directorId : qualityManagerId, request.res_id_approver);
+        Assert.Equal(scrap ? -4 : qualityManagerId, request.res_id_approver);
         Assert.True(string.IsNullOrWhiteSpace(request.turno));
         Assert.Equal(before, Snapshot(erp));
         Assert.Equal(string.Empty, repository.Updateaprobar(id, "Repeat CS approval", cs.res_id.ToString()));
         if (total == 20000)
         {
-            Assert.Equal("Pending", repository.Updateaprobar(id, "Director approved", directorId.ToString()));
+            Assert.Equal("Pending", repository.Updateaprobar(id, "QM approved", qualityManagerId.ToString()));
             m10.Entry(request).Reload();
-            Assert.Equal(generalManagerId, request.res_id_approver);
+            Assert.Equal(businessUnitDirectorId, request.res_id_approver);
             Assert.Equal(before, Snapshot(erp));
+            Assert.Equal("Approved", repository.Updateaprobar(id, "BUD approved", businessUnitDirectorId.ToString()));
         }
     }
 
@@ -162,7 +158,7 @@ public class ApprovalRetryTests
     }
 
     [Fact]
-    public void ConfiguredBypassUserCanApproveAnotherUsersRequestWithoutDuplicateApproval()
+    public void ItRoleMemberCanApproveAnotherUsersRequestWithoutDuplicateApproval()
     {
         var id = FixtureId("RMA_TEST_BYPASS_ID");
         using var m10 = M10();
@@ -172,7 +168,7 @@ public class ApprovalRetryTests
             && x.res_id != request.res_id_approver && x.usr_id != null && x.usr_id.Trim() != "");
         var before = Snapshot(erp);
 
-        // The same account must be denied when it is not on the configured list.
+        // The same account must be denied before its IT role assignment is added.
         Assert.Equal(string.Empty, Repository(m10, erp)
             .Updateaprobar(id, "Not configured", bypassUser.res_id.ToString()));
         Assert.Equal(before, Snapshot(erp));
@@ -186,33 +182,38 @@ public class ApprovalRetryTests
     }
 
     [Fact]
-    public void ConfiguredBypassUserCanApproveBothStagesWithoutSkippingTheGmHandoff()
+    public void ItRoleMemberCanApproveBothStagesWithoutSkippingTheBudHandoff()
     {
         var id = FixtureId("RMA_TEST_BYPASS_DIRECTOR_ID");
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var directorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
-        var generalManagerId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
-        Assert.Equal(directorId, request.res_id_approver);
+        var qualityManagerId = m10.HRRoles.First(x => x.RoleID == 100062).EmpID;
+        var businessUnitDirectorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
+        EnsureRoleAssignment(m10, RmaRoles.QualityManager, request.Wherebuilt, qualityManagerId);
+        EnsureRoleAssignment(m10, RmaRoles.BusinessUnitDirector, "NorthAmerica", businessUnitDirectorId);
+        request.res_id_approver = qualityManagerId;
+        request.Approver = m10.humres.First(x => x.res_id == qualityManagerId).fullname;
+        m10.SaveChanges();
+        Assert.Equal(qualityManagerId, request.res_id_approver);
         Assert.NotEqual("Approved", request.Status);
         Assert.Equal("Pending", request.Status);
         Assert.Equal("Submitted", request.Sumbit);
         Assert.True(string.IsNullOrWhiteSpace(request.turno));
-        Assert.True(request.Totalrmavalues >= 20000);
+        Assert.True(request.Totalrmavalues >= 20000 && request.Totalrmavalues < 50000);
         var bypassUser = m10.humres.AsNoTracking().First(x => x.res_id > 0
-            && x.res_id != directorId && x.res_id != generalManagerId
+            && x.res_id != qualityManagerId && x.res_id != businessUnitDirectorId
             && x.usr_id != null && x.usr_id.Trim() != "");
         var repository = BypassRepository(m10, erp, bypassUser.usr_id);
         var before = Snapshot(erp);
 
-        Assert.Equal("Pending", repository.Updateaprobar(id, "Director stage bypass", bypassUser.res_id.ToString()));
+        Assert.Equal("Pending", repository.Updateaprobar(id, "QM stage bypass", bypassUser.res_id.ToString()));
         m10.Entry(request).Reload();
-        Assert.Equal(generalManagerId, request.res_id_approver);
+        Assert.Equal(businessUnitDirectorId, request.res_id_approver);
         Assert.Equal(before, Snapshot(erp));
         Assert.True(string.IsNullOrWhiteSpace(request.turno));
 
-        Assert.Equal("Approved", repository.Updateaprobar(id, "GM stage bypass", bypassUser.res_id.ToString()));
+        Assert.Equal("Approved", repository.Updateaprobar(id, "BUD stage bypass", bypassUser.res_id.ToString()));
         AssertCompleted(m10, erp, id);
     }
 
@@ -349,11 +350,45 @@ public class ApprovalRetryTests
         Assert.True(string.IsNullOrWhiteSpace(request.turno),
             $"Fixture Id={id} already has ERP RMA '{request.turno}'. Select a fresh request; successful approval tests consume their fixtures.");
         // Use fixtures below the two-stage threshold with valid ERP master data.
-        Assert.True(double.IsFinite(request.Totalrmavalues) && request.Totalrmavalues >= 0 && request.Totalrmavalues < 20000,
-            $"Fixture Id={id} must be a USD request below $20,000 for this test.");
+        Assert.True(double.IsFinite(request.Totalrmavalues) && request.Totalrmavalues >= 0 && request.Totalrmavalues < 5000,
+            $"Fixture Id={id} must be a USD request below $5,000 for this single-approver test.");
         Assert.True(request.res_id_approver > 0, $"Fixture Id={id} needs an assigned employee approver.");
         Assert.True(m10.csexsw_coustumer.Any(x => x.RmaId == id), $"Fixture Id={id} has no request lines.");
+        EnsureRoleAssignment(m10, RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
         return request;
+    }
+
+    private static void EnsureRoleAssignment(DbContextM10 m10, string roleTitle, string location, int employeeNumber)
+    {
+        var employee = m10.humres.Single(x => x.res_id == employeeNumber);
+        var role = m10.RmaRoles.FirstOrDefault(x => x.Title == roleTitle);
+        if (role == null)
+        {
+            role = new CSEXSW_RmaRole { Id = Guid.NewGuid(), Title = roleTitle };
+            m10.RmaRoles.Add(role);
+            m10.SaveChanges();
+        }
+
+        var assignment = m10.RmaRoleAssignments.FirstOrDefault(x =>
+            x.RmaRoleId == role.Id && x.Location == location);
+        if (assignment == null)
+        {
+            assignment = new CSEXSW_RmaRoleAssignment
+            {
+                Id = Guid.NewGuid(),
+                RmaRoleId = role.Id,
+                Location = location
+            };
+            m10.RmaRoleAssignments.Add(assignment);
+        }
+
+        assignment.EmployeeNumber = employee.res_id;
+        assignment.DisplayName = employee.fullname;
+        assignment.Email = string.IsNullOrWhiteSpace(employee.mail)
+            ? $"employee{employee.res_id}@example.test"
+            : employee.mail;
+        assignment.IsActive = true;
+        m10.SaveChanges();
     }
 
     private static CSEXSW_Rma RequireRequest(DbContextM10 m10, int id)
@@ -426,13 +461,10 @@ public class ApprovalRetryTests
 
     private static CSEXSW_RmaRepository BypassRepository(DbContextM10 m10, DbContext500 erp, string username)
     {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string>
-            {
-                ["QualityDirector:ResId"] = m10.HRRoles.First(x => x.RoleID == 100031).EmpID.ToString(),
-                ["GeneralManager:ResId"] = m10.HRRoles.First(x => x.RoleID == 100032).EmpID.ToString(),
-                ["ApprovalBypass:Users:0"] = "  " + username.Trim().ToUpperInvariant() + "  "
-            }).Build();
+        var employee = m10.humres.First(x => string.Equals(x.usr_id?.Trim(), username.Trim(),
+            StringComparison.OrdinalIgnoreCase));
+        EnsureRoleAssignment(m10, RmaRoles.IT, "NorthAmerica", employee.res_id);
+        var configuration = new ConfigurationBuilder().Build();
         return new CSEXSW_RmaRepository(m10, erp, configuration);
     }
 

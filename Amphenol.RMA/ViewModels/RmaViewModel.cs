@@ -35,7 +35,7 @@ namespace Amphenol.RMA.ViewModels
         public string Description { get; set; }
         [Required]
         public string Complaint { get; set; }
-        public bool HasLineOverThreshold => Lines?.Any(x => x.Price > PriceThreshold) ?? false;
+        public bool HasLineOverThreshold => Lines?.Any(x => x.Price >= PriceThreshold) ?? false;
 
         //Customer info
         [Required]
