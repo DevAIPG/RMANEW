@@ -55,7 +55,7 @@ public class ApprovalFixtureSelectorTests
         selector.Select("RMA_TEST_ROLLBACK_ID");
 
         var error = Assert.Throws<InvalidOperationException>(() => selector.Select("RMA_TEST_CONCURRENT_ID"));
-        Assert.Contains("No eligible unused test request", error.Message);
+        Assert.Contains("No eligible unused test fixture could be created", error.Message);
         Assert.Contains("below $5,000", error.Message);
     }
 
