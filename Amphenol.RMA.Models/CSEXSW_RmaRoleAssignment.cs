@@ -37,3 +37,4 @@ namespace Amphenol.RMA.Models
         [ForeignKey(nameof(RmaRoleId))]
         public virtual CSEXSW_RmaRole RmaRole { get; set; }
     }
+}

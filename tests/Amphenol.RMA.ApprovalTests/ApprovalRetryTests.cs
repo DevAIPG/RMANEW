@@ -461,7 +461,7 @@ public class ApprovalRetryTests
 
     private static CSEXSW_RmaRepository BypassRepository(DbContextM10 m10, DbContext500 erp, string username)
     {
-        var employee = m10.humres.First(x => string.Equals(x.usr_id?.Trim(), username.Trim(),
+        var employee = m10.humres.First(x => string.Equals(x.usr_id.Trim(), username.Trim(),
             StringComparison.OrdinalIgnoreCase));
         EnsureRoleAssignment(m10, RmaRoles.IT, "NorthAmerica", employee.res_id);
         var configuration = new ConfigurationBuilder().Build();
