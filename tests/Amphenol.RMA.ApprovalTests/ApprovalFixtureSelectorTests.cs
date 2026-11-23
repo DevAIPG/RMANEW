@@ -56,11 +56,11 @@ public class ApprovalFixtureSelectorTests
 
         var error = Assert.Throws<InvalidOperationException>(() => selector.Select("RMA_TEST_CONCURRENT_ID"));
         Assert.Contains("No eligible unused test request", error.Message);
-        Assert.Contains("below $20,000", error.Message);
+        Assert.Contains("below $5,000", error.Message);
     }
 
     [Fact]
-    public void DirectorScenarioUsesItsOwnEligibilitySearch()
+    public void MultiStageScenarioUsesItsOwnEligibilitySearch()
     {
         var selector = new ApprovalFixtureSelector((name, _) =>
             name == "RMA_TEST_BYPASS_DIRECTOR_ID" ? new[] { 201 } : new[] { 101 }, _ => null);

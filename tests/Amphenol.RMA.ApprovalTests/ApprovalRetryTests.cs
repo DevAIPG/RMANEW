@@ -164,8 +164,16 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = PendingRequest(m10, id);
+        var itRoleId = m10.RmaRoles.AsNoTracking()
+            .Where(x => x.Title == RmaRoles.IT).Select(x => (Guid?)x.Id).FirstOrDefault();
+        var existingItAssignees = itRoleId == null
+            ? new HashSet<int>()
+            : m10.RmaRoleAssignments.AsNoTracking()
+                .Where(x => x.RmaRoleId == itRoleId && x.IsActive && x.EmployeeNumber.HasValue)
+                .Select(x => x.EmployeeNumber.Value).ToHashSet();
         var bypassUser = m10.humres.AsNoTracking().First(x => x.res_id > 0
-            && x.res_id != request.res_id_approver && x.usr_id != null && x.usr_id.Trim() != "");
+            && x.res_id != request.res_id_approver && !existingItAssignees.Contains(x.res_id)
+            && x.usr_id != null && x.usr_id.Trim() != "");
         var before = Snapshot(erp);
 
         // The same account must be denied before its IT role assignment is added.
