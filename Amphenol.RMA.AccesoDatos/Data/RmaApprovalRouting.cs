@@ -1,24 +1,18 @@
+using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Constants;
+using Amphenol.RMA.Models.Enumerations;
+using Amphenol.RMA.Models.ModelsM10;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Amphenol.RMA.Models;
-using Amphenol.RMA.Models.Enumerations;
-using Amphenol.RMA.Models.ModelsM10;
-using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
 
 namespace Amphenol.RMA.AccesoDatos.Data
 {
-    public sealed class RmaApprovalRouting
+    public sealed class RmaApprovalRouting(DbContextM10 db)
     {
-        private readonly DbContextM10 _db;
-        private readonly IConfiguration _configuration;
-
-        public RmaApprovalRouting(DbContextM10 db, IConfiguration configuration)
-        {
-            _db = db;
-            _configuration = configuration;
-        }
-
         public static bool RequiresCsReview(IEnumerable<csexsw_coustumer> lines) =>
             lines.Any(x => (string.IsNullOrWhiteSpace(x.Invoice) || x.Invoice.Trim() == "0")
                 && x.Unit < x.Cost);
@@ -57,36 +51,34 @@ namespace Amphenol.RMA.AccesoDatos.Data
             return Convert.ToDouble(rma.Totalrmavalues) / Convert.ToDouble(latestRate.RateExchange);
         }
 
-        public static string NormalApproverSection(CSEXSW_Rma rma, double? approvalValue = null)
+        public string? NormalApproverRole(CSEXSW_Rma rma, double? approvalValue = null)
         {
             var total = approvalValue ?? rma.Totalrmavalues;
-            if (rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString())
-                return total < 5000 && rma.RMA500 == "No" ? null : "QualityDirector";
-            if (total >= 5000) return "QualityDirector";
-            return rma.Wherebuilt switch
+            if (rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString() && total < 5000 && rma.RMA500 == "No")
             {
-                "Nogales" => "QualityManagerNogales",
-                "Mesa" => "QualityManagerMesa",
-                "Endicott" => "QualityManagerEndicott",
-                _ => throw new InvalidOperationException("No quality manager is configured for this location.")
-            };
+                return null;
+            }
+
+            return db.RmaRoleAssignments.Any(x => x.RmaRole.Title == RmaRoles.QualityManager && x.Location == rma.Wherebuilt && x.IsActive)
+                ? RmaRoles.QualityManager
+                : RmaRoles.PlantManager;
         }
 
-        public Approver GetConfiguredApprover(string section)
+        public Approver GetApprover(string roleTitle, string location = "NorthAmerica")
         {
-            if (!int.TryParse(_configuration[$"{section}:ResId"], out var id) || id <= 0)
-                throw new InvalidOperationException($"{section}:ResId must identify an existing employee.");
+            var assignment = db.RmaRoleAssignments
+                .FirstOrDefault(x => x.IsActive && x.Location == location && x.RmaRole.Title == roleTitle);
 
-            var employee = _db.humres.FirstOrDefault(x => x.res_id == id);
-            if (employee == null)
-                throw new InvalidOperationException($"{section}:ResId must identify an existing employee.");
+            if (assignment == null)
+            {
+                throw new InvalidOperationException($"No active assignment exists for role '{roleTitle}' at location '{location}'.");
+            }
 
-            var configuredEmail = _configuration[$"{section}:Email"];
             return new Approver
             {
-                Id = employee.res_id,
-                Name = employee.fullname,
-                Email = string.IsNullOrWhiteSpace(configuredEmail) ? employee.mail : configuredEmail.Trim()
+                Id = assignment.EmployeeNumber ?? -1,
+                Name = assignment.DisplayName,
+                Email = assignment.Email
             };
         }
 
@@ -96,22 +88,17 @@ namespace Amphenol.RMA.AccesoDatos.Data
             Approver approver;
             if (submitted && requiresCsReview)
             {
-                approver = GetConfiguredApprover("CustomerServiceManager");
+                approver = GetApprover(RmaRoles.CustomerServiceManager);
                 rma.Sumbit = RmaSubmitStatus.CsReviewRequired.ToDisplayString();
                 rma.Status = RmaRequestStatus.Pending.ToDisplayString();
             }
             else
             {
-                var section = NormalApproverSection(rma, approvalValue);
-                if (section == null)
-                    approver = new Approver { Id = -4, Name = "System" };
-                else
-                {
-                    approver = GetConfiguredApprover(section);
-                }
+                var role = NormalApproverRole(rma, approvalValue);
+                approver = role == null ? new Approver { Id = -4, Name = "System" } : GetApprover(role, rma.Wherebuilt);
                 rma.Sumbit = (submitted ? RmaSubmitStatus.Submitted : RmaSubmitStatus.NotSubmitted).ToDisplayString();
                 if (submitted)
-                    rma.Status = (section == null ? RmaRequestStatus.AutoApprove : RmaRequestStatus.Pending).ToDisplayString();
+                    rma.Status = (role == null ? RmaRequestStatus.AutoApprove : RmaRequestStatus.Pending).ToDisplayString();
             }
             rma.Approver = approver.Name;
             rma.res_id_approver = approver.Id;

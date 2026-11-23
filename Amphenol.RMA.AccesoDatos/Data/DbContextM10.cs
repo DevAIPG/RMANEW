@@ -61,6 +61,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
         public DbSet<csexsw_whys> csexsw_whys { get; set; }
 
         public DbSet<csexsw_bomexcel> csexsw_bomexcel { get; set; }
+
+        public DbSet<CSEXSW_RmaRole> RmaRoles { get; set; }
+        public DbSet<CSEXSW_RmaRoleAssignment> RmaRoleAssignments { get; set; }
     }
 
 }
