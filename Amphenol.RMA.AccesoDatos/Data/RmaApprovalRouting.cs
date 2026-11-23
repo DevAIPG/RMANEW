@@ -57,8 +57,18 @@ namespace Amphenol.RMA.AccesoDatos.Data
                 return null;
             }
 
+            // Role selection is normally a pure flowchart decision. When routing
+            // is backed by M10, fall back to the local Plant Manager if no local
+            // Quality Manager assignment exists (for example, the seeded Mesa route).
+            if (db != null && !HasAssignment(RmaRoles.QualityManager, rma.Wherebuilt))
+                return RmaRoles.PlantManager;
+
             return RmaRoles.QualityManager;
         }
+
+        private bool HasAssignment(string roleTitle, string location) =>
+            db.RmaRoleAssignments.Any(x => x.IsActive && x.Location == location
+                && x.RmaRole.Title == roleTitle);
 
         public static bool IsAutoApprovedScrapAllowance(CSEXSW_Rma rma, double? approvalValue = null) =>
             rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString()
@@ -133,12 +143,18 @@ namespace Amphenol.RMA.AccesoDatos.Data
         public Approver? GetNextApprover(CSEXSW_Rma rma, int currentApproverId, double? approvalValue = null)
         {
             var nextRole = NextApprovalRole(rma, approvalValue);
-            var firstApprover = GetApprover(RmaRoles.QualityManager, rma.Wherebuilt);
+            var firstRole = NormalApproverRole(rma, approvalValue);
+            if (firstRole is null) return null;
+            var firstApprover = GetApprover(firstRole, rma.Wherebuilt);
             if (currentApproverId != firstApprover.Id && nextRole is null)
                 throw new InvalidOperationException(
                     $"Approver '{currentApproverId}' is not part of the configured approval route for request '{rma.Rmarequest}'.");
-            if (currentApproverId == firstApprover.Id && nextRole is not null)
-                return GetApprover(nextRole, AssignmentLocation(nextRole, rma));
+            if (currentApproverId == firstApprover.Id)
+            {
+                if (nextRole is null) return null;
+                var nextApprover = GetApprover(nextRole, AssignmentLocation(nextRole, rma));
+                return nextApprover.Id == currentApproverId ? null : nextApprover;
+            }
             if (nextRole is null) return null;
 
             var finalApprover = GetApprover(nextRole, AssignmentLocation(nextRole, rma));

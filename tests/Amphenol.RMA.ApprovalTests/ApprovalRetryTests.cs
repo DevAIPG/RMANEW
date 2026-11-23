@@ -29,6 +29,32 @@ public class ApprovalRetryTests
     }
 
     [Fact]
+    public void InitialApproverUsesExistingMesaQualityManagerOrPlantManagerFallback()
+    {
+        using var m10 = M10();
+        var qualityManager = ApprovalTestRoleAssignments.FindExisting(m10,
+            RmaRoles.QualityManager, "Mesa");
+        var expectedAssignment = qualityManager ?? ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.PlantManager, "Mesa");
+        var request = new CSEXSW_Rma
+        {
+            Wherebuilt = "Mesa",
+            Totalrmavalues = 1000,
+            Rmatypeofrequest = "CREDIT ONLY",
+            RMA500 = "No"
+        };
+
+        var routing = new RmaApprovalRouting(m10);
+        var actual = routing.Assign(request, requiresCsReview: false, submitted: true);
+
+        Assert.Equal(expectedAssignment.EmployeeNumber, actual.Id);
+        Assert.Equal(expectedAssignment.DisplayName, actual.Name);
+        Assert.Equal(expectedAssignment.EmployeeNumber, request.res_id_approver);
+        Assert.Equal(expectedAssignment.DisplayName, request.Approver);
+        Assert.Null(routing.GetNextApprover(request, actual.Id));
+    }
+
+    [Fact]
     public void ReturnedRequestCanBeEditedAndResubmissionLocksHeaderLinesAndAttachments()
     {
         var id = FixtureId("RMA_TEST_EDIT_LIFECYCLE_ID");
