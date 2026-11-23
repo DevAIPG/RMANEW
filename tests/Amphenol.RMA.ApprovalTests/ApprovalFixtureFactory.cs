@@ -90,7 +90,7 @@ internal static class ApprovalFixtureFactory
 
     internal static string NewRequestNumber(long currentIdentity)
     {
-        if (currentIdentity < 0 || currentIdentity >= 9_999_998)
+        if (currentIdentity < 0 || currentIdentity > 9_999_998)
             throw new InvalidOperationException("The next prefixed consecutive request number must fit eight characters.");
         return "8" + (currentIdentity + 1).ToString(CultureInfo.InvariantCulture);
     }
