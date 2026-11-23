@@ -25,11 +25,11 @@ internal static class ApprovalFixtureFactory
             if (string.IsNullOrWhiteSpace(source.Wherebuilt)) continue;
             var customerCode = source.Customer.Trim();
             if (!erp.arcusfil_sql.Any(x => x.cus_no.Trim() == customerCode && x.curr_cd.Trim() == "USD")) continue;
-            var approver = ApprovalTestRoleAssignments.Ensure(m10, RmaRoles.QualityManager,
-                source.Wherebuilt, ApprovalTestRoleAssignments.QualityManagerId);
-            if (multiStage)
-                ApprovalTestRoleAssignments.Ensure(m10, RmaRoles.BusinessUnitDirector, "NorthAmerica",
-                    ApprovalTestRoleAssignments.BusinessUnitDirectorId);
+            var approver = ApprovalTestRoleAssignments.FindExisting(m10, RmaRoles.QualityManager,
+                source.Wherebuilt);
+            if (approver?.EmployeeNumber is not > 0) continue;
+            if (multiStage && ApprovalTestRoleAssignments.FindExisting(m10,
+                    RmaRoles.BusinessUnitDirector, "NorthAmerica")?.EmployeeNumber is not > 0) continue;
             var lines = m10.csexsw_coustumer.AsNoTracking().Where(x => x.RmaId == source.Id).OrderBy(x => x.Id).ToList();
             if (lines.Count == 0 || lines.Count > short.MaxValue
                 || lines.Any(line => string.IsNullOrWhiteSpace(line.Coustumer)
@@ -57,7 +57,7 @@ internal static class ApprovalFixtureFactory
         }
         throw new InvalidOperationException(
             $"Cannot create a fixture for {scenario}: the test databases need at least one reusable USD request " +
-            "with shipping information and existing ERP items, plus the required employee accounts. " +
+            "with shipping information and existing ERP items, plus active role assignments for its build location. " +
             "The template may already be approved; no fresh pending or high-value request is required. " +
             "No ERP master data is created or changed by fixture setup.");
     }

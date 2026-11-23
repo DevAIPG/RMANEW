@@ -1,44 +1,35 @@
 using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.Models;
+using Microsoft.EntityFrameworkCore;
 
 internal static class ApprovalTestRoleAssignments
 {
-    public const int QualityManagerId = 990000001;
-    public const int PlantManagerId = 990000002;
-    public const int BusinessUnitDirectorId = 990000003;
-    public const int GeneralManagerId = 990000004;
-    public const int CustomerServiceManagerId = 990000005;
-    public const int ItBypassId = 990000006;
-
-    public static CSEXSW_RmaRoleAssignment Ensure(DbContextM10 m10, string roleTitle,
-        string location, int employeeNumber, bool isActive = true)
+    public static CSEXSW_RmaRoleAssignment RequireExisting(DbContextM10 m10, string roleTitle,
+        string location, int? expectedEmployeeNumber = null)
     {
-        var role = m10.RmaRoles.FirstOrDefault(x => x.Title == roleTitle);
-        if (role == null)
-        {
-            role = new CSEXSW_RmaRole { Id = Guid.NewGuid(), Title = roleTitle };
-            m10.RmaRoles.Add(role);
-            m10.SaveChanges();
-        }
+        var assignment = FindExisting(m10, roleTitle, location);
 
-        var assignment = m10.RmaRoleAssignments.FirstOrDefault(x =>
-            x.RmaRoleId == role.Id && x.Location == location);
         if (assignment == null)
-        {
-            assignment = new CSEXSW_RmaRoleAssignment
-            {
-                Id = Guid.NewGuid(),
-                RmaRoleId = role.Id,
-                Location = location
-            };
-            m10.RmaRoleAssignments.Add(assignment);
-        }
+            throw new InvalidOperationException(
+                $"The approval test database is missing an active {roleTitle} assignment for {location}. " +
+                "Apply the approved CSEXSW_RmaRole and CSEXSW_RmaRoleAssignment seed script; tests do not create or modify role assignments.");
 
-        assignment.EmployeeNumber = employeeNumber;
-        assignment.DisplayName = $"Approval Test {roleTitle}";
-        assignment.Email = $"approval-test-{employeeNumber}@example.test";
-        assignment.IsActive = isActive;
-        m10.SaveChanges();
+        if (assignment.EmployeeNumber is not > 0)
+            throw new InvalidOperationException(
+                $"The active {roleTitle} assignment for {location} has no valid employee number. " +
+                "Apply the approved role assignment seed script; tests do not create or modify role assignments.");
+
+        if (expectedEmployeeNumber.HasValue && assignment.EmployeeNumber != expectedEmployeeNumber)
+            throw new InvalidOperationException(
+                $"The active {roleTitle} assignment for {location} has employee number {assignment.EmployeeNumber}, " +
+                $"but the request expects {expectedEmployeeNumber}. Tests do not replace existing role assignments.");
+
         return assignment;
     }
+
+    public static CSEXSW_RmaRoleAssignment? FindExisting(DbContextM10 m10, string roleTitle, string location) =>
+        m10.RmaRoleAssignments.AsNoTracking()
+            .Include(x => x.RmaRole)
+            .Where(x => x.IsActive && x.Location == location && x.RmaRole.Title == roleTitle)
+            .OrderBy(x => x.Id).FirstOrDefault();
 }

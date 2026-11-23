@@ -78,18 +78,19 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var qualityManagerId = ApprovalTestRoleAssignments.QualityManagerId;
-        var plantManagerId = ApprovalTestRoleAssignments.PlantManagerId;
-        var businessUnitDirectorId = ApprovalTestRoleAssignments.BusinessUnitDirectorId;
-        var generalManagerId = ApprovalTestRoleAssignments.GeneralManagerId;
-        var csId = ApprovalTestRoleAssignments.CustomerServiceManagerId;
-        EnsureRoleAssignment(m10, RmaRoles.CustomerServiceManager, "NorthAmerica", csId);
-        EnsureRoleAssignment(m10, RmaRoles.QualityManager, "Mesa", qualityManagerId);
-        EnsureRoleAssignment(m10, RmaRoles.PlantManager, "Mesa", plantManagerId);
-        EnsureRoleAssignment(m10, RmaRoles.BusinessUnitDirector, "NorthAmerica", businessUnitDirectorId);
-        EnsureRoleAssignment(m10, RmaRoles.GeneralManager, "NorthAmerica", generalManagerId);
+        const string testBuildLocation = "Endicott";
+        var qualityManagerId = ApprovalTestRoleAssignments.RequireExisting(m10, RmaRoles.QualityManager,
+            testBuildLocation).EmployeeNumber.Value;
+        var plantManagerId = ApprovalTestRoleAssignments.RequireExisting(m10, RmaRoles.PlantManager,
+            testBuildLocation).EmployeeNumber.Value;
+        var businessUnitDirectorId = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.BusinessUnitDirector, "NorthAmerica").EmployeeNumber.Value;
+        var generalManagerId = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.GeneralManager, "NorthAmerica").EmployeeNumber.Value;
+        var csId = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.CustomerServiceManager, "NorthAmerica").EmployeeNumber.Value;
         request.Totalrmavalues = total;
-        request.Wherebuilt = "Mesa";
+        request.Wherebuilt = testBuildLocation;
         request.RMA500 = "No";
         request.Rmatypeofrequest = scrap ? "DISTY SCRAP ALLOWANCE" : "CREDIT ONLY";
         var routing = new RmaApprovalRouting(m10);
@@ -161,19 +162,23 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = PendingRequest(m10, id);
-        var bypassUserId = ApprovalTestRoleAssignments.ItBypassId;
-        Assert.NotEqual(request.res_id_approver, bypassUserId);
-        EnsureRoleAssignment(m10, RmaRoles.IT, "NorthAmerica", bypassUserId, isActive: false);
+        var assignedApprover = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
+        var unauthorizedUserId = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.BusinessUnitDirector, "NorthAmerica").EmployeeNumber.Value;
+        var bypassUserId = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.IT, "NorthAmerica").EmployeeNumber.Value;
+        Assert.NotEqual(request.res_id_approver, unauthorizedUserId);
         var before = Snapshot(erp);
 
-        // The same account must be denied before its IT role assignment is added.
+        // An existing non-IT role holder cannot bypass this request's assigned approver.
         Assert.Equal(string.Empty, Repository(m10, erp)
-            .Updateaprobar(id, "Not configured", bypassUserId.ToString()));
+            .Updateaprobar(id, "Not configured", unauthorizedUserId.ToString()));
         Assert.Equal(before, Snapshot(erp));
 
         var repository = BypassRepository(m10, erp, bypassUserId);
         Assert.Equal("Approved", repository.Updateaprobar(id, "Bypass approval", bypassUserId.ToString()));
-        Assert.Contains("Approval Test QualityManager [Approved]", request.Comment);
+        Assert.Contains($"{assignedApprover.DisplayName} [Approved]", request.Comment);
         AssertCompleted(m10, erp, id);
         var committed = Snapshot(erp);
         Assert.Equal("AlreadyApproved", repository.Updateaprobar(id, "Repeated bypass", bypassUserId.ToString()));
@@ -187,20 +192,20 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var qualityManagerId = request.res_id_approver;
-        var businessUnitDirectorId = ApprovalTestRoleAssignments.BusinessUnitDirectorId;
-        var qualityManagerAssignment = EnsureRoleAssignment(m10, RmaRoles.QualityManager, request.Wherebuilt, qualityManagerId);
-        EnsureRoleAssignment(m10, RmaRoles.BusinessUnitDirector, "NorthAmerica", businessUnitDirectorId);
-        request.res_id_approver = qualityManagerId;
-        request.Approver = qualityManagerAssignment.DisplayName;
-        m10.SaveChanges();
+        var qualityManagerAssignment = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
+        var qualityManagerId = qualityManagerAssignment.EmployeeNumber.Value;
+        var businessUnitDirectorId = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.BusinessUnitDirector, "NorthAmerica").EmployeeNumber.Value;
+        Assert.Equal(qualityManagerAssignment.DisplayName, request.Approver);
         Assert.Equal(qualityManagerId, request.res_id_approver);
         Assert.NotEqual("Approved", request.Status);
         Assert.Equal("Pending", request.Status);
         Assert.Equal("Submitted", request.Sumbit);
         Assert.True(string.IsNullOrWhiteSpace(request.turno));
         Assert.True(request.Totalrmavalues >= 20000 && request.Totalrmavalues < 50000);
-        var bypassUserId = ApprovalTestRoleAssignments.ItBypassId;
+        var bypassUserId = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.IT, "NorthAmerica").EmployeeNumber.Value;
         var repository = BypassRepository(m10, erp, bypassUserId);
         var before = Snapshot(erp);
 
@@ -351,13 +356,11 @@ public class ApprovalRetryTests
             $"Fixture Id={id} must be a USD request below $5,000 for this single-approver test.");
         Assert.True(request.res_id_approver > 0, $"Fixture Id={id} needs an assigned employee approver.");
         Assert.True(m10.csexsw_coustumer.Any(x => x.RmaId == id), $"Fixture Id={id} has no request lines.");
-        EnsureRoleAssignment(m10, RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
+        var assignment = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
+        Assert.Equal(assignment.DisplayName, request.Approver);
         return request;
     }
-
-    private static CSEXSW_RmaRoleAssignment EnsureRoleAssignment(DbContextM10 m10, string roleTitle,
-        string location, int employeeNumber, bool isActive = true) =>
-        ApprovalTestRoleAssignments.Ensure(m10, roleTitle, location, employeeNumber, isActive);
 
     private static CSEXSW_Rma RequireRequest(DbContextM10 m10, int id)
     {
@@ -429,7 +432,7 @@ public class ApprovalRetryTests
 
     private static CSEXSW_RmaRepository BypassRepository(DbContextM10 m10, DbContext500 erp, int employeeNumber)
     {
-        EnsureRoleAssignment(m10, RmaRoles.IT, "NorthAmerica", employeeNumber);
+        ApprovalTestRoleAssignments.RequireExisting(m10, RmaRoles.IT, "NorthAmerica", employeeNumber);
         var configuration = new ConfigurationBuilder().Build();
         return new CSEXSW_RmaRepository(m10, erp, configuration);
     }
