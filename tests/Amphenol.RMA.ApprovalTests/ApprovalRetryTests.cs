@@ -18,6 +18,17 @@ public class ApprovalRetryTests
     private static readonly ApprovalFixtureSelector Fixtures = new(FindFixtureCandidates, Environment.GetEnvironmentVariable);
     private readonly ITestOutputHelper _output;
 
+    public static IEnumerable<object[]> CompletionNotificationScenariosByLocation =>
+        from scenario in new[]
+        {
+            ("CREDIT ONLY", 4999d), ("CREDIT ONLY", 5000d),
+            ("CREDIT ONLY", 20000d), ("CREDIT ONLY", 50000d),
+            ("DISTY SCRAP ALLOWANCE", 4999d), ("DISTY SCRAP ALLOWANCE", 5000d),
+            ("DISTY SCRAP ALLOWANCE", 20000d), ("DISTY SCRAP ALLOWANCE", 50000d)
+        }
+        from location in new[] { "Endicott", "Nogales", "Mesa" }
+        select new object[] { scenario.Item1, scenario.Item2, location };
+
     public ApprovalRetryTests(ITestOutputHelper output)
     {
         _output = output;
@@ -52,6 +63,84 @@ public class ApprovalRetryTests
         Assert.Equal(expectedAssignment.EmployeeNumber, request.res_id_approver);
         Assert.Equal(expectedAssignment.DisplayName, request.Approver);
         Assert.Null(routing.GetNextApprover(request, actual.Id));
+    }
+
+    [Theory]
+    [InlineData("Endicott")]
+    [InlineData("Nogales")]
+    [InlineData("Mesa")]
+    public void CsApprovalHandsOffToTheExistingLocationApprover(string location)
+    {
+        using var m10 = M10();
+        var customerServiceAssignment = ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.CustomerServiceManager, "NorthAmerica");
+        var qualityManager = ApprovalTestRoleAssignments.FindExisting(m10,
+            RmaRoles.QualityManager, location);
+        var expectedNextAssignment = qualityManager ?? ApprovalTestRoleAssignments.RequireExisting(m10,
+            RmaRoles.PlantManager, location);
+        var request = new CSEXSW_Rma
+        {
+            Wherebuilt = location,
+            Totalrmavalues = 1000,
+            Rmatypeofrequest = "CREDIT ONLY",
+            RMA500 = "No"
+        };
+        var requiresCsReview = RmaApprovalRouting.RequiresCsReview(
+            [new csexsw_coustumer { Invoice = "0" }]);
+        var routing = new RmaApprovalRouting(m10);
+
+        var firstApprover = routing.Assign(request, requiresCsReview, submitted: true);
+
+        Assert.True(requiresCsReview);
+        Assert.Equal(customerServiceAssignment.EmployeeNumber, firstApprover.Id);
+        Assert.Equal(customerServiceAssignment.DisplayName, firstApprover.Name);
+        Assert.Equal(customerServiceAssignment.EmployeeNumber, request.res_id_approver);
+        Assert.Equal(customerServiceAssignment.DisplayName, request.Approver);
+        Assert.Equal("CS Review Required", request.Sumbit);
+
+        var nextApprover = routing.Assign(request, requiresCsReview: false, submitted: true);
+
+        Assert.Equal(expectedNextAssignment.EmployeeNumber, nextApprover.Id);
+        Assert.Equal(expectedNextAssignment.DisplayName, nextApprover.Name);
+        Assert.Equal(expectedNextAssignment.EmployeeNumber, request.res_id_approver);
+        Assert.Equal(expectedNextAssignment.DisplayName, request.Approver);
+        Assert.Equal("Submitted", request.Sumbit);
+        Assert.Equal("Pending", request.Status);
+    }
+
+    [Theory]
+    [MemberData(nameof(CompletionNotificationScenariosByLocation))]
+    public void CompletionNotificationsUseExistingRoleAssignmentsForEveryScenarioAndLocation(
+        string requestType, double amount, string location)
+    {
+        using var m10 = M10();
+        var request = new CSEXSW_Rma
+        {
+            Rmatypeofrequest = requestType,
+            Totalrmavalues = amount,
+            Wherebuilt = location
+        };
+        var roles = RmaApprovalRouting.CompletionNotificationRoles(request);
+        var expectedRecipients = new List<CSEXSW_RmaRoleAssignment>();
+        var expectedMissingRoles = new List<string>();
+
+        foreach (var role in roles)
+        {
+            var assignmentLocation = role == RmaRoles.PlantManager ? location : "NorthAmerica";
+            var assignment = ApprovalTestRoleAssignments.FindExisting(m10, role, assignmentLocation);
+            if (assignment?.EmployeeNumber is > 0)
+                expectedRecipients.Add(assignment);
+            else
+                expectedMissingRoles.Add(role);
+        }
+
+        var (recipients, missingRoles) = new RmaApprovalRouting(m10)
+            .ResolveCompletionNotificationApprovers(request);
+
+        Assert.Equal(expectedMissingRoles, missingRoles);
+        Assert.Equal(expectedRecipients.Select(x => x.EmployeeNumber!.Value), recipients.Select(x => x.Id));
+        Assert.Equal(expectedRecipients.Select(x => x.DisplayName), recipients.Select(x => x.Name));
+        Assert.Equal(expectedRecipients.Select(x => x.Email), recipients.Select(x => x.Email));
     }
 
     [Fact]

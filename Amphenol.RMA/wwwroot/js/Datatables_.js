@@ -259,7 +259,7 @@ function cargarDatatableRma() {
                         "width": "170px",
                         "data": "status",
                         render: function (data, type, row) {
-                            if (data == "Approved") {
+                            if (data == "Approved" || data == "Auto-Approved") {
                                 return `<span class="badge bg-success text-white px-2 py-1" style="font-size: 0.85rem; border-radius: 0.25rem;">Approved</span>`;
                             }
                             if (data == "Canceled") {
