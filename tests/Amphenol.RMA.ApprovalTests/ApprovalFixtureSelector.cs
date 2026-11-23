@@ -49,7 +49,7 @@ internal sealed class ApprovalFixtureSelector
                 if (id == 0)
                     throw new InvalidOperationException(
                         $"No eligible unused test request was found for {name}. Create a fresh submitted pending USD request with valid lines and an assigned approver " +
-                        (name == "RMA_TEST_BYPASS_DIRECTOR_ID" ? "at or above $20,000 assigned to the quality director." : "below $20,000.") +
+                        (name == "RMA_TEST_BYPASS_DIRECTOR_ID" ? "at or above $20,000 for the multi-stage Quality Manager to Business Unit Director route." : "below $5,000 for the single-approver route.") +
                         " The test does not create or reset existing requests automatically.");
             }
             if (!_used.Add(id))

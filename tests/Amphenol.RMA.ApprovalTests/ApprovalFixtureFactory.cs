@@ -16,12 +16,12 @@ internal static class ApprovalFixtureFactory
         var businessUnitDirectorId = 0;
         if (multiStage)
         {
-            qualityManagerId = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100062)?.EmpID ?? 0;
-            businessUnitDirectorId = m10.HRRoles.FirstOrDefault(x => x.RoleID == 100031)?.EmpID ?? 0;
-            if (qualityManagerId <= 0 || businessUnitDirectorId <= 0 || qualityManagerId == businessUnitDirectorId
-                || !m10.humres.Any(x => x.res_id == qualityManagerId)
-                || !m10.humres.Any(x => x.res_id == businessUnitDirectorId))
-                throw new InvalidOperationException("The multi-stage fixture requires distinct existing Quality Manager and Business Unit Director employees.");
+            var employees = m10.humres.AsNoTracking().Where(x => x.res_id > 0)
+                .OrderBy(x => x.res_id).Take(2).ToList();
+            if (employees.Count < 2)
+                throw new InvalidOperationException("The multi-stage fixture requires two distinct existing employees.");
+            qualityManagerId = employees[0].res_id;
+            businessUnitDirectorId = employees[1].res_id;
         }
 
         // Approved requests are reusable templates, so repeated runs do not exhaust pending data.

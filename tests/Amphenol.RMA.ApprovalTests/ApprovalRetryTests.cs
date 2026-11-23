@@ -78,14 +78,14 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var plantManagerId = m10.HRRoles.First(x => x.RoleID == 100032).EmpID;
-        var businessUnitDirectorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
-        var qualityManagerId = m10.HRRoles.First(x => x.RoleID == 100062).EmpID;
-        var generalManager = m10.humres.First(x => x.res_id > 0 && x.res_id != plantManagerId
-            && x.res_id != businessUnitDirectorId && x.res_id != qualityManagerId);
-        var cs = m10.humres.First(x => x.res_id > 0 && x.res_id != plantManagerId
-            && x.res_id != businessUnitDirectorId && x.res_id != qualityManagerId
-            && x.res_id != generalManager.res_id);
+        var employees = m10.humres.AsNoTracking().Where(x => x.res_id > 0)
+            .OrderBy(x => x.res_id).Take(5).ToList();
+        Assert.Equal(5, employees.Count);
+        var qualityManagerId = employees[0].res_id;
+        var plantManagerId = employees[1].res_id;
+        var businessUnitDirectorId = employees[2].res_id;
+        var generalManager = employees[3];
+        var cs = employees[4];
         EnsureRoleAssignment(m10, RmaRoles.CustomerServiceManager, "NorthAmerica", cs.res_id);
         EnsureRoleAssignment(m10, RmaRoles.QualityManager, "Mesa", qualityManagerId);
         EnsureRoleAssignment(m10, RmaRoles.PlantManager, "Mesa", plantManagerId);
@@ -188,8 +188,9 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var qualityManagerId = m10.HRRoles.First(x => x.RoleID == 100062).EmpID;
-        var businessUnitDirectorId = m10.HRRoles.First(x => x.RoleID == 100031).EmpID;
+        var qualityManagerId = request.res_id_approver;
+        var businessUnitDirectorId = m10.humres.AsNoTracking()
+            .First(x => x.res_id > 0 && x.res_id != qualityManagerId).res_id;
         EnsureRoleAssignment(m10, RmaRoles.QualityManager, request.Wherebuilt, qualityManagerId);
         EnsureRoleAssignment(m10, RmaRoles.BusinessUnitDirector, "NorthAmerica", businessUnitDirectorId);
         request.res_id_approver = qualityManagerId;
