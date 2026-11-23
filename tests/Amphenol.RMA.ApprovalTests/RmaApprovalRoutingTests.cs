@@ -88,13 +88,37 @@ public class RmaApprovalRoutingTests
         Assert.Equal(RmaRoles.QualityManager, _routing.NormalApproverRole(request));
     }
 
-    [Theory]
-    [InlineData(499.99, false)]
-    [InlineData(500, true)]
-    [InlineData(750, true)]
-    public void ViewModelFlagsScrapItemsAtOrAboveFiveHundred(double price, bool expected)
+    [Fact]
+    public void ScrapAllowanceWithFiveHundredDollarUnitPriceIsNotAutoApproved()
     {
-        var request = new RmaViewModel { Lines = [new RmaLineViewModel { Price = (decimal)price }] };
+        var viewModel = new RmaViewModel
+        {
+            Lines = [new RmaLineViewModel { AuthorizedQuantity = 1, Price = 500m }]
+        };
+        var request = new CSEXSW_Rma
+        {
+            Totalrmavalues = (double)viewModel.TotalValue,
+            RMA500 = viewModel.HasLineOverThreshold ? "Yes" : "No",
+            Rmatypeofrequest = RmaRequestType.DistyScrapAllowance.ToDisplayString()
+        };
+
+        Assert.Equal(500m, viewModel.TotalValue);
+        Assert.Equal("Yes", request.RMA500);
+        Assert.False(RmaApprovalRouting.IsAutoApprovedScrapAllowance(request));
+    }
+
+    [Theory]
+    [InlineData(1, 499.99, false)]
+    [InlineData(1, 500, true)]
+    [InlineData(500, 10, false)]
+    [InlineData(500, 499.99, false)]
+    public void ViewModelFlagsLinesByUnitPriceThreshold(
+        int quantity, decimal unitPrice, bool expected)
+    {
+        var request = new RmaViewModel
+        {
+            Lines = [new RmaLineViewModel { AuthorizedQuantity = quantity, Price = unitPrice }]
+        };
 
         Assert.Equal(expected, request.HasLineOverThreshold);
     }
