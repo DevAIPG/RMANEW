@@ -828,6 +828,13 @@ namespace Amphenol.RMA.Controllers
                 return RedirectToAction(nameof(Control));
             }
 
+            if (isAutoApproved && retorno != "Approved")
+            {
+                throw new InvalidOperationException(
+                    $"Automatic approval for RMA request #{rma.Rmarequest} did not complete ERP approval " +
+                    $"(approval result: '{retorno}'). The request was not marked as approved.");
+            }
+
             if (retorno != "Approved" && retorno != "Pending")
             {
                 return isAutoApproved ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Control));

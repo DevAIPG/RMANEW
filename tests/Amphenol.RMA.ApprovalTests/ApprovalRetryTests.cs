@@ -230,7 +230,13 @@ public class ApprovalRetryTests
         Assert.True(string.IsNullOrWhiteSpace(request.turno));
         Assert.Equal(before, Snapshot(erp));
         Assert.Equal(string.Empty, repository.Updateaprobar(id, "Repeat CS approval", csId.ToString()));
-        if (total == 20000)
+        if (scrap)
+        {
+            Assert.Equal("Auto-Approved", request.Status);
+            Assert.Equal("Approved", repository.Updateaprobar(id, "RMA auto-approved", "-4"));
+            AssertCompleted(m10, erp, id);
+        }
+        else if (total == 20000)
         {
             Assert.Equal("Pending", repository.Updateaprobar(id, "QM approved", qualityManagerId.ToString()));
             m10.Entry(request).Reload();
