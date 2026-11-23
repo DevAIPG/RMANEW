@@ -706,7 +706,8 @@ namespace Amphenol.RMA.Controllers
                     var requester = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id);
                     var firstName = requester.fullname?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Requester";
 
-                    var approver = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver);
+                    var approver = new RmaApprovalRouting(_m10Db)
+                        .GetApproverByEmployeeNumber(rma.res_id_approver);
 
 
                     await _emailService.SendRejectNotification(
@@ -714,7 +715,7 @@ namespace Amphenol.RMA.Controllers
                         rma.Rmarequest,
                         $"""
                         Hello {firstName},<br><br>
-                        We regret to inform you that RMA request #{rma.Rmarequest} has been rejected by {approver.fullname}.<br><br>
+                        We regret to inform you that RMA request #{rma.Rmarequest} has been rejected by {approver.Name}.<br><br>
                         The approver provided the following comments:<br><br>
                         {comment}<br><br>
                         If you have any questions or require additional clarification, please contact the approver directly.<br><br>
@@ -1903,11 +1904,16 @@ namespace Amphenol.RMA.Controllers
                 return Json(new { data = "Primeras lineas" });
 
             }
-            //actualizar res id de approver
+            // Resolve the selected approver from the role assignment instead of the HR directory.
             if (!string.IsNullOrEmpty(rma.CSEXSW_Rma.Approver))
             {
-                var residapprover = _m10Db.humres.Where(s => s.fullname == rma.CSEXSW_Rma.Approver).FirstOrDefault().res_id;
-                rma.CSEXSW_Rma.res_id_approver = residapprover;
+                var assignment = _m10Db.RmaRoleAssignments.FirstOrDefault(x => x.IsActive
+                    && x.EmployeeNumber.HasValue && x.DisplayName == rma.CSEXSW_Rma.Approver);
+                if (assignment == null)
+                    throw new InvalidOperationException(
+                        $"No active RMA role assignment exists for approver '{rma.CSEXSW_Rma.Approver}'.");
+                rma.CSEXSW_Rma.Approver = assignment.DisplayName;
+                rma.CSEXSW_Rma.res_id_approver = assignment.EmployeeNumber.Value;
                 _m10Db.Entry(rma.CSEXSW_Rma).State = EntityState.Modified;
                 _m10Db.SaveChanges();
             }

@@ -1049,7 +1049,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
 
         private void AddComment(CSEXSW_Rma rma, DateTime currentDate, CommentAction action, string comment)
         {
-            var approverName = _m10Db.humres.FirstOrDefault(x => x.res_id == rma.res_id_approver)?.fullname ?? "";
+            var approverName = rma.res_id_approver > 0
+                ? new RmaApprovalRouting(_m10Db).GetApproverByEmployeeNumber(rma.res_id_approver).Name
+                : rma.Approver ?? "";
 
             if (!string.IsNullOrWhiteSpace(comment))
             {

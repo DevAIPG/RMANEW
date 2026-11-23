@@ -1,5 +1,6 @@
 using Amphenol.RMA.AccesoDatos.Data;
 using Amphenol.RMA.Models;
+using Amphenol.RMA.Models.Constants;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -12,17 +13,6 @@ internal static class ApprovalFixtureFactory
         ApprovalTestConnection.Validate(m10.Database.GetConnectionString());
         ApprovalTestConnection.Validate(erp.Database.GetConnectionString());
         var multiStage = scenario == "RMA_TEST_BYPASS_DIRECTOR_ID";
-        var qualityManagerId = 0;
-        var businessUnitDirectorId = 0;
-        if (multiStage)
-        {
-            var employees = m10.humres.AsNoTracking().Where(x => x.res_id > 0)
-                .OrderBy(x => x.res_id).Take(2).ToList();
-            if (employees.Count < 2)
-                throw new InvalidOperationException("The multi-stage fixture requires two distinct existing employees.");
-            qualityManagerId = employees[0].res_id;
-            businessUnitDirectorId = employees[1].res_id;
-        }
 
         // Approved requests are reusable templates, so repeated runs do not exhaust pending data.
         // Copy only scalar fields and lines; never reset or update the source request.
@@ -32,17 +22,14 @@ internal static class ApprovalFixtureFactory
             .OrderByDescending(x => x.Status == "Approved").ThenByDescending(x => x.Id).ToList();
         foreach (var source in templates)
         {
+            if (string.IsNullOrWhiteSpace(source.Wherebuilt)) continue;
             var customerCode = source.Customer.Trim();
             if (!erp.arcusfil_sql.Any(x => x.cus_no.Trim() == customerCode && x.curr_cd.Trim() == "USD")) continue;
-            var approver = multiStage
-                ? m10.humres.FirstOrDefault(x => x.res_id == qualityManagerId)
-                : m10.humres.FirstOrDefault(x => x.res_id == source.res_id_approver && x.res_id > 0)
-                    ?? m10.humres.FirstOrDefault(x => x.res_id > 0);
-            if (approver == null) continue;
-            if ((scenario == "RMA_TEST_BYPASS_ID" || multiStage)
-                && !m10.humres.Any(x => x.res_id > 0 && x.res_id != approver.res_id
-                    && (!multiStage || x.res_id != businessUnitDirectorId)
-                    && x.usr_id != null && x.usr_id.Trim() != "")) continue;
+            var approver = ApprovalTestRoleAssignments.Ensure(m10, RmaRoles.QualityManager,
+                source.Wherebuilt, ApprovalTestRoleAssignments.QualityManagerId);
+            if (multiStage)
+                ApprovalTestRoleAssignments.Ensure(m10, RmaRoles.BusinessUnitDirector, "NorthAmerica",
+                    ApprovalTestRoleAssignments.BusinessUnitDirectorId);
             var lines = m10.csexsw_coustumer.AsNoTracking().Where(x => x.RmaId == source.Id).OrderBy(x => x.Id).ToList();
             if (lines.Count == 0 || lines.Count > short.MaxValue
                 || lines.Any(line => string.IsNullOrWhiteSpace(line.Coustumer)
@@ -50,7 +37,7 @@ internal static class ApprovalFixtureFactory
 
             using var transaction = m10.Database.BeginTransaction();
             var requestNumber = ReserveRequestNumber(m10);
-            var fixture = Build(m10, source, lines, approver.res_id, approver.fullname,
+            var fixture = Build(m10, source, lines, approver.EmployeeNumber.Value, approver.DisplayName,
                 scenario, requestNumber, multiStage);
 
             m10.CSEXSW_Rma.Add(fixture.Request);
