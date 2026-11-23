@@ -25,8 +25,12 @@ internal static class ApprovalFixtureFactory
             if (string.IsNullOrWhiteSpace(source.Wherebuilt)) continue;
             var customerCode = source.Customer.Trim();
             if (!erp.arcusfil_sql.Any(x => x.cus_no.Trim() == customerCode && x.curr_cd.Trim() == "USD")) continue;
+            // Match normal production routing: use the local Quality Manager when
+            // assigned, otherwise use the local Plant Manager (the seeded Mesa route).
             var approver = ApprovalTestRoleAssignments.FindExisting(m10, RmaRoles.QualityManager,
-                source.Wherebuilt);
+                source.Wherebuilt)
+                ?? ApprovalTestRoleAssignments.FindExisting(m10, RmaRoles.PlantManager,
+                    source.Wherebuilt);
             if (approver?.EmployeeNumber is not > 0) continue;
             if (multiStage && ApprovalTestRoleAssignments.FindExisting(m10,
                     RmaRoles.BusinessUnitDirector, "NorthAmerica")?.EmployeeNumber is not > 0) continue;

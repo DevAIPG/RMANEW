@@ -48,9 +48,10 @@ internal sealed class ApprovalFixtureSelector
                 id = _findCandidates(name, excluded).FirstOrDefault(x => x > 0 && !excluded.Contains(x));
                 if (id == 0)
                     throw new InvalidOperationException(
-                        $"No eligible unused test request was found for {name}. Create a fresh submitted pending USD request with valid lines and an assigned approver " +
-                        (name == "RMA_TEST_BYPASS_DIRECTOR_ID" ? "at or above $20,000 for the multi-stage Quality Manager to Business Unit Director route." : "below $5,000 for the single-approver route.") +
-                        " The test does not create or reset existing requests automatically.");
+                        $"No eligible unused test fixture could be created for {name}. Fixture setup copies a reusable USD request with valid lines and ERP items, " +
+                        "and assigns an existing approver for its build location. " +
+                        (name == "RMA_TEST_BYPASS_DIRECTOR_ID" ? "The multi-stage first-approver to Business Unit Director route requires at least $20,000." : "The single-approver route requires a request below $5,000.") +
+                        " Check that the test databases contain reusable request templates and the seeded role assignments; fixture setup does not create or modify role assignments.");
             }
             if (!_used.Add(id))
                 throw new InvalidOperationException($"Fixture Id={id} was already used in this test run. Choose a different request or unset {name}.");

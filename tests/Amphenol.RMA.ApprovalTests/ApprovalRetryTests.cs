@@ -283,8 +283,8 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = PendingRequest(m10, id);
-        var assignedApprover = ApprovalTestRoleAssignments.RequireExisting(m10,
-            RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
+        var assignedApprover = FirstApproverAssignment(m10, request);
+        Assert.Equal(assignedApprover.EmployeeNumber, request.res_id_approver);
         var unauthorizedUserId = ApprovalTestRoleAssignments.RequireExisting(m10,
             RmaRoles.BusinessUnitDirector, "NorthAmerica").EmployeeNumber.Value;
         var bypassUserId = ApprovalTestRoleAssignments.RequireExisting(m10,
@@ -313,13 +313,12 @@ public class ApprovalRetryTests
         using var m10 = M10();
         using var erp = Erp();
         var request = RequireRequest(m10, id);
-        var qualityManagerAssignment = ApprovalTestRoleAssignments.RequireExisting(m10,
-            RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
-        var qualityManagerId = qualityManagerAssignment.EmployeeNumber.Value;
+        var firstApproverAssignment = FirstApproverAssignment(m10, request);
+        var firstApproverId = firstApproverAssignment.EmployeeNumber.Value;
         var businessUnitDirectorId = ApprovalTestRoleAssignments.RequireExisting(m10,
             RmaRoles.BusinessUnitDirector, "NorthAmerica").EmployeeNumber.Value;
-        Assert.Equal(qualityManagerAssignment.DisplayName, request.Approver);
-        Assert.Equal(qualityManagerId, request.res_id_approver);
+        Assert.Equal(firstApproverAssignment.DisplayName, request.Approver);
+        Assert.Equal(firstApproverId, request.res_id_approver);
         Assert.NotEqual("Approved", request.Status);
         Assert.Equal("Pending", request.Status);
         Assert.Equal("Submitted", request.Sumbit);
@@ -330,7 +329,7 @@ public class ApprovalRetryTests
         var repository = BypassRepository(m10, erp, bypassUserId);
         var before = Snapshot(erp);
 
-        Assert.Equal("Pending", repository.Updateaprobar(id, "QM stage bypass", bypassUserId.ToString()));
+        Assert.Equal("Pending", repository.Updateaprobar(id, "First approver stage bypass", bypassUserId.ToString()));
         m10.Entry(request).Reload();
         Assert.Equal(businessUnitDirectorId, request.res_id_approver);
         Assert.Equal(before, Snapshot(erp));
@@ -477,10 +476,21 @@ public class ApprovalRetryTests
             $"Fixture Id={id} must be a USD request below $5,000 for this single-approver test.");
         Assert.True(request.res_id_approver > 0, $"Fixture Id={id} needs an assigned employee approver.");
         Assert.True(m10.csexsw_coustumer.Any(x => x.RmaId == id), $"Fixture Id={id} has no request lines.");
-        var assignment = ApprovalTestRoleAssignments.RequireExisting(m10,
-            RmaRoles.QualityManager, request.Wherebuilt, request.res_id_approver);
+        var assignment = FirstApproverAssignment(m10, request);
         Assert.Equal(assignment.DisplayName, request.Approver);
         return request;
+    }
+
+    private static CSEXSW_RmaRoleAssignment FirstApproverAssignment(DbContextM10 m10, CSEXSW_Rma request)
+    {
+        var assignment = ApprovalTestRoleAssignments.FindExisting(m10,
+            RmaRoles.QualityManager, request.Wherebuilt)
+            ?? ApprovalTestRoleAssignments.RequireExisting(m10,
+                RmaRoles.PlantManager, request.Wherebuilt);
+        if (request.res_id_approver > 0 && assignment.EmployeeNumber != request.res_id_approver)
+            throw new InvalidOperationException(
+                $"Request Id={request.Id} is assigned to employee {request.res_id_approver}, but the configured first approver for {request.Wherebuilt} is {assignment.EmployeeNumber}.");
+        return assignment;
     }
 
     private static CSEXSW_Rma RequireRequest(DbContextM10 m10, int id)
