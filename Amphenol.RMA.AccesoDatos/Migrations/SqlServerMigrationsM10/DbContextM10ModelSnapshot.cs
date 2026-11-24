@@ -327,6 +327,11 @@ namespace Amphenol.RMA.AccesoDatos.Migrations.SqlServerMigrationsM10
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
+                    b.Property<string>("AttachmentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<string>("Documento")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");

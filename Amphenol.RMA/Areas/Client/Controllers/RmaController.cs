@@ -654,7 +654,8 @@ namespace Amphenol.RMA.Controllers
                 CSEXSW_Rma = new Models.CSEXSW_Rma(),
                 ItemLines = _contenedorTrabajo.csexsw_coustumer.GetAll(a => a.RmaId == id),
 
-                Attachments = _contenedorTrabajo.CSEXSW_Attachmentrma.GetAll(a => a.RmaId == id),
+                Attachments = _contenedorTrabajo.CSEXSW_Attachmentrma.GetAll(a =>
+                    a.RmaId == id && a.AttachmentType == CSEXSW_Attachmentrma.RequestAttachmentType),
 
 
             };
@@ -1196,7 +1197,8 @@ namespace Amphenol.RMA.Controllers
                 await _m10Db.CSEXSW_Attachmentrma.AddAsync(new CSEXSW_Attachmentrma
                 {
                     Documento = storedFileName,
-                    RmaId = rma.Id
+                    RmaId = rma.Id,
+                    AttachmentType = CSEXSW_Attachmentrma.RequestAttachmentType
                 });
             }
 
@@ -1306,7 +1308,7 @@ namespace Amphenol.RMA.Controllers
             {
                 Attachments = await _m10Db.CSEXSW_Attachmentrma
                      .AsNoTracking()
-                     .Where(x => x.RmaId == rma.Id)
+                     .Where(x => x.RmaId == rma.Id && x.AttachmentType == CSEXSW_Attachmentrma.RequestAttachmentType)
                      .Select(x => new RmaAttachmentViewModel
                      {
                          Id = x.Id,
@@ -1541,7 +1543,7 @@ namespace Amphenol.RMA.Controllers
 
             var existingAttachments =
                 await _m10Db.CSEXSW_Attachmentrma
-                    .Where(x => x.RmaId == rma.Id)
+                    .Where(x => x.RmaId == rma.Id && x.AttachmentType == CSEXSW_Attachmentrma.RequestAttachmentType)
                     .ToListAsync();
 
             var directory = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments");
@@ -1589,7 +1591,8 @@ namespace Amphenol.RMA.Controllers
                     new CSEXSW_Attachmentrma
                     {
                         Documento = storedFileName,
-                        RmaId = rma.Id
+                        RmaId = rma.Id,
+                        AttachmentType = CSEXSW_Attachmentrma.RequestAttachmentType
                     });
             }
 
@@ -3611,7 +3614,7 @@ namespace Amphenol.RMA.Controllers
             {
                 Attachments = await _m10Db.CSEXSW_Attachmentrma
                      .AsNoTracking()
-                     .Where(x => x.RmaId == rma.Id)
+                     .Where(x => x.RmaId == rma.Id && x.AttachmentType == CSEXSW_Attachmentrma.RequestAttachmentType)
                      .Select(x => new RmaAttachmentViewModel
                      {
                          Id = x.Id,
