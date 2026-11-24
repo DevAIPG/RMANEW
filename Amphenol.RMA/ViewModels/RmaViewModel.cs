@@ -29,11 +29,7 @@ namespace Amphenol.RMA.ViewModels
         [Required]
         [StringLength(8)]
         [RegularExpression("^(Nogales|Endicott|Mesa)$", ErrorMessage = "Select a supported build location.")]
-        public string SelectedBuildLocation
-        {
-            get => selectedBuildLocation;
-            set => selectedBuildLocation = value?.Trim();
-        }
+        public string SelectedBuildLocation { get; set; }
         public decimal TotalValue => Lines?.Sum(x => x.AuthorizedQuantity * x.Price) ?? 0m;
         public List<string> RequestTypes { get; } = [];
         [Required]
