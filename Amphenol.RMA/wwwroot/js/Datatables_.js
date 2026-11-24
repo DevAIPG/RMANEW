@@ -59,7 +59,7 @@ function cargarDatatableRma() {
                 autoWidth: false,
                 scrollX: true,
                 fixedColumns: {
-                    left: 4
+                    start: 4
                 },
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
