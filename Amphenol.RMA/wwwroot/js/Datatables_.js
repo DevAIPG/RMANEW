@@ -107,7 +107,7 @@ function cargarDatatableRma() {
                 columns: [
                     {
                         "data": "id",
-                        "width": "185px",
+                        "width": "200px",
                         "render": function render(data, type, row) {
                             const complaintButton = `
                                     <a class="btn btn-light btn-sm action-btn d-flex align-items-center gap-1" data-toggle="modal" data-target="#Customer_complaint"
@@ -252,7 +252,7 @@ function cargarDatatableRma() {
                             if (!isApproved) {
                                 return trackingNumber
                                     ? `<span class="text-break">${$("<div>").text(trackingNumber).html()}</span>`
-                                    : `<span class="text-muted small">Available after approval</span>`;
+                                    : `<span class="text-muted">—</span>`;
                             }
                             return trackingNumber
                                 ? `<span class="text-break">${$("<div>").text(trackingNumber).html()}</span>`
