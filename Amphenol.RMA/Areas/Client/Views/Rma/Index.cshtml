@@ -211,6 +211,7 @@
                             <th width="120px">Actions</th>
                             <th width="110px">Request #</th>
                             <th width="110px">RMA #</th>
+                            <th width="190px">Return Tracking</th>
                             <th width="130px">Prepared</th>
                             <th width="110px">Date</th>
                             <th width="170px">Submission Status</th>
@@ -233,6 +234,29 @@
                 </table>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="modal fade" id="trackingNumberModal" tabindex="-1" aria-labelledby="trackingNumberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="trackingNumberForm" class="modal-content" asp-area="Client" asp-controller="Rma" asp-action="SaveTrackingNumber" method="post">
+            @Html.AntiForgeryToken()
+            <input id="trackingRequestId" type="hidden" name="requestId" />
+            <div class="modal-header">
+                <h5 class="modal-title" id="trackingNumberModalLabel">Return tracking number</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">RMA request <strong id="trackingRequestNumber"></strong></p>
+                <label for="trackingNumberInput" class="form-label">Tracking number</label>
+                <input id="trackingNumberInput" name="trackingNumber" type="text" class="form-control" maxlength="100" autocomplete="off" required />
+                <div id="trackingNumberError" class="text-danger small mt-2" role="alert" aria-live="polite"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button id="saveTrackingNumberButton" type="submit" class="btn btn-primary">Save tracking number</button>
+            </div>
+        </form>
     </div>
 </div>
 

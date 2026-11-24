@@ -3770,6 +3770,31 @@ namespace Amphenol.RMA.Controllers
             return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveTrackingNumber(int requestId, string trackingNumber)
+        {
+            var normalizedTrackingNumber = trackingNumber?.Trim();
+            if (requestId <= 0)
+                return BadRequest(new { success = false, message = "The RMA request is invalid." });
+            if (string.IsNullOrWhiteSpace(normalizedTrackingNumber))
+                return BadRequest(new { success = false, message = "Enter a tracking number." });
+            if (normalizedTrackingNumber.Length > 100)
+                return BadRequest(new { success = false, message = "Tracking numbers must be 100 characters or fewer." });
+
+            using var requestLock = new RmaApprovalLock(_m10Db, requestId);
+            var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == requestId);
+            if (rma is null)
+                return NotFound(new { success = false, message = "The RMA request could not be found." });
+            if (rma.Status != RmaRequestStatus.Approved.ToDisplayString()
+                || rma.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString())
+                return Conflict(new { success = false, message = "A tracking number can be entered after the RMA is approved." });
+
+            rma.TrackingNumber = normalizedTrackingNumber;
+            await _m10Db.SaveChangesAsync();
+            return Json(new { success = true, message = "Tracking number saved." });
+        }
+
         [HttpPut]
         public async Task<IActionResult> Apruebo(int id)
         {

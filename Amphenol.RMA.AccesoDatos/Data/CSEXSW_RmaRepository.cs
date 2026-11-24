@@ -157,6 +157,7 @@ namespace Amphenol.RMA.AccesoDatos.Data
                             r.Sumbit,
                             r.[Status],
                             r.turno,
+                            r.TrackingNumber,
                             r.Approver,
                             r.res_id,
                             CONVERT(char(10), r.date_approved, 101)
@@ -211,6 +212,9 @@ namespace Amphenol.RMA.AccesoDatos.Data
                             Sumbit = rdr["Sumbit"]?.ToString(),
                             Status = rdr["Status"]?.ToString(),
                             turno = rdr["turno"]?.ToString()?.Trim(),
+                            TrackingNumber = rdr["TrackingNumber"] == DBNull.Value
+                                ? null
+                                : rdr["TrackingNumber"].ToString()?.Trim(),
                             Approver = rdr["Approver"]?.ToString(),
                             res_id = rdr["res_id"] == DBNull.Value
                                 ? 0

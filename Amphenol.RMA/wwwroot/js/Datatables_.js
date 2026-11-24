@@ -233,6 +233,27 @@ function cargarDatatableRma() {
                         "data": "turno",
                     },
                     {
+                        "width": "190px",
+                        "data": "trackingNumber",
+                        render: function (data, type, row) {
+                            const trackingNumber = String(data || "").trim();
+                            if (type !== "display") return trackingNumber;
+
+                            const isApproved = row.status === "Approved" && row.sumbit === "Submitted";
+                            if (!isApproved) {
+                                return `<span class="text-muted small">Available after approval</span>`;
+                            }
+
+                            const safeTrackingNumber = $("<div>").text(trackingNumber).html();
+                            const actionLabel = trackingNumber ? "Edit tracking" : "Add tracking";
+                            const buttonText = trackingNumber
+                                ? `<span class="text-truncate d-inline-block" style="max-width:140px">${safeTrackingNumber}</span><i class="fa fa-pen ms-1" aria-hidden="true"></i>`
+                                : `<i class="fa fa-truck me-1" aria-hidden="true"></i>${actionLabel}`;
+
+                            return `<button type="button" class="btn btn-outline-primary btn-sm btn-rma-tracking d-inline-flex align-items-center" data-id="${row.id}" data-request="${row.rmarequest}" data-tracking="${encodeURIComponent(trackingNumber)}" title="${actionLabel}">${buttonText}</button>`;
+                        }
+                    },
+                    {
                         "width": "130px",
                         "data": "preparado"
                     },
@@ -4699,6 +4720,61 @@ $(document).on('click', '.btn-cancel-rma', function () {
     $('#cancelReason').val('');
     $('#cancelRmaModalLabel').text(`Cancel RMA request ${requestNumber}?`);
     $('#cancelRmaModal').modal('show');
+});
+
+$(document).on('click', '.btn-rma-tracking', function () {
+    const button = $(this);
+    const encodedTrackingNumber = button.attr('data-tracking') || '';
+    $('#trackingRequestId').val(button.data('id'));
+    $('#trackingRequestNumber').text(button.data('request'));
+    $('#trackingNumberInput').val(decodeURIComponent(encodedTrackingNumber));
+    $('#trackingNumberError').text('');
+    $('#trackingNumberForm').removeData('submitted');
+    $('#saveTrackingNumberButton').prop('disabled', false).text('Save tracking number');
+    $('#trackingNumberModal').modal('show');
+});
+
+$(document).on('submit', '#trackingNumberForm', function (event) {
+    event.preventDefault();
+    const form = $(this);
+    const submitButton = $('#saveTrackingNumberButton');
+    const trackingNumber = $('#trackingNumberInput').val().trim();
+    $('#trackingNumberError').text('');
+
+    if (!trackingNumber) {
+        $('#trackingNumberError').text('Enter a tracking number.');
+        $('#trackingNumberInput').trigger('focus');
+        return;
+    }
+    if (form.data('submitted')) return;
+
+    form.data('submitted', true);
+    submitButton.prop('disabled', true)
+        .html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...');
+
+    $.ajax({
+        url: form.attr('action'),
+        type: 'POST',
+        data: form.serialize(),
+        dataType: 'json'
+    }).done(function (result) {
+        if (!result.success) {
+            $('#trackingNumberError').text(result.message || 'Unable to save the tracking number.');
+            return;
+        }
+
+        $('#trackingNumberModal').modal('hide');
+        cargarDatatableRma();
+        if (window.Swal) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: result.message, showConfirmButton: false, timer: 2500 });
+        }
+    }).fail(function (xhr) {
+        const message = xhr.responseJSON?.message || 'Unable to save the tracking number. Please try again.';
+        $('#trackingNumberError').text(message);
+    }).always(function () {
+        form.removeData('submitted');
+        submitButton.prop('disabled', false).text('Save tracking number');
+    });
 });
 
 $(document).on('submit', '#cancelRmaForm', function (event) {

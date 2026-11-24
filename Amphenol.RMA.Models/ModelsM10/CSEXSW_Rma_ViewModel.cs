@@ -29,6 +29,7 @@ namespace Amphenol.RMA.Models.ModelsM10
         public string Sumbit { get; set; }
         public string Status { get; set; }
         public string turno { get; set; }
+        public string TrackingNumber { get; set; }
         public string Approver { get; set; }
         public int res_id { get; set; }
         public string formated_date_approved { get; set; }

@@ -78,6 +78,8 @@ namespace Amphenol.RMA.Models
         public string Status { get; set; }
         [StringLength(8)]
         public string turno { get; set; }
+        [MaxLength(100)]
+        public string TrackingNumber { get; set; }
         [MaxLength(64)]
         public string Approver { get; set; }
         [StringLength(8)]
