@@ -3758,6 +3758,12 @@ namespace Amphenol.RMA.Controllers
             var customerServiceManagerId = GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceManager);
             var customerServiceSupervisorId = GetAssignedRoleEmployeeNumber(RmaRoles.CustomerServiceSupervisor);
             var hasItBypassRole = HasItBypassRole(usuario);
+            var hasEmployeeId = int.TryParse(usuario, out var currentEmployeeId);
+            var routing = new RmaApprovalRouting(_m10Db);
+            var canManageOtherTrackingNumbers = hasEmployeeId
+                && (routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.CustomerServiceManager)
+                    || routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.CustomerServiceSupervisor)
+                    || routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.IT));
             var canCancelAnyRequest = RmaWithdrawalPolicy.CanCancelAnyRequest(
                 User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
                 customerServiceManagerId, hasItBypassRole, customerServiceSupervisorId);
@@ -3766,6 +3772,12 @@ namespace Amphenol.RMA.Controllers
                 rma.CanGenerateOrderForCurrentUser = RmaOrderGenerationPolicy.CanGenerateOrder(
                     rma.res_id, User.Identity?.Name?.Split('\\').LastOrDefault(), usuario,
                     customerServiceManagerId, hasItBypassRole, customerServiceSupervisorId);
+                rma.CanEditTrackingNumber = hasEmployeeId
+                    && (rma.res_id == currentEmployeeId || canManageOtherTrackingNumbers)
+                    && rma.Status == RmaRequestStatus.Approved.ToDisplayString()
+                    && rma.Sumbit == RmaSubmitStatus.Submitted.ToDisplayString()
+                    && !rma.CanGenerateOrder
+                    && string.IsNullOrWhiteSpace(rma.OrderNumber);
             }
             return Json(new { data = rmas, resid = usuario, canCancelAnyRequest });
         }
@@ -3786,9 +3798,42 @@ namespace Amphenol.RMA.Controllers
             var rma = await _m10Db.CSEXSW_Rma.FirstOrDefaultAsync(x => x.Id == requestId);
             if (rma is null)
                 return NotFound(new { success = false, message = "The RMA request could not be found." });
+
+            var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+            var employeeIdValue = string.IsNullOrWhiteSpace(username)
+                ? null
+                : _contenedorTrabajo.csexsw_dibujo.usuario(username.Trim());
+            if (!int.TryParse(employeeIdValue, out var currentEmployeeId))
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { success = false, message = "Your user account is not authorized to update tracking numbers." });
+
+            var routing = new RmaApprovalRouting(_m10Db);
+            var canManageOtherTrackingNumbers = routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.CustomerServiceManager)
+                || routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.CustomerServiceSupervisor)
+                || routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.IT);
+            if (rma.res_id != currentEmployeeId && !canManageOtherTrackingNumbers)
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { success = false, message = "Only the requester, Customer Service manager or supervisor, or IT can update this tracking number." });
+
             if (rma.Status != RmaRequestStatus.Approved.ToDisplayString()
                 || rma.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString())
                 return Conflict(new { success = false, message = "A tracking number can be entered after the RMA is approved." });
+
+            var rmaNumber = rma.turno?.Trim();
+            if (!string.IsNullOrWhiteSpace(rmaNumber))
+            {
+                var orderExists = await _500Db.OEORDHDR_SQL.AsNoTracking()
+                    .AnyAsync(x => x.RmaNo.Trim() == rmaNumber);
+                if (orderExists)
+                    return Conflict(new { success = false, message = "Tracking numbers can no longer be changed after an order is generated." });
+
+                var receivedQuantities = await _500Db.OERDTFIL_SQL.AsNoTracking()
+                    .Where(x => x.rma_no.Trim() == rmaNumber)
+                    .Select(x => x.RmaQtyRtnActual)
+                    .ToListAsync();
+                if (receivedQuantities.Count > 0 && receivedQuantities.All(x => x > 0))
+                    return Conflict(new { success = false, message = "Tracking numbers can no longer be changed once the RMA is ready for order generation." });
+            }
 
             rma.TrackingNumber = normalizedTrackingNumber;
             await _m10Db.SaveChangesAsync();

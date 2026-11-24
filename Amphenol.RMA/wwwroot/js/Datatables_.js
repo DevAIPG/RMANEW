@@ -107,7 +107,7 @@ function cargarDatatableRma() {
                 columns: [
                     {
                         "data": "id",
-                        "width": "155px",
+                        "width": "185px",
                         "render": function render(data, type, row) {
                             const complaintButton = `
                                     <a class="btn btn-light btn-sm action-btn d-flex align-items-center gap-1" data-toggle="modal" data-target="#Customer_complaint"
@@ -181,6 +181,14 @@ function cargarDatatableRma() {
                                     const hasOrder = !!row.orderNumber?.trim();
 
                                     const hasRmaId = !!row.turno?.trim();
+                                    const trackingNumber = String(row.trackingNumber || "").trim();
+                                    const trackingTitle = trackingNumber
+                                        ? `Tracking number: ${trackingNumber}`
+                                        : "Add tracking number";
+                                    const trackingButton = row.canEditTrackingNumber === true ? `
+                                        <button type="button" class="btn btn-light btn-sm action-btn btn-rma-tracking d-flex align-items-center justify-content-center" data-id="${row.id}" data-request="${row.rmarequest}" data-tracking="${encodeURIComponent(trackingNumber)}" data-bs-toggle="tooltip" data-bs-placement="right" title="${$('<div>').text(trackingTitle).html()}" aria-label="${$('<div>').text(trackingTitle).html()}">
+                                            <i class="fa fa-barcode" aria-hidden="true"></i>
+                                        </button>` : '';
 
                                     const canGenerateOrder = row.canGenerateOrderForCurrentUser === true;
                                     const canClickGenerateOrder = row.canGenerateOrder && canGenerateOrder && !hasOrder;
@@ -206,6 +214,7 @@ function cargarDatatableRma() {
                                     <div class="d-flex gap-1">
                                         ${viewButton}
                                         ${complaintButton}
+                                        ${trackingButton}
                                         <button type="button" class="btn ${generateOrderButtonColor} btn-sm action-btn d-flex align-items-center justify-content-center gap-1" id="btncreateorder"
                                             ${generateOrderButtonModal} data-id="${row.id}" data-bs-toggle="tooltip" data-bs-placement="right" title="${generateOrderButtonTitle}">
                                             <i class="fa ${generateOrderButtonIcon}"></i>
@@ -241,16 +250,13 @@ function cargarDatatableRma() {
 
                             const isApproved = row.status === "Approved" && row.sumbit === "Submitted";
                             if (!isApproved) {
-                                return `<span class="text-muted small">Available after approval</span>`;
+                                return trackingNumber
+                                    ? `<span class="text-break">${$("<div>").text(trackingNumber).html()}</span>`
+                                    : `<span class="text-muted small">Available after approval</span>`;
                             }
-
-                            const safeTrackingNumber = $("<div>").text(trackingNumber).html();
-                            const actionLabel = trackingNumber ? "Edit tracking" : "Add tracking";
-                            const buttonText = trackingNumber
-                                ? `<span class="text-truncate d-inline-block" style="max-width:140px">${safeTrackingNumber}</span><i class="fa fa-pen ms-1" aria-hidden="true"></i>`
-                                : `<i class="fa fa-truck me-1" aria-hidden="true"></i>${actionLabel}`;
-
-                            return `<button type="button" class="btn btn-outline-primary btn-sm btn-rma-tracking d-inline-flex align-items-center" data-id="${row.id}" data-request="${row.rmarequest}" data-tracking="${encodeURIComponent(trackingNumber)}" title="${actionLabel}">${buttonText}</button>`;
+                            return trackingNumber
+                                ? `<span class="text-break">${$("<div>").text(trackingNumber).html()}</span>`
+                                : `<span class="text-muted">—</span>`;
                         }
                     },
                     {

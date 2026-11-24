@@ -35,6 +35,7 @@ namespace Amphenol.RMA.Models.ModelsM10
         public string formated_date_approved { get; set; }
         public bool CanGenerateOrder { get; set; }
         public bool CanGenerateOrderForCurrentUser { get; set; }
+        public bool CanEditTrackingNumber { get; set; }
         public string OrderNumber { get; set; }
     }
 }
