@@ -292,6 +292,14 @@
             </div>
             <div class="modal-body">
                 <p class="text-muted small">RMA request <strong id="deliveryProofRequestNumber"></strong></p>
+                <label for="deliveryProofTrackingNumber" class="form-label">Tracking number</label>
+                <div class="input-group mb-3">
+                    <input type="text" id="deliveryProofTrackingNumber" class="form-control" readonly />
+                    <button type="button" id="copyDeliveryProofTrackingNumber" class="btn btn-outline-primary">
+                        <i class="fa fa-copy" aria-hidden="true"></i> Copy
+                    </button>
+                </div>
+                <small id="deliveryProofTrackingCopyStatus" class="d-block mb-3" role="status" aria-live="polite"></small>
                 <div id="deliveryProofFileList" class="list-group"></div>
                 <p id="deliveryProofEmpty" class="text-muted mb-0 d-none">No proof of delivery has been uploaded.</p>
                 <div id="deliveryProofError" class="text-danger small mt-2" role="alert"></div>

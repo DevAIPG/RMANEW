@@ -254,7 +254,7 @@ function cargarDatatableRma() {
 
                             if (trackingNumber && trackingNumber !== "-") {
                                 const label = trackingNumber;
-                                return `<button type="button" class="btn btn-link p-0 rma-delivery-proof-link text-start" data-id="${row.id}" data-request="${$('<div>').text(row.rmarequest || '').html()}">${$('<div>').text(label).html()}</button>`;
+                                return `<button type="button" class="btn btn-link p-0 rma-delivery-proof-link text-start" data-id="${row.id}" data-request="${$('<div>').text(row.rmarequest || '').html()}" data-tracking="${encodeURIComponent(trackingNumber)}">${$('<div>').text(label).html()}</button>`;
                             }
 
                             const isApproved = row.status === "Approved" && row.sumbit === "Submitted";
@@ -4786,7 +4786,10 @@ $(document).on('change', '#proofOfDeliveryFiles', function () {
 $(document).on('click', '.rma-delivery-proof-link', function () {
     const button = $(this);
     const requestId = button.data('id');
+    const trackingNumber = decodeURIComponent(button.attr('data-tracking') || '');
     $('#deliveryProofRequestNumber').text(button.data('request'));
+    $('#deliveryProofTrackingNumber').val(trackingNumber);
+    $('#deliveryProofTrackingCopyStatus').text('');
     $('#deliveryProofError').text('');
     $('#deliveryProofEmpty').addClass('d-none');
     $('#deliveryProofFileList').empty();
@@ -4805,6 +4808,30 @@ $(document).on('click', '.rma-delivery-proof-link', function () {
         .fail(function () {
             $('#deliveryProofError').text('Unable to load proof of delivery files.');
         });
+});
+
+$(document).on('click', '#copyDeliveryProofTrackingNumber', async function () {
+    const input = document.getElementById('deliveryProofTrackingNumber');
+    const status = document.getElementById('deliveryProofTrackingCopyStatus');
+    const trackingNumber = input.value;
+    if (!trackingNumber) return;
+
+    let copied = false;
+    try {
+        await navigator.clipboard.writeText(trackingNumber);
+        copied = true;
+    } catch (_) {
+        input.focus();
+        input.select();
+        input.setSelectionRange(0, input.value.length);
+        try {
+            copied = document.execCommand('copy');
+        } catch (_) {
+            copied = false;
+        }
+    }
+
+    status.textContent = copied ? 'Tracking number copied.' : 'Unable to copy. Select and copy the tracking number.';
 });
 
 $(document).on('submit', '#trackingNumberForm', function (event) {
