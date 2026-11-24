@@ -58,6 +58,9 @@ function cargarDatatableRma() {
                 destroy: true,
                 autoWidth: false,
                 scrollX: true,
+                fixedColumns: {
+                    left: 4
+                },
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
                 "order": [[1, "desc"]],
@@ -244,6 +247,7 @@ function cargarDatatableRma() {
                     {
                         "width": "190px",
                         "data": "trackingNumber",
+                        "className": "text-start",
                         render: function (data, type, row) {
                             const trackingNumber = String(data || "").trim();
                             if (type !== "display") return trackingNumber;
