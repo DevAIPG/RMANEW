@@ -78,7 +78,13 @@ namespace Amphenol.RMA.AccesoDatos.Data
         public string? NextApprovalRole(CSEXSW_Rma rma, double? approvalValue = null)
         {
             var total = approvalValue ?? rma.Totalrmavalues;
-            if (total < 5000) return null;
+            if (total < 5000)
+            {
+                return rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString()
+                    && string.Equals(rma.RMA500, "Yes", StringComparison.OrdinalIgnoreCase)
+                    ? RmaRoles.DistributionManager
+                    : null;
+            }
             if (total < 20000)
                 return rma.Rmatypeofrequest == RmaRequestType.DistyScrapAllowance.ToDisplayString()
                     ? RmaRoles.DistributionManager

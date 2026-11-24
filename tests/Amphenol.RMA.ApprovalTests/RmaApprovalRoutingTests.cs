@@ -52,7 +52,7 @@ public class RmaApprovalRoutingTests
 
     [Theory]
     [InlineData(4999, "No", true, null)]
-    [InlineData(4999, "Yes", false, null)]
+    [InlineData(4999, "Yes", false, RmaRoles.DistributionManager)]
     [InlineData(4999, "", false, null)]
     [InlineData(5000, "No", false, RmaRoles.DistributionManager)]
     [InlineData(19999.99, "No", false, RmaRoles.DistributionManager)]
@@ -86,6 +86,7 @@ public class RmaApprovalRoutingTests
 
         Assert.False(RmaApprovalRouting.IsAutoApprovedScrapAllowance(request));
         Assert.Equal(RmaRoles.QualityManager, _routing.NormalApproverRole(request));
+        Assert.Equal(RmaRoles.DistributionManager, _routing.NextApprovalRole(request));
     }
 
     [Fact]
@@ -105,6 +106,7 @@ public class RmaApprovalRoutingTests
         Assert.Equal(500m, viewModel.TotalValue);
         Assert.Equal("Yes", request.RMA500);
         Assert.False(RmaApprovalRouting.IsAutoApprovedScrapAllowance(request));
+        Assert.Equal(RmaRoles.DistributionManager, _routing.NextApprovalRole(request));
     }
 
     [Theory]
