@@ -1272,6 +1272,34 @@ namespace Amphenol.RMA.Controllers
                 return View(rmaViewModel);
             }
 
+            var editLines = await _m10Db.csexsw_coustumer
+                .AsNoTracking()
+                .Where(x => x.CSEXSW_Rma == rma)
+                .Select(x => new RmaLineViewModel
+                {
+                    Id = x.Id,
+                    AuthorizedQuantity = (int)x.Qty,
+                    GenerateCAR = x.Car,
+                    InvoiceNumber = x.Invoice,
+                    NoInvoice = x.Invoice == null || x.Invoice.Trim() == "" || x.Invoice.Trim() == "0",
+                    PartNumber = x.Coustumer,
+                    Price = x.Unit,
+                    ReturnCode = x.Retur,
+                    RmaRequestId = x.RmaId,
+                    SelectedAction = x.Action,
+                    SelectedLocation = x.Loc,
+                    SequenceNumber = x.Seq,
+                    UnitCost = x.Cost
+                }).ToListAsync();
+            var defaultLineLocation = RmaViewModel.GetDefaultLineLocation(rma.Wherebuilt);
+            if (defaultLineLocation != null)
+            {
+                foreach (var line in editLines)
+                {
+                    line.SelectedLocation = defaultLineLocation;
+                }
+            }
+
             string directory = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments");
 
             rmaViewModel = new()
@@ -1295,25 +1323,7 @@ namespace Amphenol.RMA.Controllers
                 Description = rma.Description,
                 ExtensionNumber = rma.Ext,
                 Fax = rma.Fax,
-                Lines = await _m10Db.csexsw_coustumer
-                     .AsNoTracking()
-                     .Where(x => x.CSEXSW_Rma == rma)
-                     .Select(x => new RmaLineViewModel
-                     {
-                         Id = x.Id,
-                         AuthorizedQuantity = (int)x.Qty,
-                         GenerateCAR = x.Car,
-                         InvoiceNumber = x.Invoice,
-                         NoInvoice = x.Invoice == null || x.Invoice.Trim() == "" || x.Invoice.Trim() == "0",
-                         PartNumber = x.Coustumer,
-                         Price = x.Unit,
-                         ReturnCode = x.Retur,
-                         RmaRequestId = x.RmaId,
-                         SelectedAction = x.Action,
-                         SelectedLocation = x.Loc,
-                         SequenceNumber = x.Seq,
-                         UnitCost = x.Cost
-                     }).ToListAsync(),
+                Lines = editLines,
                 PhoneNumber = rma.Phone,
                 PoNumber = rma.Customerpo,
                 ReturnPageTitle = returnPageTitle,

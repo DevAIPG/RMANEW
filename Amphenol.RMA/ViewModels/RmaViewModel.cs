@@ -19,6 +19,13 @@ namespace Amphenol.RMA.ViewModels
         [Required]
         public DateTime Date { get; set; } = DateTime.Now;
         public List<string> BuildLocations { get; } = [];
+        public static string? GetDefaultLineLocation(string? buildLocation) => buildLocation switch
+        {
+            "Endicott" => "ERM",
+            "Nogales" => "NRM",
+            "Mesa" => "MRM",
+            _ => null
+        };
         [Required]
         [StringLength(8)]
         public string SelectedBuildLocation { get; set; }

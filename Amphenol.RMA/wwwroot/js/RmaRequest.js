@@ -12,6 +12,19 @@ $(document).ready(function () {
     initializeNextRmaLineIndex();
     $("#LineTable tbody tr.rma-line-controls").each(function () { ApplyInvoiceMode($(this), false); });
 });
+function defaultLineLocationForBuildLocation(buildLocation) {
+    return {
+        Endicott: "ERM",
+        Nogales: "NRM",
+        Mesa: "MRM"
+    }[buildLocation] || "";
+}
+$(document).on("change", "#selectWherebuilt", function () {
+    const lineLocation = defaultLineLocationForBuildLocation($(this).val());
+    if (lineLocation) {
+        $("#LineTable .location-select").val(lineLocation);
+    }
+});
 $(document).on("click", ".btn-add-rma-line", function () {
     const index = nextRmaLineIndex++;
 
@@ -22,6 +35,10 @@ $(document).on("click", ".btn-add-rma-line", function () {
             html = html.replace(/__INDEX__/g, index);
 
             $("#LineTable tbody").append(html);
+            const lineLocation = defaultLineLocationForBuildLocation($("#selectWherebuilt").val());
+            if (lineLocation) {
+                $("#LineTable tbody tr.rma-line-controls").last().find(".location-select").val(lineLocation);
+            }
             RefreshLineValidation();
             ApplyInvoiceMode($("#LineTable tbody tr.rma-line-controls").last(), false);
         })
