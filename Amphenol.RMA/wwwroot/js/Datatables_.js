@@ -247,7 +247,7 @@ function cargarDatatableRma() {
                     {
                         "width": "190px",
                         "data": "trackingNumber",
-                        "className": "text-start",
+                        "className": "text-start rma-tracking-cell",
                         render: function (data, type, row) {
                             const trackingNumber = String(data || "").trim();
                             if (type !== "display") return trackingNumber;
@@ -255,12 +255,12 @@ function cargarDatatableRma() {
                             const isApproved = row.status === "Approved" && row.sumbit === "Submitted";
                             if (!isApproved) {
                                 return trackingNumber
-                                    ? `<span class="text-break">${$("<div>").text(trackingNumber).html()}</span>`
-                                    : `<span class="text-muted">—</span>`;
+                                    ? `<span class="text-break rma-tracking-value">${$("<div>").text(trackingNumber).html()}</span>`
+                                    : `<span class="text-muted rma-tracking-value">—</span>`;
                             }
                             return trackingNumber
-                                ? `<span class="text-break">${$("<div>").text(trackingNumber).html()}</span>`
-                                : `<span class="text-muted">—</span>`;
+                                ? `<span class="text-break rma-tracking-value">${$("<div>").text(trackingNumber).html()}</span>`
+                                : `<span class="text-muted rma-tracking-value">—</span>`;
                         }
                     },
                     {
