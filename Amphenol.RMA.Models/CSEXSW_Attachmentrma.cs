@@ -19,6 +19,9 @@ namespace Amphenol.RMA.Models
         [Required]
         [MaxLength(32)]
         public string AttachmentType { get; set; } = RequestAttachmentType;
+
+        [MaxLength(255)]
+        public string DisplayName { get; set; }
        
         [Required]
         public int RmaId { get; set; }

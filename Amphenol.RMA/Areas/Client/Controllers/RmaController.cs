@@ -1197,6 +1197,7 @@ namespace Amphenol.RMA.Controllers
                 await _m10Db.CSEXSW_Attachmentrma.AddAsync(new CSEXSW_Attachmentrma
                 {
                     Documento = storedFileName,
+                    DisplayName = Path.GetFileName(file.FileName).Trim(),
                     RmaId = rma.Id,
                     AttachmentType = CSEXSW_Attachmentrma.RequestAttachmentType
                 });
@@ -1312,7 +1313,7 @@ namespace Amphenol.RMA.Controllers
                      .Select(x => new RmaAttachmentViewModel
                      {
                          Id = x.Id,
-                         FileName = x.Documento,
+                         FileName = x.DisplayName ?? x.Documento,
                          FilePath = Path.Combine(directory, x.Documento)
                      }).ToListAsync(),
                 Comments = rma.Comment,
@@ -1591,6 +1592,7 @@ namespace Amphenol.RMA.Controllers
                     new CSEXSW_Attachmentrma
                     {
                         Documento = storedFileName,
+                        DisplayName = Path.GetFileName(file.FileName).Trim(),
                         RmaId = rma.Id,
                         AttachmentType = CSEXSW_Attachmentrma.RequestAttachmentType
                     });
@@ -2320,14 +2322,17 @@ namespace Amphenol.RMA.Controllers
         [HttpGet]
         public IActionResult LoadFilesByRMA(int rmaid)
         {
-            var files = _m10Db.CSEXSW_Attachmentrma.Where(s => s.RmaId == rmaid).OrderByDescending(r => r.Id).ToList();
+            var files = _m10Db.CSEXSW_Attachmentrma
+                .Where(s => s.RmaId == rmaid && s.AttachmentType == CSEXSW_Attachmentrma.RequestAttachmentType)
+                .OrderByDescending(r => r.Id).ToList();
             return Json(files);
         }
         [HttpGet]
         public IActionResult DeleteFileRMA(int id, string rma, string filename)
         {
             var directoryfile = Path.Combine(rootE, "RMA", rma, "Attachments", filename);
-            if (_m10Db.CSEXSW_Attachmentrma.Any(s => s.Id == id))
+            if (_m10Db.CSEXSW_Attachmentrma.Any(s => s.Id == id
+                && s.AttachmentType == CSEXSW_Attachmentrma.RequestAttachmentType))
             {
                 var file = _m10Db.CSEXSW_Attachmentrma.Where(S => S.Id == id).FirstOrDefault();
                 using var requestLock = LockEditableRequest(file.RmaId);
@@ -2375,7 +2380,9 @@ namespace Amphenol.RMA.Controllers
                         _m10Db.CSEXSW_Attachmentrma.Add(new CSEXSW_Attachmentrma()
                         {
                             Documento = nombrearchivo,
-                            RmaId = idrma
+                            DisplayName = nombrearchivo,
+                            RmaId = idrma,
+                            AttachmentType = CSEXSW_Attachmentrma.RequestAttachmentType
                         });
                         _m10Db.SaveChanges();
                     }
@@ -3618,7 +3625,7 @@ namespace Amphenol.RMA.Controllers
                      .Select(x => new RmaAttachmentViewModel
                      {
                          Id = x.Id,
-                         FileName = x.Documento
+                         FileName = x.DisplayName ?? x.Documento
                      }).ToListAsync(),
                 Comments = rma.Comment,
                 CompanyEmail = rma.Company,
@@ -3787,7 +3794,12 @@ namespace Amphenol.RMA.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveTrackingNumber(int requestId, string trackingNumber)
+        [RequestSizeLimit(52_428_800)]
+        public async Task<IActionResult> SaveTrackingNumber(
+            int requestId,
+            string trackingNumber,
+            List<IFormFile> proofFiles,
+            List<int> removedProofAttachmentIds)
         {
             var normalizedTrackingNumber = trackingNumber?.Trim();
             if (requestId <= 0)
@@ -3810,11 +3822,7 @@ namespace Amphenol.RMA.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden,
                     new { success = false, message = "Your user account is not authorized to update tracking numbers." });
 
-            var routing = new RmaApprovalRouting(_m10Db);
-            var canManageOtherTrackingNumbers = routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.CustomerServiceManager)
-                || routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.CustomerServiceSupervisor)
-                || routing.HasActiveRoleAssignment(currentEmployeeId, RmaRoles.IT);
-            if (rma.res_id != currentEmployeeId && !canManageOtherTrackingNumbers)
+            if (!CanManageTrackingForRequest(rma, currentEmployeeId))
                 return StatusCode(StatusCodes.Status403Forbidden,
                     new { success = false, message = "Only the requester, Customer Service manager or supervisor, or IT can update this tracking number." });
 
@@ -3838,9 +3846,171 @@ namespace Amphenol.RMA.Controllers
                     return Conflict(new { success = false, message = "Tracking numbers can no longer be changed once the RMA is ready for order generation." });
             }
 
-            rma.TrackingNumber = normalizedTrackingNumber;
-            await _m10Db.SaveChangesAsync();
-            return Json(new { success = true, message = "Tracking number saved." });
+            proofFiles ??= [];
+            removedProofAttachmentIds ??= [];
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { ".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff" };
+            if (proofFiles.Any(file => file.Length > 15 * 1024 * 1024))
+                return BadRequest(new { success = false, message = "Each proof of delivery file must be 15 MB or smaller." });
+            if (proofFiles.Any(file => file.Length > 0 && !allowedExtensions.Contains(Path.GetExtension(file.FileName))))
+                return BadRequest(new { success = false, message = "Proof of delivery files must be PDF or image files (PNG, JPG, or TIFF)." });
+            if (proofFiles.Any(file => Path.GetFileName(file.FileName).Trim().Length > 255))
+                return BadRequest(new { success = false, message = "File names must be 255 characters or fewer." });
+
+            var proofAttachments = await _m10Db.CSEXSW_Attachmentrma
+                .Where(x => x.RmaId == rma.Id
+                    && x.AttachmentType == CSEXSW_Attachmentrma.ProofOfDeliveryAttachmentType)
+                .ToListAsync();
+            var attachmentsToRemove = proofAttachments
+                .Where(x => removedProofAttachmentIds.Contains(x.Id))
+                .ToList();
+            var directory = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments");
+            var createdFiles = new List<string>();
+            try
+            {
+                foreach (var file in proofFiles.Where(x => x.Length > 0))
+                {
+                    Directory.CreateDirectory(directory);
+                    var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    var storedFileName = $"{Guid.NewGuid():N}{extension}";
+                    var path = Path.Combine(directory, storedFileName);
+                    await using (var stream = new FileStream(path, FileMode.CreateNew))
+                        await file.CopyToAsync(stream);
+                    createdFiles.Add(path);
+
+                    _m10Db.CSEXSW_Attachmentrma.Add(new CSEXSW_Attachmentrma
+                    {
+                        RmaId = rma.Id,
+                        Documento = storedFileName,
+                        DisplayName = Path.GetFileName(file.FileName).Trim(),
+                        AttachmentType = CSEXSW_Attachmentrma.ProofOfDeliveryAttachmentType
+                    });
+                }
+
+                rma.TrackingNumber = normalizedTrackingNumber;
+                _m10Db.CSEXSW_Attachmentrma.RemoveRange(attachmentsToRemove);
+                await _m10Db.SaveChangesAsync();
+            }
+            catch
+            {
+                foreach (var path in createdFiles)
+                    if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+                throw;
+            }
+
+            foreach (var attachment in attachmentsToRemove)
+            {
+                var path = Path.Combine(directory, attachment.Documento);
+                if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+            }
+
+            return Json(new { success = true, message = "Tracking number and proof of delivery saved." });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTrackingProofAttachments(int requestId)
+        {
+            var rma = await _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefaultAsync(x => x.Id == requestId);
+            if (rma is null) return NotFound();
+
+            var employeeIdValue = GetCurrentEmployeeNumber();
+            if (!int.TryParse(employeeIdValue, out var employeeId)
+                || !CanManageTrackingForRequest(rma, employeeId)
+                || rma.Status != RmaRequestStatus.Approved.ToDisplayString()
+                || rma.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString()
+                || await IsOrderGenerationReadyAsync(rma))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
+            var attachments = await _m10Db.CSEXSW_Attachmentrma.AsNoTracking()
+                .Where(x => x.RmaId == requestId
+                    && x.AttachmentType == CSEXSW_Attachmentrma.ProofOfDeliveryAttachmentType)
+                .OrderBy(x => x.Id)
+                .Select(x => new { id = x.Id, fileName = x.DisplayName ?? x.Documento })
+                .ToListAsync();
+            return Json(new { attachments });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDeliveryProof(int requestId)
+        {
+            var rma = await _m10Db.CSEXSW_Rma.AsNoTracking().FirstOrDefaultAsync(x => x.Id == requestId);
+            if (rma is null) return NotFound();
+            if (rma.Status != RmaRequestStatus.Approved.ToDisplayString()
+                || rma.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString()
+                || !await IsOrderGenerationReadyAsync(rma)
+                || !CanGenerateOrderForRequest(rma))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
+            var attachments = await _m10Db.CSEXSW_Attachmentrma.AsNoTracking()
+                .Where(x => x.RmaId == requestId
+                    && x.AttachmentType == CSEXSW_Attachmentrma.ProofOfDeliveryAttachmentType)
+                .OrderBy(x => x.Id)
+                .Select(x => new { id = x.Id, fileName = x.DisplayName ?? x.Documento })
+                .ToListAsync();
+            return Json(new { attachments });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ViewDeliveryProofAttachment(int id)
+        {
+            var attachment = await _m10Db.CSEXSW_Attachmentrma.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id
+                    && x.AttachmentType == CSEXSW_Attachmentrma.ProofOfDeliveryAttachmentType);
+            if (attachment is null) return NotFound();
+
+            var rma = await _m10Db.CSEXSW_Rma.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == attachment.RmaId);
+            if (rma is null
+                || rma.Status != RmaRequestStatus.Approved.ToDisplayString()
+                || rma.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString()
+                || !await IsOrderGenerationReadyAsync(rma)
+                || !CanGenerateOrderForRequest(rma))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
+            var path = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments", attachment.Documento);
+            if (!System.IO.File.Exists(path)) return NotFound();
+            var contentType = Path.GetExtension(attachment.Documento).ToLowerInvariant() switch
+            {
+                ".pdf" => "application/pdf",
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".tif" or ".tiff" => "image/tiff",
+                _ => "application/octet-stream"
+            };
+            var displayName = Path.GetFileName(attachment.DisplayName ?? attachment.Documento);
+            Response.Headers["Content-Disposition"] = $"inline; filename*=UTF-8''{Uri.EscapeDataString(displayName)}";
+            return PhysicalFile(path, contentType, null, enableRangeProcessing: true);
+        }
+
+        private bool CanManageTrackingForRequest(CSEXSW_Rma rma, int employeeId)
+        {
+            if (rma.res_id == employeeId) return true;
+            var routing = new RmaApprovalRouting(_m10Db);
+            return routing.HasActiveRoleAssignment(employeeId, RmaRoles.CustomerServiceManager)
+                || routing.HasActiveRoleAssignment(employeeId, RmaRoles.CustomerServiceSupervisor)
+                || routing.HasActiveRoleAssignment(employeeId, RmaRoles.IT);
+        }
+
+        private string GetCurrentEmployeeNumber()
+        {
+            var username = User.Identity?.Name?.Split('\\').LastOrDefault();
+            return string.IsNullOrWhiteSpace(username)
+                ? null
+                : _contenedorTrabajo.csexsw_dibujo.usuario(username.Trim());
+        }
+
+        private async Task<bool> IsOrderGenerationReadyAsync(CSEXSW_Rma rma)
+        {
+            if (rma.Status != RmaRequestStatus.Approved.ToDisplayString()) return false;
+            var rmaNumber = rma.turno?.Trim();
+            if (string.IsNullOrWhiteSpace(rmaNumber)) return false;
+            if (await _500Db.OEORDHDR_SQL.AsNoTracking().AnyAsync(x => x.RmaNo.Trim() == rmaNumber))
+                return true;
+            var quantities = await _500Db.OERDTFIL_SQL.AsNoTracking()
+                .Where(x => x.rma_no.Trim() == rmaNumber)
+                .Select(x => x.RmaQtyRtnActual)
+                .ToListAsync();
+            return quantities.Count > 0 && quantities.All(x => x > 0);
         }
 
         [HttpPut]
@@ -3957,6 +4127,8 @@ namespace Amphenol.RMA.Controllers
 
             var articuloDesdeDb = _contenedorTrabajo.CSEXSW_Attachmentrma.Get(id);
             if (articuloDesdeDb == null) return NotFound();
+            if (articuloDesdeDb.AttachmentType != CSEXSW_Attachmentrma.RequestAttachmentType)
+                return NotFound();
             using var requestLock = LockEditableRequest(articuloDesdeDb.RmaId);
             string rutaDirectorioPrincipal = _hostingEnvironment.WebRootPath;
 

@@ -336,6 +336,10 @@ namespace Amphenol.RMA.AccesoDatos.Migrations.SqlServerMigrationsM10
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<int>("RmaId")
                         .HasColumnType("int");
 

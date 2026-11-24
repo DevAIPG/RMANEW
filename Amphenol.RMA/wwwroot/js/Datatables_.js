@@ -252,6 +252,11 @@ function cargarDatatableRma() {
                             const trackingNumber = String(data || "").trim();
                             if (type !== "display") return trackingNumber;
 
+                            if (row.canGenerateOrder === true && row.canGenerateOrderForCurrentUser === true) {
+                                const label = trackingNumber || "View proof of delivery";
+                                return `<button type="button" class="btn btn-link p-0 rma-delivery-proof-link text-start" data-id="${row.id}" data-request="${$('<div>').text(row.rmarequest || '').html()}">${$('<div>').text(label).html()}</button>`;
+                            }
+
                             const isApproved = row.status === "Approved" && row.sumbit === "Submitted";
                             if (!isApproved) {
                                 return trackingNumber
@@ -4738,10 +4743,68 @@ $(document).on('click', '.btn-rma-tracking', function () {
     $('#trackingRequestId').val(button.data('id'));
     $('#trackingRequestNumber').text(button.data('request'));
     $('#trackingNumberInput').val(decodeURIComponent(encodedTrackingNumber));
+    $('#proofOfDeliveryFiles').val('');
+    $('#trackingNumberForm input[name="removedProofAttachmentIds"]').remove();
+    $('#proofOfDeliveryFileList').empty();
     $('#trackingNumberError').text('');
     $('#trackingNumberForm').removeData('submitted');
     $('#saveTrackingNumberButton').prop('disabled', false).text('Save tracking number');
     $('#trackingNumberModal').modal('show');
+
+    $.getJSON('/Client/rma/GetTrackingProofAttachments', { requestId: button.data('id') })
+        .done(function (result) {
+            const list = $('#proofOfDeliveryFileList');
+            const pendingUploads = list.children('.new-proof-file').detach();
+            list.empty().append(pendingUploads);
+            (result.attachments || []).forEach(function (attachment) {
+                const name = $('<div>').text(attachment.fileName || 'Attachment').html();
+                list.append(`<li class="list-group-item d-flex justify-content-between align-items-center gap-2" data-attachment-id="${attachment.id}"><span class="text-break">${name}</span><button type="button" class="btn btn-sm btn-outline-danger remove-proof-attachment" aria-label="Remove ${name}">Remove</button></li>`);
+            });
+        })
+        .fail(function () {
+            $('#trackingNumberError').text('Unable to load existing proof of delivery files.');
+        });
+});
+
+$(document).on('click', '.remove-proof-attachment', function () {
+    const item = $(this).closest('[data-attachment-id]');
+    const id = item.data('attachment-id');
+    $('<input>', { type: 'hidden', name: 'removedProofAttachmentIds', value: id })
+        .appendTo('#trackingNumberForm');
+    item.remove();
+});
+
+$(document).on('change', '#proofOfDeliveryFiles', function () {
+    const list = $('#proofOfDeliveryFileList');
+    list.children('.new-proof-file').remove();
+    Array.from(this.files || []).forEach(function (file) {
+        const safeName = $('<div>').text(file.name).html();
+        list.append(`<li class="list-group-item text-muted new-proof-file">New file: ${safeName}</li>`);
+    });
+});
+
+$(document).on('click', '.rma-delivery-proof-link', function () {
+    const button = $(this);
+    const requestId = button.data('id');
+    $('#deliveryProofRequestNumber').text(button.data('request'));
+    $('#deliveryProofError').text('');
+    $('#deliveryProofEmpty').addClass('d-none');
+    $('#deliveryProofFileList').empty();
+    $('#deliveryProofModal').modal('show');
+
+    $.getJSON('/Client/rma/GetDeliveryProof', { requestId: requestId })
+        .done(function (result) {
+            const list = $('#deliveryProofFileList').empty();
+            const attachments = result.attachments || [];
+            $('#deliveryProofEmpty').toggleClass('d-none', attachments.length > 0);
+            attachments.forEach(function (attachment) {
+                const name = $('<div>').text(attachment.fileName || 'Attachment').html();
+                list.append(`<a class="list-group-item list-group-item-action" href="/Client/rma/ViewDeliveryProofAttachment?id=${attachment.id}" target="_blank" rel="noopener">${name}<span class="float-end">Open</span></a>`);
+            });
+        })
+        .fail(function () {
+            $('#deliveryProofError').text('Unable to load proof of delivery files.');
+        });
 });
 
 $(document).on('submit', '#trackingNumberForm', function (event) {
@@ -4765,7 +4828,9 @@ $(document).on('submit', '#trackingNumberForm', function (event) {
     $.ajax({
         url: form.attr('action'),
         type: 'POST',
-        data: form.serialize(),
+        data: new FormData(form[0]),
+        contentType: false,
+        processData: false,
         dataType: 'json'
     }).done(function (result) {
         if (!result.success) {
@@ -4783,6 +4848,7 @@ $(document).on('submit', '#trackingNumberForm', function (event) {
         $('#trackingNumberError').text(message);
     }).always(function () {
         form.removeData('submitted');
+        form.find('input[name="removedProofAttachmentIds"]').remove();
         submitButton.prop('disabled', false).text('Save tracking number');
     });
 });
