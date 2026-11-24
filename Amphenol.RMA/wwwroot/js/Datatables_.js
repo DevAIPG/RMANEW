@@ -252,8 +252,8 @@ function cargarDatatableRma() {
                             const trackingNumber = String(data || "").trim();
                             if (type !== "display") return trackingNumber;
 
-                            if (row.canGenerateOrder === true && row.canGenerateOrderForCurrentUser === true) {
-                                const label = trackingNumber || "View proof of delivery";
+                            if (trackingNumber && trackingNumber !== "-") {
+                                const label = trackingNumber;
                                 return `<button type="button" class="btn btn-link p-0 rma-delivery-proof-link text-start" data-id="${row.id}" data-request="${$('<div>').text(row.rmarequest || '').html()}">${$('<div>').text(label).html()}</button>`;
                             }
 
@@ -4758,7 +4758,7 @@ $(document).on('click', '.btn-rma-tracking', function () {
             list.empty().append(pendingUploads);
             (result.attachments || []).forEach(function (attachment) {
                 const name = $('<div>').text(attachment.fileName || 'Attachment').html();
-                list.append(`<li class="list-group-item d-flex justify-content-between align-items-center gap-2" data-attachment-id="${attachment.id}"><span class="text-break">${name}</span><button type="button" class="btn btn-sm btn-outline-danger remove-proof-attachment" aria-label="Remove ${name}">Remove</button></li>`);
+                list.append(`<li class="list-group-item d-flex justify-content-between align-items-center gap-2" data-attachment-id="${attachment.id}"><a class="text-break" href="/Client/rma/ViewDeliveryProofAttachment?id=${attachment.id}" target="_blank" rel="noopener">${name}</a><button type="button" class="btn btn-sm btn-outline-danger remove-proof-attachment" aria-label="Remove ${name}">Remove</button></li>`);
             });
         })
         .fail(function () {

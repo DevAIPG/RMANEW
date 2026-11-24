@@ -1,5 +1,16 @@
 {
   "profiles": {
+    "Amphenol.RMA": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "RMA_USE_KESTREL_NEGOTIATE": "true"
+      },
+      "sqlDebugging": false,
+      "launchUrl": "Client/Rma",
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
@@ -7,16 +18,6 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
-    },
-    "Amphenol.RMA": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "sqlDebugging": false,
-      "launchUrl": "Client/Rma",
-      "applicationUrl": "https://localhost:5001;http://localhost:5000"
     },
     "WSL": {
       "commandName": "WSL2",

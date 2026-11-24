@@ -3937,8 +3937,8 @@ namespace Amphenol.RMA.Controllers
             if (rma is null) return NotFound();
             if (rma.Status != RmaRequestStatus.Approved.ToDisplayString()
                 || rma.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString()
-                || !await IsOrderGenerationReadyAsync(rma)
-                || !CanGenerateOrderForRequest(rma))
+                || string.IsNullOrWhiteSpace(rma.TrackingNumber)
+                || rma.TrackingNumber.Trim() == "-")
                 return StatusCode(StatusCodes.Status403Forbidden);
 
             var attachments = await _m10Db.CSEXSW_Attachmentrma.AsNoTracking()
@@ -3963,8 +3963,8 @@ namespace Amphenol.RMA.Controllers
             if (rma is null
                 || rma.Status != RmaRequestStatus.Approved.ToDisplayString()
                 || rma.Sumbit != RmaSubmitStatus.Submitted.ToDisplayString()
-                || !await IsOrderGenerationReadyAsync(rma)
-                || !CanGenerateOrderForRequest(rma))
+                || string.IsNullOrWhiteSpace(rma.TrackingNumber)
+                || rma.TrackingNumber.Trim() == "-")
                 return StatusCode(StatusCodes.Status403Forbidden);
 
             var path = Path.Combine(rootE, "RMA", rma.Rmarequest.Trim(), "Attachments", attachment.Documento);

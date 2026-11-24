@@ -11,6 +11,7 @@ using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -36,7 +37,15 @@ namespace Amphenol.RMA
         {
             services.AddAntiforgery(options => { options.SuppressXFrameOptionsHeader = true; });
 
-            services.AddAuthentication(IISDefaults.AuthenticationScheme);
+            if (Configuration.GetValue<bool>("RMA_USE_KESTREL_NEGOTIATE"))
+            {
+                services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+                    .AddNegotiate();
+            }
+            else
+            {
+                services.AddAuthentication(IISDefaults.AuthenticationScheme);
+            }
 
             services.AddControllers();
 
